@@ -1,0 +1,949 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>CausalExplorer.Application</name>
+    </assembly>
+    <members>
+        <member name="T:CausalExplorer.Application.AI.Commands.ExtractEventsFromTextCommand">
+            <summary>Command to extract structured event nodes from free-form text using the AI service.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.AI.Commands.ExtractEventsFromTextCommand.#ctor(System.String)">
+            <summary>Command to extract structured event nodes from free-form text using the AI service.</summary>
+        </member>
+        <member name="T:CausalExplorer.Application.AI.Commands.ExtractEventsFromTextCommandHandler">
+            <summary>Handles <see cref="T:CausalExplorer.Application.AI.Commands.ExtractEventsFromTextCommand"/>.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.AI.Commands.ExtractEventsFromTextCommandHandler.#ctor(CausalExplorer.Application.Common.Interfaces.IAIService)">
+            <summary>Initialises the handler.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.AI.Commands.ExtractEventsFromTextCommandHandler.Handle(CausalExplorer.Application.AI.Commands.ExtractEventsFromTextCommand,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="T:CausalExplorer.Application.AI.Interfaces.ExtractedEvent">
+            <summary>
+            Represents a single event extracted from raw text by the AI service.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.Application.AI.Interfaces.ExtractedEvent.#ctor(System.String,System.String,System.DateTime,System.String)">
+            <summary>
+            Represents a single event extracted from raw text by the AI service.
+            </summary>
+        </member>
+        <member name="T:CausalExplorer.Application.AI.Interfaces.ExtractedEventsResult">
+            <summary>
+            Result returned from <c>IAIService.ExtractEventsFromTextAsync</c>.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.Application.AI.Interfaces.ExtractedEventsResult.#ctor(System.Collections.Generic.IReadOnlyList{CausalExplorer.Application.AI.Interfaces.ExtractedEvent},System.String)">
+            <summary>
+            Result returned from <c>IAIService.ExtractEventsFromTextAsync</c>.
+            </summary>
+        </member>
+        <member name="T:CausalExplorer.Application.AI.Interfaces.CausalLinkResult">
+            <summary>
+            Result returned from <c>IAIService.GenerateCausalLinkAsync</c>.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.Application.AI.Interfaces.CausalLinkResult.#ctor(System.String,System.Decimal,System.Boolean)">
+            <summary>
+            Result returned from <c>IAIService.GenerateCausalLinkAsync</c>.
+            </summary>
+        </member>
+        <member name="T:CausalExplorer.Application.AI.Interfaces.ExpansionNode">
+            <summary>
+            A single suggested node or edge returned from a chain expansion.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.Application.AI.Interfaces.ExpansionNode.#ctor(System.String,System.String,System.String,System.String)">
+            <summary>
+            A single suggested node or edge returned from a chain expansion.
+            </summary>
+        </member>
+        <member name="T:CausalExplorer.Application.AI.Interfaces.ChainExpansionResult">
+            <summary>
+            Result returned from <c>IAIService.ExpandChainNodeAsync</c>.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.Application.AI.Interfaces.ChainExpansionResult.#ctor(System.Collections.Generic.IReadOnlyList{CausalExplorer.Application.AI.Interfaces.ExpansionNode},System.String)">
+            <summary>
+            Result returned from <c>IAIService.ExpandChainNodeAsync</c>.
+            </summary>
+        </member>
+        <member name="T:CausalExplorer.Application.Auth.Commands.RegisterCommandHandler">
+            <summary>Handles <see cref="T:CausalExplorer.Application.Auth.Commands.RegisterCommand"/>.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.Auth.Commands.RegisterCommandHandler.#ctor(CausalExplorer.Domain.Interfaces.IUserRepository,CausalExplorer.Domain.Interfaces.IUnitOfWork,CausalExplorer.Application.Common.Interfaces.ITokenService)">
+            <summary>Initialises the handler.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.Auth.Commands.RegisterCommandHandler.Handle(CausalExplorer.Application.Auth.Commands.RegisterCommand,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="T:CausalExplorer.Application.Auth.Commands.LoginCommandHandler">
+            <summary>Handles <see cref="T:CausalExplorer.Application.Auth.Commands.LoginCommand"/>.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.Auth.Commands.LoginCommandHandler.#ctor(CausalExplorer.Domain.Interfaces.IUserRepository,CausalExplorer.Domain.Interfaces.IUnitOfWork,CausalExplorer.Application.Common.Interfaces.ITokenService)">
+            <summary>Initialises the handler.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.Auth.Commands.LoginCommandHandler.Handle(CausalExplorer.Application.Auth.Commands.LoginCommand,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="T:CausalExplorer.Application.Auth.Commands.RefreshTokenCommandHandler">
+            <summary>Handles <see cref="T:CausalExplorer.Application.Auth.Commands.RefreshTokenCommand"/>.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.Auth.Commands.RefreshTokenCommandHandler.#ctor(CausalExplorer.Application.Common.Interfaces.ITokenService,CausalExplorer.Application.Common.Interfaces.ICurrentUserService,CausalExplorer.Domain.Interfaces.IUserRepository)">
+            <summary>Initialises the handler.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.Auth.Commands.RefreshTokenCommandHandler.Handle(CausalExplorer.Application.Auth.Commands.RefreshTokenCommand,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="T:CausalExplorer.Application.Auth.Commands.RevokeTokenCommandHandler">
+            <summary>Handles <see cref="T:CausalExplorer.Application.Auth.Commands.RevokeTokenCommand"/>.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.Auth.Commands.RevokeTokenCommandHandler.#ctor(CausalExplorer.Application.Common.Interfaces.ITokenService)">
+            <summary>Initialises the handler.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.Auth.Commands.RevokeTokenCommandHandler.Handle(CausalExplorer.Application.Auth.Commands.RevokeTokenCommand,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="T:CausalExplorer.Application.Auth.Commands.RegisterCommand">
+            <summary>Command to register a new user account.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.Auth.Commands.RegisterCommand.#ctor(System.String,System.String,System.String,System.String)">
+            <summary>Command to register a new user account.</summary>
+        </member>
+        <member name="T:CausalExplorer.Application.Auth.Commands.LoginCommand">
+            <summary>Command to authenticate a user and issue a token pair.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.Auth.Commands.LoginCommand.#ctor(System.String,System.String)">
+            <summary>Command to authenticate a user and issue a token pair.</summary>
+        </member>
+        <member name="T:CausalExplorer.Application.Auth.Commands.RefreshTokenCommand">
+            <summary>Command to refresh an access token using a valid refresh token.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.Auth.Commands.RefreshTokenCommand.#ctor(System.String)">
+            <summary>Command to refresh an access token using a valid refresh token.</summary>
+        </member>
+        <member name="T:CausalExplorer.Application.Auth.Commands.RevokeTokenCommand">
+            <summary>Command to revoke an existing refresh token.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.Auth.Commands.RevokeTokenCommand.#ctor(System.String)">
+            <summary>Command to revoke an existing refresh token.</summary>
+        </member>
+        <member name="T:CausalExplorer.Application.Auth.Commands.RegisterCommandValidator">
+            <summary>Validates <see cref="T:CausalExplorer.Application.Auth.Commands.RegisterCommand"/>.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.Auth.Commands.RegisterCommandValidator.#ctor">
+            <summary>Defines all validation rules.</summary>
+        </member>
+        <member name="T:CausalExplorer.Application.Auth.Commands.LoginCommandValidator">
+            <summary>Validates <see cref="T:CausalExplorer.Application.Auth.Commands.LoginCommand"/>.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.Auth.Commands.LoginCommandValidator.#ctor">
+            <summary>Defines all validation rules.</summary>
+        </member>
+        <member name="T:CausalExplorer.Application.Auth.Commands.RefreshTokenCommandValidator">
+            <summary>Validates <see cref="T:CausalExplorer.Application.Auth.Commands.RefreshTokenCommand"/>.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.Auth.Commands.RefreshTokenCommandValidator.#ctor">
+            <summary>Defines all validation rules.</summary>
+        </member>
+        <member name="T:CausalExplorer.Application.Auth.Commands.RevokeTokenCommandValidator">
+            <summary>Validates <see cref="T:CausalExplorer.Application.Auth.Commands.RevokeTokenCommand"/>.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.Auth.Commands.RevokeTokenCommandValidator.#ctor">
+            <summary>Defines all validation rules.</summary>
+        </member>
+        <member name="T:CausalExplorer.Application.Auth.DTOs.AuthResultDto">
+            <summary>Returned after a successful login or token refresh.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.Auth.DTOs.AuthResultDto.#ctor(System.String,System.String,System.DateTime,System.Guid,System.String,System.String)">
+            <summary>Returned after a successful login or token refresh.</summary>
+        </member>
+        <member name="T:CausalExplorer.Application.Auth.DTOs.UserProfileDto">
+            <summary>Profile information for the current authenticated user.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.Auth.DTOs.UserProfileDto.#ctor(System.Guid,System.String,System.String,System.String,System.Boolean,System.DateTime,System.Nullable{System.DateTime})">
+            <summary>Profile information for the current authenticated user.</summary>
+        </member>
+        <member name="T:CausalExplorer.Application.Auth.Queries.GetCurrentUserQuery">
+            <summary>Returns the profile of the currently authenticated user.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.Auth.Queries.GetCurrentUserQuery.#ctor(System.Guid)">
+            <summary>Returns the profile of the currently authenticated user.</summary>
+        </member>
+        <member name="T:CausalExplorer.Application.Auth.Queries.GetCurrentUserQueryHandler">
+            <summary>Handles <see cref="T:CausalExplorer.Application.Auth.Queries.GetCurrentUserQuery"/>.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.Auth.Queries.GetCurrentUserQueryHandler.#ctor(CausalExplorer.Domain.Interfaces.IUserRepository)">
+            <summary>Initialises the handler.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.Auth.Queries.GetCurrentUserQueryHandler.Handle(CausalExplorer.Application.Auth.Queries.GetCurrentUserQuery,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="T:CausalExplorer.Application.CausalChains.Commands.CreateCausalChainCommandHandler">
+            <summary>Handles <see cref="T:CausalExplorer.Application.CausalChains.Commands.CreateCausalChainCommand"/>.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.CausalChains.Commands.CreateCausalChainCommandHandler.#ctor(CausalExplorer.Domain.Interfaces.ICausalChainRepository,CausalExplorer.Domain.Interfaces.IEventNodeRepository,CausalExplorer.Domain.Interfaces.IUnitOfWork)">
+            <summary>Initialises the handler.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.CausalChains.Commands.CreateCausalChainCommandHandler.Handle(CausalExplorer.Application.CausalChains.Commands.CreateCausalChainCommand,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="T:CausalExplorer.Application.CausalChains.Commands.SaveChainCommandHandler">
+            <summary>Handles <see cref="T:CausalExplorer.Application.CausalChains.Commands.SaveChainCommand"/>.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.CausalChains.Commands.SaveChainCommandHandler.#ctor(CausalExplorer.Domain.Interfaces.ICausalChainRepository,CausalExplorer.Domain.Interfaces.IUserSavedChainRepository,CausalExplorer.Domain.Interfaces.IUnitOfWork)">
+            <summary>Initialises the handler.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.CausalChains.Commands.SaveChainCommandHandler.Handle(CausalExplorer.Application.CausalChains.Commands.SaveChainCommand,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="T:CausalExplorer.Application.CausalChains.Commands.CreateCausalChainCommand">
+            <summary>Command to create a new named causal chain rooted at a given event node.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.CausalChains.Commands.CreateCausalChainCommand.#ctor(System.String,System.Guid,CausalExplorer.Domain.Enums.EventDomain)">
+            <summary>Command to create a new named causal chain rooted at a given event node.</summary>
+        </member>
+        <member name="T:CausalExplorer.Application.CausalChains.Commands.SaveChainCommand">
+            <summary>Command to save a causal chain to a user's personal library.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.CausalChains.Commands.SaveChainCommand.#ctor(System.Guid,System.Guid,System.String)">
+            <summary>Command to save a causal chain to a user's personal library.</summary>
+        </member>
+        <member name="T:CausalExplorer.Application.CausalChains.Commands.CreateCausalChainCommandValidator">
+            <summary>Validates <see cref="T:CausalExplorer.Application.CausalChains.Commands.CreateCausalChainCommand"/>.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.CausalChains.Commands.CreateCausalChainCommandValidator.#ctor">
+            <summary>Defines all validation rules.</summary>
+        </member>
+        <member name="T:CausalExplorer.Application.CausalChains.Commands.SaveChainCommandValidator">
+            <summary>Validates <see cref="T:CausalExplorer.Application.CausalChains.Commands.SaveChainCommand"/>.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.CausalChains.Commands.SaveChainCommandValidator.#ctor">
+            <summary>Defines all validation rules.</summary>
+        </member>
+        <member name="T:CausalExplorer.Application.CausalChains.DTOs.GraphNodeDto">
+            <summary>
+            DTO for a graph node as consumed by the frontend renderer.
+            Includes layout coordinates and expansion state.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.Application.CausalChains.DTOs.GraphNodeDto.#ctor(System.Guid,System.String,System.String,System.String,System.Decimal,System.String,System.Single,System.Single,System.Boolean,System.Boolean)">
+            <summary>
+            DTO for a graph node as consumed by the frontend renderer.
+            Includes layout coordinates and expansion state.
+            </summary>
+        </member>
+        <member name="T:CausalExplorer.Application.CausalChains.DTOs.GraphEdgeDto">
+            <summary>
+            DTO for a graph edge as consumed by the frontend renderer.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.Application.CausalChains.DTOs.GraphEdgeDto.#ctor(System.Guid,System.Guid,System.Guid,System.Decimal,System.String,System.String,System.String,System.Boolean,System.String)">
+            <summary>
+            DTO for a graph edge as consumed by the frontend renderer.
+            </summary>
+        </member>
+        <member name="T:CausalExplorer.Application.CausalChains.DTOs.ChainMetadataDto">
+            <summary>Metadata for a rendered causal chain.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.CausalChains.DTOs.ChainMetadataDto.#ctor(System.Guid,System.String,System.String,System.Int32,System.Int32,System.DateTime)">
+            <summary>Metadata for a rendered causal chain.</summary>
+        </member>
+        <member name="T:CausalExplorer.Application.CausalChains.DTOs.CausalGraphDto">
+            <summary>
+            Full graph DTO consumed by the frontend graph renderer.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.Application.CausalChains.DTOs.CausalGraphDto.#ctor(System.Collections.Generic.IReadOnlyList{CausalExplorer.Application.CausalChains.DTOs.GraphNodeDto},System.Collections.Generic.IReadOnlyList{CausalExplorer.Application.CausalChains.DTOs.GraphEdgeDto},CausalExplorer.Application.CausalChains.DTOs.ChainMetadataDto)">
+            <summary>
+            Full graph DTO consumed by the frontend graph renderer.
+            </summary>
+        </member>
+        <member name="T:CausalExplorer.Application.CausalChains.DTOs.SavedChainDto">
+            <summary>Summary DTO for a user's saved chain entry.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.CausalChains.DTOs.SavedChainDto.#ctor(System.Guid,System.String,System.String,System.Int32,System.DateTime,System.String)">
+            <summary>Summary DTO for a user's saved chain entry.</summary>
+        </member>
+        <member name="T:CausalExplorer.Application.CausalChains.DTOs.CausalChainSummaryDto">
+            <summary>Summary DTO for a causal chain (listing / trending).</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.CausalChains.DTOs.CausalChainSummaryDto.#ctor(System.Guid,System.Guid,System.String,System.String,System.Int32,System.Int32,System.DateTime,System.DateTime)">
+            <summary>Summary DTO for a causal chain (listing / trending).</summary>
+        </member>
+        <member name="T:CausalExplorer.Application.CausalChains.Queries.GetCausalChainQuery">
+            <summary>Retrieves the full graph structure for a causal chain, optionally filtered by perspective and depth.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.CausalChains.Queries.GetCausalChainQuery.#ctor(System.Guid,System.Nullable{CausalExplorer.Domain.Enums.Perspective},System.Int32)">
+            <summary>Retrieves the full graph structure for a causal chain, optionally filtered by perspective and depth.</summary>
+        </member>
+        <member name="T:CausalExplorer.Application.CausalChains.Queries.ExpandChainNodeQuery">
+            <summary>Expands a node within a chain to suggest new connected nodes via the AI service.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.CausalChains.Queries.ExpandChainNodeQuery.#ctor(System.Guid,System.Guid,System.String)">
+            <summary>Expands a node within a chain to suggest new connected nodes via the AI service.</summary>
+        </member>
+        <member name="T:CausalExplorer.Application.CausalChains.Queries.GetInitialChainQuery">
+            <summary>Returns 3-5 most relevant cause/effect nodes for a first-render of an event's chain.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.CausalChains.Queries.GetInitialChainQuery.#ctor(System.Guid,System.Nullable{CausalExplorer.Domain.Enums.Perspective})">
+            <summary>Returns 3-5 most relevant cause/effect nodes for a first-render of an event's chain.</summary>
+        </member>
+        <member name="T:CausalExplorer.Application.CausalChains.Queries.GetUserSavedChainsQuery">
+            <summary>Returns a user's saved chains with metadata.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.CausalChains.Queries.GetUserSavedChainsQuery.#ctor(System.Guid)">
+            <summary>Returns a user's saved chains with metadata.</summary>
+        </member>
+        <member name="T:CausalExplorer.Application.CausalChains.Queries.GetCausalChainQueryHandler">
+            <summary>Handles <see cref="T:CausalExplorer.Application.CausalChains.Queries.GetCausalChainQuery"/>.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.CausalChains.Queries.GetCausalChainQueryHandler.#ctor(CausalExplorer.Domain.Interfaces.ICausalChainRepository,CausalExplorer.Domain.Interfaces.IEventNodeRepository,CausalExplorer.Domain.Interfaces.ICausalEdgeRepository)">
+            <summary>Initialises the handler.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.CausalChains.Queries.GetCausalChainQueryHandler.Handle(CausalExplorer.Application.CausalChains.Queries.GetCausalChainQuery,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="T:CausalExplorer.Application.CausalChains.Queries.ExpandChainNodeQueryHandler">
+            <summary>Handles <see cref="T:CausalExplorer.Application.CausalChains.Queries.ExpandChainNodeQuery"/>.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.CausalChains.Queries.ExpandChainNodeQueryHandler.#ctor(CausalExplorer.Application.Common.Interfaces.IAIService,CausalExplorer.Domain.Interfaces.ICausalChainRepository,CausalExplorer.Domain.Interfaces.IEventNodeRepository)">
+            <summary>Initialises the handler.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.CausalChains.Queries.ExpandChainNodeQueryHandler.Handle(CausalExplorer.Application.CausalChains.Queries.ExpandChainNodeQuery,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="T:CausalExplorer.Application.CausalChains.Queries.GetInitialChainQueryHandler">
+            <summary>Handles <see cref="T:CausalExplorer.Application.CausalChains.Queries.GetInitialChainQuery"/>.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.CausalChains.Queries.GetInitialChainQueryHandler.#ctor(CausalExplorer.Domain.Interfaces.IEventNodeRepository,CausalExplorer.Domain.Interfaces.ICausalEdgeRepository)">
+            <summary>Initialises the handler.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.CausalChains.Queries.GetInitialChainQueryHandler.Handle(CausalExplorer.Application.CausalChains.Queries.GetInitialChainQuery,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="T:CausalExplorer.Application.CausalChains.Queries.GetUserSavedChainsQueryHandler">
+            <summary>Handles <see cref="T:CausalExplorer.Application.CausalChains.Queries.GetUserSavedChainsQuery"/>.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.CausalChains.Queries.GetUserSavedChainsQueryHandler.#ctor(CausalExplorer.Domain.Interfaces.IUserSavedChainRepository,CausalExplorer.Domain.Interfaces.ICausalChainRepository)">
+            <summary>Initialises the handler.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.CausalChains.Queries.GetUserSavedChainsQueryHandler.Handle(CausalExplorer.Application.CausalChains.Queries.GetUserSavedChainsQuery,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="T:CausalExplorer.Application.CausalEdges.Commands.AddCausalEdgeCommand">
+            <summary>Command to add a directed causal edge between two event nodes.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.CausalEdges.Commands.AddCausalEdgeCommand.#ctor(System.Guid,System.Guid,CausalExplorer.Domain.Enums.CausalRelationshipType,CausalExplorer.Domain.Enums.Perspective,System.Decimal,System.String,System.Boolean,System.Collections.Generic.IReadOnlyList{CausalExplorer.Application.CausalEdges.Commands.CreateEdgeSourceRequest})">
+            <summary>Command to add a directed causal edge between two event nodes.</summary>
+        </member>
+        <member name="T:CausalExplorer.Application.CausalEdges.Commands.CreateEdgeSourceRequest">
+            <summary>Source data embedded in edge commands.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.CausalEdges.Commands.CreateEdgeSourceRequest.#ctor(System.String,System.String,System.DateTime,System.Decimal,CausalExplorer.Domain.Enums.SourceType)">
+            <summary>Source data embedded in edge commands.</summary>
+        </member>
+        <member name="T:CausalExplorer.Application.CausalEdges.Commands.AddCausalEdgeCommandHandler">
+            <summary>Handles <see cref="T:CausalExplorer.Application.CausalEdges.Commands.AddCausalEdgeCommand"/>.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.CausalEdges.Commands.AddCausalEdgeCommandHandler.#ctor(CausalExplorer.Domain.Interfaces.ICausalEdgeRepository,CausalExplorer.Domain.Interfaces.IEventNodeRepository,CausalExplorer.Domain.Interfaces.IUnitOfWork,CausalExplorer.Application.Common.Interfaces.IAIService)">
+            <summary>Initialises the handler.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.CausalEdges.Commands.AddCausalEdgeCommandHandler.Handle(CausalExplorer.Application.CausalEdges.Commands.AddCausalEdgeCommand,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="T:CausalExplorer.Application.CausalEdges.Commands.AddCausalEdgeCommandValidator">
+            <summary>Validates <see cref="T:CausalExplorer.Application.CausalEdges.Commands.AddCausalEdgeCommand"/>.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.CausalEdges.Commands.AddCausalEdgeCommandValidator.#ctor">
+            <summary>Defines all validation rules.</summary>
+        </member>
+        <member name="T:CausalExplorer.Application.CausalEdges.Commands.RemoveCausalEdgeCommand">
+            <summary>
+            Command to soft-delete a causal edge.
+            Permitted for the contributing user or Moderator/Admin roles.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.Application.CausalEdges.Commands.RemoveCausalEdgeCommand.#ctor(System.Guid)">
+            <summary>
+            Command to soft-delete a causal edge.
+            Permitted for the contributing user or Moderator/Admin roles.
+            </summary>
+        </member>
+        <member name="T:CausalExplorer.Application.CausalEdges.Commands.RemoveCausalEdgeCommandHandler">
+            <summary>Handles <see cref="T:CausalExplorer.Application.CausalEdges.Commands.RemoveCausalEdgeCommand"/>.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.CausalEdges.Commands.RemoveCausalEdgeCommandHandler.#ctor(CausalExplorer.Domain.Interfaces.ICausalEdgeRepository,CausalExplorer.Domain.Interfaces.IUnitOfWork)">
+            <summary>Initialises the handler.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.CausalEdges.Commands.RemoveCausalEdgeCommandHandler.Handle(CausalExplorer.Application.CausalEdges.Commands.RemoveCausalEdgeCommand,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="T:CausalExplorer.Application.CausalEdges.Commands.UpdateCausalEdgeCommand">
+            <summary>Command to update the explanation, strength, or contested status of a causal edge.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.CausalEdges.Commands.UpdateCausalEdgeCommand.#ctor(System.Guid,System.String,System.Nullable{System.Decimal},System.Nullable{System.Boolean})">
+            <summary>Command to update the explanation, strength, or contested status of a causal edge.</summary>
+        </member>
+        <member name="T:CausalExplorer.Application.CausalEdges.Commands.UpdateCausalEdgeCommandHandler">
+            <summary>Handles <see cref="T:CausalExplorer.Application.CausalEdges.Commands.UpdateCausalEdgeCommand"/>.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.CausalEdges.Commands.UpdateCausalEdgeCommandHandler.#ctor(CausalExplorer.Domain.Interfaces.ICausalEdgeRepository,CausalExplorer.Domain.Interfaces.IUnitOfWork)">
+            <summary>Initialises the handler.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.CausalEdges.Commands.UpdateCausalEdgeCommandHandler.Handle(CausalExplorer.Application.CausalEdges.Commands.UpdateCausalEdgeCommand,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="T:CausalExplorer.Application.CausalEdges.Commands.UpdateCausalEdgeCommandValidator">
+            <summary>Validates <see cref="T:CausalExplorer.Application.CausalEdges.Commands.UpdateCausalEdgeCommand"/>.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.CausalEdges.Commands.UpdateCausalEdgeCommandValidator.#ctor">
+            <summary>Defines all validation rules.</summary>
+        </member>
+        <member name="T:CausalExplorer.Application.CausalEdges.DTOs.EdgeStyle">
+            <summary>Derived visual edge style based on causal strength.</summary>
+        </member>
+        <member name="T:CausalExplorer.Application.CausalEdges.DTOs.CausalEdgeDto">
+            <summary>Full DTO for a causal edge.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.CausalEdges.DTOs.CausalEdgeDto.#ctor(System.Guid,System.Guid,System.Guid,System.Decimal,CausalExplorer.Application.CausalEdges.DTOs.EdgeStyle,System.String,System.String,System.String,System.Boolean,System.Collections.Generic.IReadOnlyList{CausalExplorer.Application.EventNodes.DTOs.SourceDto},System.DateTime,System.DateTime)">
+            <summary>Full DTO for a causal edge.</summary>
+        </member>
+        <member name="T:CausalExplorer.Application.CausalEdges.DTOs.EdgeWithNodeDto">
+            <summary>
+            Edge DTO bundled with summary info for the connected node,
+            used in directional edge list queries.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.Application.CausalEdges.DTOs.EdgeWithNodeDto.#ctor(CausalExplorer.Application.CausalEdges.DTOs.CausalEdgeDto,CausalExplorer.Application.EventNodes.DTOs.EventNodeSummaryDto)">
+            <summary>
+            Edge DTO bundled with summary info for the connected node,
+            used in directional edge list queries.
+            </summary>
+        </member>
+        <member name="T:CausalExplorer.Application.CausalEdges.Queries.EdgeDirection">
+            <summary>Direction filter for edge queries.</summary>
+        </member>
+        <member name="T:CausalExplorer.Application.CausalEdges.Queries.GetEdgesBetweenNodesQuery">
+            <summary>Returns all edges between two specific event nodes across all perspectives.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.CausalEdges.Queries.GetEdgesBetweenNodesQuery.#ctor(System.Guid,System.Guid)">
+            <summary>Returns all edges between two specific event nodes across all perspectives.</summary>
+        </member>
+        <member name="T:CausalExplorer.Application.CausalEdges.Queries.GetEdgesForNodeQuery">
+            <summary>Returns all edges connected to a given node, optionally filtered by direction.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.CausalEdges.Queries.GetEdgesForNodeQuery.#ctor(System.Guid,CausalExplorer.Application.CausalEdges.Queries.EdgeDirection,System.Nullable{CausalExplorer.Domain.Enums.Perspective})">
+            <summary>Returns all edges connected to a given node, optionally filtered by direction.</summary>
+        </member>
+        <member name="T:CausalExplorer.Application.CausalEdges.Queries.GetEdgesBetweenNodesQueryHandler">
+            <summary>Handles <see cref="T:CausalExplorer.Application.CausalEdges.Queries.GetEdgesBetweenNodesQuery"/>.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.CausalEdges.Queries.GetEdgesBetweenNodesQueryHandler.#ctor(CausalExplorer.Domain.Interfaces.ICausalEdgeRepository)">
+            <summary>Initialises the handler.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.CausalEdges.Queries.GetEdgesBetweenNodesQueryHandler.Handle(CausalExplorer.Application.CausalEdges.Queries.GetEdgesBetweenNodesQuery,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="T:CausalExplorer.Application.CausalEdges.Queries.GetEdgesForNodeQueryHandler">
+            <summary>Handles <see cref="T:CausalExplorer.Application.CausalEdges.Queries.GetEdgesForNodeQuery"/>.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.CausalEdges.Queries.GetEdgesForNodeQueryHandler.#ctor(CausalExplorer.Domain.Interfaces.ICausalEdgeRepository,CausalExplorer.Domain.Interfaces.IEventNodeRepository)">
+            <summary>Initialises the handler.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.CausalEdges.Queries.GetEdgesForNodeQueryHandler.Handle(CausalExplorer.Application.CausalEdges.Queries.GetEdgesForNodeQuery,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="T:CausalExplorer.Application.Common.Behaviors.LoggingBehavior`2">
+            <summary>
+            MediatR pipeline behavior that logs the start, completion time, and any failures
+            for every request passing through the pipeline.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.Application.Common.Behaviors.LoggingBehavior`2.#ctor(Microsoft.Extensions.Logging.ILogger{CausalExplorer.Application.Common.Behaviors.LoggingBehavior{`0,`1}})">
+            <summary>Initialises a new instance with the provided logger.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.Common.Behaviors.LoggingBehavior`2.Handle(`0,MediatR.RequestHandlerDelegate{`1},System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="T:CausalExplorer.Application.Common.Behaviors.PerformanceBehavior`2">
+            <summary>
+            MediatR pipeline behavior that emits a warning log when a request handler
+            takes longer than 500 ms to complete.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.Application.Common.Behaviors.PerformanceBehavior`2.#ctor(Microsoft.Extensions.Logging.ILogger{CausalExplorer.Application.Common.Behaviors.PerformanceBehavior{`0,`1}})">
+            <summary>Initialises a new instance with the provided logger.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.Common.Behaviors.PerformanceBehavior`2.Handle(`0,MediatR.RequestHandlerDelegate{`1},System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="T:CausalExplorer.Application.Common.Behaviors.UnhandledExceptionBehavior`2">
+            <summary>
+            MediatR pipeline behavior that catches any unhandled exceptions from downstream handlers,
+            logs them, and re-throws so they propagate to the global exception handler.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.Application.Common.Behaviors.UnhandledExceptionBehavior`2.#ctor(Microsoft.Extensions.Logging.ILogger{CausalExplorer.Application.Common.Behaviors.UnhandledExceptionBehavior{`0,`1}})">
+            <summary>Initialises a new instance with the provided logger.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.Common.Behaviors.UnhandledExceptionBehavior`2.Handle(`0,MediatR.RequestHandlerDelegate{`1},System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="T:CausalExplorer.Application.Common.Behaviors.ValidationBehavior`2">
+            <summary>
+            MediatR pipeline behavior that runs all registered FluentValidation validators for a request
+            and throws <see cref="T:CausalExplorer.Application.Common.Exceptions.ValidationException"/> if any failures are found.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.Application.Common.Behaviors.ValidationBehavior`2.#ctor(System.Collections.Generic.IEnumerable{FluentValidation.IValidator{`0}})">
+            <summary>
+            Initialises a new instance with the validators resolved from the DI container.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.Application.Common.Behaviors.ValidationBehavior`2.Handle(`0,MediatR.RequestHandlerDelegate{`1},System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="T:CausalExplorer.Application.Common.Exceptions.AIServiceException">
+            <summary>
+            Thrown when the Python AI sidecar service returns an error or is unreachable.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.Application.Common.Exceptions.AIServiceException.#ctor(System.String)">
+            <summary>Initialises a new <see cref="T:CausalExplorer.Application.Common.Exceptions.AIServiceException"/> with a descriptive message.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.Common.Exceptions.AIServiceException.#ctor(System.String,System.Exception)">
+            <summary>
+            Initialises a new <see cref="T:CausalExplorer.Application.Common.Exceptions.AIServiceException"/> with a message and an inner exception.
+            </summary>
+        </member>
+        <member name="T:CausalExplorer.Application.Common.Exceptions.ConflictException">
+            <summary>
+            Thrown when an operation would create a duplicate or conflicting record.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.Application.Common.Exceptions.ConflictException.#ctor(System.String)">
+            <summary>Initialises a new <see cref="T:CausalExplorer.Application.Common.Exceptions.ConflictException"/> with a descriptive message.</summary>
+        </member>
+        <member name="T:CausalExplorer.Application.Common.Exceptions.ForbiddenAccessException">
+            <summary>
+            Thrown when the current user attempts an operation they are not authorised to perform.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.Application.Common.Exceptions.ForbiddenAccessException.#ctor">
+            <summary>Initialises a new <see cref="T:CausalExplorer.Application.Common.Exceptions.ForbiddenAccessException"/>.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.Common.Exceptions.ForbiddenAccessException.#ctor(System.String)">
+            <summary>Initialises a new <see cref="T:CausalExplorer.Application.Common.Exceptions.ForbiddenAccessException"/> with a custom message.</summary>
+        </member>
+        <member name="T:CausalExplorer.Application.Common.Exceptions.NotFoundException">
+            <summary>
+            Thrown when a requested entity cannot be found in the persistence store.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.Application.Common.Exceptions.NotFoundException.#ctor(System.String,System.Object)">
+            <summary>
+            Initialises a new <see cref="T:CausalExplorer.Application.Common.Exceptions.NotFoundException"/> for the specified entity.
+            </summary>
+            <param name="entityName">The name of the entity type that was not found.</param>
+            <param name="key">The key value that was used in the lookup.</param>
+        </member>
+        <member name="T:CausalExplorer.Application.Common.Exceptions.ValidationException">
+            <summary>
+            Thrown when one or more FluentValidation rules fail during pipeline execution.
+            </summary>
+        </member>
+        <member name="P:CausalExplorer.Application.Common.Exceptions.ValidationException.Errors">
+            <summary>
+            Gets a dictionary mapping property names to their associated validation error messages.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.Application.Common.Exceptions.ValidationException.#ctor(System.Collections.Generic.IEnumerable{FluentValidation.Results.ValidationFailure})">
+            <summary>
+            Initialises a new <see cref="T:CausalExplorer.Application.Common.Exceptions.ValidationException"/> from a collection of
+            FluentValidation failures.
+            </summary>
+            <param name="failures">The validation failures reported by FluentValidation.</param>
+        </member>
+        <member name="T:CausalExplorer.Application.Common.Interfaces.IAIService">
+            <summary>
+            Contract for the Python AI sidecar service that performs NLP and causal reasoning tasks.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.Application.Common.Interfaces.IAIService.ExtractEventsFromTextAsync(System.String,System.Threading.CancellationToken)">
+            <summary>
+            Extracts structured event nodes from raw unstructured text.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.Application.Common.Interfaces.IAIService.GenerateCausalLinkAsync(System.Guid,System.Guid,System.Threading.CancellationToken)">
+            <summary>
+            Generates an AI-authored causal explanation linking two events.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.Application.Common.Interfaces.IAIService.ExpandChainNodeAsync(System.Guid,System.String,System.Threading.CancellationToken)">
+            <summary>
+            Suggests new nodes and edges to expand a chain at a given node from a particular perspective.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.Application.Common.Interfaces.IAIService.SearchSimilarEventsAsync(System.String,System.Int32,System.Threading.CancellationToken)">
+            <summary>
+            Searches for semantically similar events to the given free-text <paramref name="query"/>.
+            </summary>
+        </member>
+        <member name="T:CausalExplorer.Application.Common.Interfaces.ICurrentUserService">
+            <summary>
+            Exposes information about the currently-authenticated user derived from the HTTP context.
+            </summary>
+        </member>
+        <member name="P:CausalExplorer.Application.Common.Interfaces.ICurrentUserService.UserId">
+            <summary>Gets the unique identifier of the current user, or <c>null</c> if unauthenticated.</summary>
+        </member>
+        <member name="P:CausalExplorer.Application.Common.Interfaces.ICurrentUserService.IsAuthenticated">
+            <summary>Gets a value indicating whether the current request is authenticated.</summary>
+        </member>
+        <member name="P:CausalExplorer.Application.Common.Interfaces.ICurrentUserService.Role">
+            <summary>Gets the role claim of the current user, or <c>null</c> if unauthenticated.</summary>
+        </member>
+        <member name="T:CausalExplorer.Application.Common.Interfaces.IEmbeddingService">
+            <summary>
+            Contract for computing dense vector embeddings from text.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.Application.Common.Interfaces.IEmbeddingService.GetEmbeddingAsync(System.String,System.Threading.CancellationToken)">
+            <summary>
+            Returns a float-array embedding vector for the given <paramref name="text"/>.
+            </summary>
+            <param name="text">The input text to embed.</param>
+            <param name="ct">Cancellation token.</param>
+            <returns>A float array representing the semantic embedding.</returns>
+        </member>
+        <member name="T:CausalExplorer.Application.Common.Interfaces.ITokenService">
+            <summary>
+            Generates and validates JWT tokens for user authentication.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.Application.Common.Interfaces.ITokenService.GenerateAccessToken(CausalExplorer.Domain.Entities.User)">
+            <summary>Generates a signed JWT access token for the given <paramref name="user"/>.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.Common.Interfaces.ITokenService.GenerateRefreshToken">
+            <summary>Generates a cryptographically-random opaque refresh token string.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.Common.Interfaces.ITokenService.ValidateRefreshToken(System.String)">
+            <summary>
+            Validates that <paramref name="refreshToken"/> is a currently-valid, un-revoked token.
+            </summary>
+            <returns><c>true</c> if valid; otherwise <c>false</c>.</returns>
+        </member>
+        <member name="T:CausalExplorer.Application.Common.Interfaces.SimilarEventResult">
+            <summary>
+            Represents a single result returned by a vector similarity search.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.Application.Common.Interfaces.SimilarEventResult.#ctor(System.Guid,System.Double)">
+            <summary>
+            Represents a single result returned by a vector similarity search.
+            </summary>
+        </member>
+        <member name="T:CausalExplorer.Application.Common.Interfaces.IVectorSearchService">
+            <summary>
+            Contract for the vector embedding store used for semantic similarity search.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.Application.Common.Interfaces.IVectorSearchService.UpsertEventEmbeddingAsync(System.Guid,System.String,System.Threading.CancellationToken)">
+            <summary>Upserts the embedding for an event, using its text representation.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.Common.Interfaces.IVectorSearchService.SearchSimilarAsync(System.String,System.Int32,System.Threading.CancellationToken)">
+            <summary>Returns the top-K events most semantically similar to <paramref name="query"/>.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.Common.Interfaces.IVectorSearchService.DeleteEmbeddingAsync(System.Guid,System.Threading.CancellationToken)">
+            <summary>Removes the embedding for the given event.</summary>
+        </member>
+        <member name="T:CausalExplorer.Application.Common.Mappings.MappingExtensions">
+            <summary>
+            Manual mapping extension methods from Domain entities to Application DTOs.
+            These replace AutoMapper profiles for types that need custom logic (e.g. edge counts).
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.Application.Common.Mappings.MappingExtensions.ToDetailDto(CausalExplorer.Domain.Entities.EventNode,System.Int32,System.Int32)">
+            <summary>Maps an <see cref="T:CausalExplorer.Domain.Entities.EventNode"/> to an <see cref="T:CausalExplorer.Application.EventNodes.DTOs.EventNodeDetailDto"/>.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.Common.Mappings.MappingExtensions.ToSummaryDto(CausalExplorer.Domain.Entities.EventNode)">
+            <summary>Maps an <see cref="T:CausalExplorer.Domain.Entities.EventNode"/> to an <see cref="T:CausalExplorer.Application.EventNodes.DTOs.EventNodeSummaryDto"/>.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.Common.Mappings.MappingExtensions.ToDto(CausalExplorer.Domain.ValueObjects.Source)">
+            <summary>Maps a <see cref="T:CausalExplorer.Domain.ValueObjects.Source"/> value object to a <see cref="T:CausalExplorer.Application.EventNodes.DTOs.SourceDto"/>.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.Common.Mappings.MappingExtensions.ToDto(CausalExplorer.Domain.Entities.CausalEdge)">
+            <summary>Maps a <see cref="T:CausalExplorer.Domain.Entities.CausalEdge"/> to a <see cref="T:CausalExplorer.Application.CausalEdges.DTOs.CausalEdgeDto"/>.</summary>
+        </member>
+        <member name="T:CausalExplorer.Application.Common.Models.PagedResult`1">
+            <summary>
+            Wraps a paged subset of query results along with pagination metadata.
+            </summary>
+            <typeparam name="T">The item type in the page.</typeparam>
+        </member>
+        <member name="P:CausalExplorer.Application.Common.Models.PagedResult`1.Items">
+            <summary>Gets the items in the current page.</summary>
+        </member>
+        <member name="P:CausalExplorer.Application.Common.Models.PagedResult`1.TotalCount">
+            <summary>Gets the total number of items across all pages.</summary>
+        </member>
+        <member name="P:CausalExplorer.Application.Common.Models.PagedResult`1.Page">
+            <summary>Gets the current 1-based page number.</summary>
+        </member>
+        <member name="P:CausalExplorer.Application.Common.Models.PagedResult`1.PageSize">
+            <summary>Gets the maximum number of items per page.</summary>
+        </member>
+        <member name="P:CausalExplorer.Application.Common.Models.PagedResult`1.TotalPages">
+            <summary>Gets the total number of pages.</summary>
+        </member>
+        <member name="P:CausalExplorer.Application.Common.Models.PagedResult`1.HasPreviousPage">
+            <summary>Gets a value indicating whether there is a previous page.</summary>
+        </member>
+        <member name="P:CausalExplorer.Application.Common.Models.PagedResult`1.HasNextPage">
+            <summary>Gets a value indicating whether there is a next page.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.Common.Models.PagedResult`1.#ctor(System.Collections.Generic.IReadOnlyList{`0},System.Int32,System.Int32,System.Int32)">
+            <summary>
+            Initialises a new <see cref="T:CausalExplorer.Application.Common.Models.PagedResult`1"/>.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.Application.Common.Models.PagedResult`1.Empty(System.Int32,System.Int32)">
+            <summary>Creates an empty result for the given pagination parameters.</summary>
+        </member>
+        <member name="T:CausalExplorer.Application.Common.Models.Result`1">
+            <summary>
+            Represents the result of an operation that may succeed or fail, carrying a typed value on success.
+            </summary>
+            <typeparam name="T">The type of the success value.</typeparam>
+        </member>
+        <member name="P:CausalExplorer.Application.Common.Models.Result`1.Value">
+            <summary>Gets the success value. Only valid when <see cref="P:CausalExplorer.Application.Common.Models.Result`1.IsSuccess"/> is <c>true</c>.</summary>
+        </member>
+        <member name="P:CausalExplorer.Application.Common.Models.Result`1.Error">
+            <summary>Gets the error message. Only valid when <see cref="P:CausalExplorer.Application.Common.Models.Result`1.IsSuccess"/> is <c>false</c>.</summary>
+        </member>
+        <member name="P:CausalExplorer.Application.Common.Models.Result`1.IsSuccess">
+            <summary>Gets a value indicating whether the operation succeeded.</summary>
+        </member>
+        <member name="P:CausalExplorer.Application.Common.Models.Result`1.IsFailure">
+            <summary>Gets a value indicating whether the operation failed.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.Common.Models.Result`1.Success(`0)">
+            <summary>Creates a successful result wrapping <paramref name="value"/>.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.Common.Models.Result`1.Failure(System.String)">
+            <summary>Creates a failed result with the given <paramref name="error"/> message.</summary>
+        </member>
+        <member name="T:CausalExplorer.Application.Common.Models.Result">
+            <summary>
+            Represents the result of an operation that may succeed or fail, carrying no value.
+            </summary>
+        </member>
+        <member name="P:CausalExplorer.Application.Common.Models.Result.Error">
+            <summary>Gets the error message. Only valid when <see cref="P:CausalExplorer.Application.Common.Models.Result.IsSuccess"/> is <c>false</c>.</summary>
+        </member>
+        <member name="P:CausalExplorer.Application.Common.Models.Result.IsSuccess">
+            <summary>Gets a value indicating whether the operation succeeded.</summary>
+        </member>
+        <member name="P:CausalExplorer.Application.Common.Models.Result.IsFailure">
+            <summary>Gets a value indicating whether the operation failed.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.Common.Models.Result.Success">
+            <summary>Creates a successful result.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.Common.Models.Result.Failure(System.String)">
+            <summary>Creates a failed result with the given <paramref name="error"/> message.</summary>
+        </member>
+        <member name="T:CausalExplorer.Application.DependencyInjection">
+            <summary>
+            Provides an extension method to register all Application-layer services
+            with the dependency injection container.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.Application.DependencyInjection.AddApplication(Microsoft.Extensions.DependencyInjection.IServiceCollection)">
+            <summary>
+            Registers MediatR handlers, pipeline behaviors, FluentValidation validators,
+            and AutoMapper profiles defined in the Application assembly.
+            </summary>
+            <param name="services">The service collection to configure.</param>
+            <returns>The configured <see cref="T:Microsoft.Extensions.DependencyInjection.IServiceCollection"/>.</returns>
+        </member>
+        <member name="T:CausalExplorer.Application.EventNodes.Commands.CreateEventNodeCommand">
+            <summary>Command to create a new event node in the knowledge graph.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.EventNodes.Commands.CreateEventNodeCommand.#ctor(System.String,System.String,System.DateTime,CausalExplorer.Domain.Enums.EventDomain,System.Decimal,System.Decimal,System.Collections.Generic.IReadOnlyList{System.String},System.Collections.Generic.IReadOnlyList{CausalExplorer.Application.EventNodes.Commands.CreateSourceRequest})">
+            <summary>Command to create a new event node in the knowledge graph.</summary>
+        </member>
+        <member name="T:CausalExplorer.Application.EventNodes.Commands.CreateSourceRequest">
+            <summary>Embedded source data submitted with a create or update command.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.EventNodes.Commands.CreateSourceRequest.#ctor(System.String,System.String,System.DateTime,System.Decimal,CausalExplorer.Domain.Enums.SourceType)">
+            <summary>Embedded source data submitted with a create or update command.</summary>
+        </member>
+        <member name="T:CausalExplorer.Application.EventNodes.Commands.CreateEventNodeCommandHandler">
+            <summary>
+            Handles <see cref="T:CausalExplorer.Application.EventNodes.Commands.CreateEventNodeCommand"/>: validates, persists, and triggers
+            vector embedding upsert via <see cref="T:CausalExplorer.Application.Common.Interfaces.IVectorSearchService"/>.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.Application.EventNodes.Commands.CreateEventNodeCommandHandler.#ctor(CausalExplorer.Domain.Interfaces.IEventNodeRepository,CausalExplorer.Domain.Interfaces.IUnitOfWork,CausalExplorer.Application.Common.Interfaces.IVectorSearchService)">
+            <summary>Initialises the handler with required dependencies.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.EventNodes.Commands.CreateEventNodeCommandHandler.Handle(CausalExplorer.Application.EventNodes.Commands.CreateEventNodeCommand,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="T:CausalExplorer.Application.EventNodes.Commands.CreateEventNodeCommandValidator">
+            <summary>Validates <see cref="T:CausalExplorer.Application.EventNodes.Commands.CreateEventNodeCommand"/> before it reaches the handler.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.EventNodes.Commands.CreateEventNodeCommandValidator.#ctor">
+            <summary>Defines all validation rules.</summary>
+        </member>
+        <member name="T:CausalExplorer.Application.EventNodes.Commands.DeleteEventNodeCommand">
+            <summary>Command to soft-delete an event node. Requires Moderator or Admin role.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.EventNodes.Commands.DeleteEventNodeCommand.#ctor(System.Guid)">
+            <summary>Command to soft-delete an event node. Requires Moderator or Admin role.</summary>
+        </member>
+        <member name="T:CausalExplorer.Application.EventNodes.Commands.DeleteEventNodeCommandHandler">
+            <summary>Handles <see cref="T:CausalExplorer.Application.EventNodes.Commands.DeleteEventNodeCommand"/>.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.EventNodes.Commands.DeleteEventNodeCommandHandler.#ctor(CausalExplorer.Domain.Interfaces.IEventNodeRepository,CausalExplorer.Domain.Interfaces.IUnitOfWork,CausalExplorer.Application.Common.Interfaces.ICurrentUserService,CausalExplorer.Application.Common.Interfaces.IVectorSearchService)">
+            <summary>Initialises the handler.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.EventNodes.Commands.DeleteEventNodeCommandHandler.Handle(CausalExplorer.Application.EventNodes.Commands.DeleteEventNodeCommand,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="T:CausalExplorer.Application.EventNodes.Commands.UpdateEventNodeCommand">
+            <summary>Command to update the mutable fields of an existing event node.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.EventNodes.Commands.UpdateEventNodeCommand.#ctor(System.Guid,System.String,System.String,System.Decimal,System.Decimal,System.Collections.Generic.IReadOnlyList{System.String},System.Collections.Generic.IReadOnlyList{CausalExplorer.Application.EventNodes.Commands.CreateSourceRequest})">
+            <summary>Command to update the mutable fields of an existing event node.</summary>
+        </member>
+        <member name="T:CausalExplorer.Application.EventNodes.Commands.UpdateEventNodeCommandHandler">
+            <summary>Handles <see cref="T:CausalExplorer.Application.EventNodes.Commands.UpdateEventNodeCommand"/>.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.EventNodes.Commands.UpdateEventNodeCommandHandler.#ctor(CausalExplorer.Domain.Interfaces.IEventNodeRepository,CausalExplorer.Domain.Interfaces.ICausalEdgeRepository,CausalExplorer.Domain.Interfaces.IUnitOfWork,CausalExplorer.Application.Common.Interfaces.ICurrentUserService,CausalExplorer.Application.Common.Interfaces.IVectorSearchService)">
+            <summary>Initialises the handler.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.EventNodes.Commands.UpdateEventNodeCommandHandler.Handle(CausalExplorer.Application.EventNodes.Commands.UpdateEventNodeCommand,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="T:CausalExplorer.Application.EventNodes.Commands.UpdateEventNodeCommandValidator">
+            <summary>Validates <see cref="T:CausalExplorer.Application.EventNodes.Commands.UpdateEventNodeCommand"/>.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.EventNodes.Commands.UpdateEventNodeCommandValidator.#ctor">
+            <summary>Defines all validation rules.</summary>
+        </member>
+        <member name="T:CausalExplorer.Application.EventNodes.Commands.VerifyEventNodeCommand">
+            <summary>
+            Command to mark an event node as verified. Requires Moderator or Admin role.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.Application.EventNodes.Commands.VerifyEventNodeCommand.#ctor(System.Guid,System.Guid)">
+            <summary>
+            Command to mark an event node as verified. Requires Moderator or Admin role.
+            </summary>
+        </member>
+        <member name="T:CausalExplorer.Application.EventNodes.Commands.VerifyEventNodeCommandHandler">
+            <summary>Handles <see cref="T:CausalExplorer.Application.EventNodes.Commands.VerifyEventNodeCommand"/>.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.EventNodes.Commands.VerifyEventNodeCommandHandler.#ctor(CausalExplorer.Domain.Interfaces.IEventNodeRepository,CausalExplorer.Domain.Interfaces.ICausalEdgeRepository,CausalExplorer.Domain.Interfaces.IUnitOfWork,CausalExplorer.Application.Common.Interfaces.ICurrentUserService)">
+            <summary>Initialises the handler.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.EventNodes.Commands.VerifyEventNodeCommandHandler.Handle(CausalExplorer.Application.EventNodes.Commands.VerifyEventNodeCommand,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="T:CausalExplorer.Application.EventNodes.DTOs.EventNodeDetailDto">
+            <summary>
+            Full detail DTO for a single event node, including edge counts and confidence label.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.Application.EventNodes.DTOs.EventNodeDetailDto.#ctor(System.Guid,System.String,System.String,System.DateTime,System.String,System.Decimal,System.String,System.Decimal,System.Collections.Generic.IReadOnlyList{System.String},System.Collections.Generic.IReadOnlyList{CausalExplorer.Application.EventNodes.DTOs.SourceDto},System.Boolean,System.Int32,System.Int32,System.DateTime,System.DateTime)">
+            <summary>
+            Full detail DTO for a single event node, including edge counts and confidence label.
+            </summary>
+        </member>
+        <member name="T:CausalExplorer.Application.EventNodes.DTOs.EventNodeSummaryDto">
+            <summary>
+            Lightweight summary DTO used in paged lists and graph node lists.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.Application.EventNodes.DTOs.EventNodeSummaryDto.#ctor(System.Guid,System.String,System.String,System.DateTime,System.String,System.Decimal,System.String,System.Boolean,System.DateTime)">
+            <summary>
+            Lightweight summary DTO used in paged lists and graph node lists.
+            </summary>
+        </member>
+        <member name="T:CausalExplorer.Application.EventNodes.DTOs.SourceDto">
+            <summary>
+            DTO representing a supporting source document.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.Application.EventNodes.DTOs.SourceDto.#ctor(System.String,System.String,System.DateTime,System.Decimal,System.String)">
+            <summary>
+            DTO representing a supporting source document.
+            </summary>
+        </member>
+        <member name="T:CausalExplorer.Application.EventNodes.Queries.GetEventNodeByIdQuery">
+            <summary>Query to retrieve a single event node by ID with edge counts.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.EventNodes.Queries.GetEventNodeByIdQuery.#ctor(System.Guid)">
+            <summary>Query to retrieve a single event node by ID with edge counts.</summary>
+        </member>
+        <member name="T:CausalExplorer.Application.EventNodes.Queries.GetEventNodesPagedQuery">
+            <summary>Query to retrieve a paged list of event nodes with optional filters.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.EventNodes.Queries.GetEventNodesPagedQuery.#ctor(System.Nullable{CausalExplorer.Domain.Enums.EventDomain},System.Nullable{CausalExplorer.Domain.Enums.Perspective},System.Nullable{System.DateTime},System.Nullable{System.DateTime},System.Int32,System.Int32)">
+            <summary>Query to retrieve a paged list of event nodes with optional filters.</summary>
+        </member>
+        <member name="T:CausalExplorer.Application.EventNodes.Queries.SearchEventNodesQuery">
+            <summary>Query to perform full-text search over event node titles and summaries.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.EventNodes.Queries.SearchEventNodesQuery.#ctor(System.String,System.Int32,System.Int32)">
+            <summary>Query to perform full-text search over event node titles and summaries.</summary>
+        </member>
+        <member name="T:CausalExplorer.Application.EventNodes.Queries.SearchSimilarEventNodesQuery">
+            <summary>Query to perform semantic vector search for similar event nodes.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.EventNodes.Queries.SearchSimilarEventNodesQuery.#ctor(System.String,System.Int32)">
+            <summary>Query to perform semantic vector search for similar event nodes.</summary>
+        </member>
+        <member name="T:CausalExplorer.Application.EventNodes.Queries.GetEventNodeByIdQueryHandler">
+            <summary>Handles <see cref="T:CausalExplorer.Application.EventNodes.Queries.GetEventNodeByIdQuery"/>.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.EventNodes.Queries.GetEventNodeByIdQueryHandler.#ctor(CausalExplorer.Domain.Interfaces.IEventNodeRepository,CausalExplorer.Domain.Interfaces.ICausalEdgeRepository)">
+            <summary>Initialises the handler.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.EventNodes.Queries.GetEventNodeByIdQueryHandler.Handle(CausalExplorer.Application.EventNodes.Queries.GetEventNodeByIdQuery,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="T:CausalExplorer.Application.EventNodes.Queries.GetEventNodesPagedQueryHandler">
+            <summary>Handles <see cref="T:CausalExplorer.Application.EventNodes.Queries.GetEventNodesPagedQuery"/>.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.EventNodes.Queries.GetEventNodesPagedQueryHandler.#ctor(CausalExplorer.Domain.Interfaces.IEventNodeRepository)">
+            <summary>Initialises the handler.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.EventNodes.Queries.GetEventNodesPagedQueryHandler.Handle(CausalExplorer.Application.EventNodes.Queries.GetEventNodesPagedQuery,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="T:CausalExplorer.Application.EventNodes.Queries.SearchEventNodesQueryHandler">
+            <summary>Handles <see cref="T:CausalExplorer.Application.EventNodes.Queries.SearchEventNodesQuery"/>.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.EventNodes.Queries.SearchEventNodesQueryHandler.#ctor(CausalExplorer.Domain.Interfaces.IEventNodeRepository,CausalExplorer.Application.Common.Interfaces.IVectorSearchService)">
+            <summary>Initialises the handler.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.EventNodes.Queries.SearchEventNodesQueryHandler.Handle(CausalExplorer.Application.EventNodes.Queries.SearchEventNodesQuery,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="T:CausalExplorer.Application.EventNodes.Queries.SearchSimilarEventNodesQueryHandler">
+            <summary>Handles <see cref="T:CausalExplorer.Application.EventNodes.Queries.SearchSimilarEventNodesQuery"/>.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.EventNodes.Queries.SearchSimilarEventNodesQueryHandler.#ctor(CausalExplorer.Application.Common.Interfaces.IVectorSearchService,CausalExplorer.Domain.Interfaces.IEventNodeRepository)">
+            <summary>Initialises the handler.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.EventNodes.Queries.SearchSimilarEventNodesQueryHandler.Handle(CausalExplorer.Application.EventNodes.Queries.SearchSimilarEventNodesQuery,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+    </members>
+</doc>

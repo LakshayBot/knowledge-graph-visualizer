@@ -1,0 +1,14 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "CausalExplorer (local)",
+      "Group": "Servers",
+      "Host": "postgres",
+      "Port": 5432,
+      "MaintenanceDB": "CausalExplorerDb",
+      "Username": "causal",
+      "SSLMode": "prefer",
+      "PassFile": "/pgpass"
+    }
+  }
+}

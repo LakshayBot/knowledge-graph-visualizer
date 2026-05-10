@@ -1,0 +1,121 @@
+# CausalExplorer – Development Compose Override
+# Usage: docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+# All services run with hot-reload, debug ports exposed, and dev tooling enabled.
+
+name: causal-explorer
+
+services:
+
+  # ── PostgreSQL + pgAdmin ───────────────────────────────────────────────────────
+  postgres:
+    environment:
+      POSTGRES_DB:       CausalExplorerDb_Dev
+      POSTGRES_USER:     causal_dev
+      POSTGRES_PASSWORD: dev_password
+    ports:
+      - "5432:5432"
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: causal-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL:    admin@causalexplorer.local
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+    ports:
+      - "5050:80"
+    networks:
+      - causal-net
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # ── Neo4j (Browser already exposed on 7474) ───────────────────────────────────
+  neo4j:
+    environment:
+      NEO4J_AUTH: neo4j/devpassword123
+      NEO4J_dbms_memory_heap_max__size: 512m
+      NEO4J_dbms_memory_pagecache_size: 256m
+
+  # ── Redis with Insight UI ─────────────────────────────────────────────────────
+  redis:
+    command: ["redis-server", "--appendonly", "yes"]  # no password in dev
+
+  redis-insight:
+    image: redis/redisinsight:latest
+    container_name: causal-redis-insight
+    restart: unless-stopped
+    ports:
+      - "5540:5540"
+    networks:
+      - causal-net
+    depends_on:
+      - redis
+
+  # ── Qdrant dashboard already accessible at http://localhost:6333/dashboard ────
+  qdrant:
+    environment:
+      QDRANT__LOG_LEVEL: DEBUG
+
+  # ── Ollama (no GPU needed in dev — use smaller model) ─────────────────────────
+  ollama:
+    deploy:
+      resources: {}  # removes GPU constraint for dev machines without NVIDIA GPU
+
+  ollama-pull:
+    entrypoint: >
+      /bin/sh -c "
+        OLLAMA_HOST=http://ollama:11434
+        ollama pull mistral &&
+        ollama pull nomic-embed-text &&
+        echo 'Dev models ready.'
+      "
+
+  # ── Python AI service with hot reload ─────────────────────────────────────────
+  causal-ai-service:
+    build:
+      context: .
+      dockerfile: causal-ai-service/Dockerfile
+      target: development
+    volumes:
+      - ./causal-ai-service:/app
+    environment:
+      OLLAMA_URL: http://ollama:11434
+      QDRANT_URL: http://qdrant:6333
+      LOG_LEVEL:  DEBUG
+      DEBUG:      "true"
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    ports:
+      - "8000:8000"
+      - "5678:5678"   # debugpy port
+
+  # ── .NET API with dotnet watch (hot reload) ───────────────────────────────────
+  causal-api:
+    build:
+      context: .
+      dockerfile: src/CausalExplorer.API/Dockerfile
+      target: build           # stop at the SDK build stage — no publish step
+    volumes:
+      - ./src:/repo/src:ro    # mount source for watch
+    environment:
+      ASPNETCORE_ENVIRONMENT:       Development
+      ASPNETCORE_URLS:              http://+:5000
+      ConnectionStrings__DefaultConnection: >-
+        Host=postgres;Port=5432;Database=CausalExplorerDb_Dev;Username=causal_dev;Password=dev_password
+      ConnectionStrings__Redis:     redis:6379,abortConnect=false
+      Neo4j__Uri:                   bolt://neo4j:7687
+      Neo4j__Username:              neo4j
+      Neo4j__Password:              devpassword123
+      AIService__BaseUrl:           http://causal-ai-service:8000
+      AIService__ApiKey:            dev-api-key
+      VectorSearch__QdrantUrl:      http://qdrant:6333
+      Jwt__Secret:                  dev-jwt-secret-min-32-characters-long!!
+      Jwt__Issuer:                  CausalExplorer-Dev
+      Jwt__Audience:                CausalExplorerClient-Dev
+      Cors__AllowedOrigins__0:      http://localhost:3000
+    working_dir: /repo/src/CausalExplorer.API
+    command: ["dotnet", "watch", "run", "--no-launch-profile"]
+    ports:
+      - "5000:5000"
+      - "5001:5001"   # HTTPS (optional)

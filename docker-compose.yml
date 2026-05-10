@@ -1,0 +1,241 @@
+# CausalExplorer – Production Compose
+# Note: PostgreSQL is used (not SQL Server) to match the Npgsql/EF Core configuration.
+# All sensitive values are sourced from .env — copy .env.example to .env before first run.
+
+name: causal-explorer
+
+networks:
+  causal-net:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  neo4j_data:
+  neo4j_logs:
+  neo4j_import:
+  redis_data:
+  qdrant_storage:
+  ollama_models:
+
+services:
+
+  # ── PostgreSQL (relational store: Users, RefreshTokens, CausalChains) ────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: causal-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB:       ${POSTGRES_DB:-CausalExplorerDb}
+      POSTGRES_USER:     ${POSTGRES_USER:-causal}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - causal-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-causal} -d ${POSTGRES_DB:-CausalExplorerDb}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  # ── Neo4j (graph store: EventNodes, CausalEdges) ──────────────────────────────
+  neo4j:
+    image: neo4j:5.18-community
+    container_name: causal-neo4j
+    restart: unless-stopped
+    environment:
+      NEO4J_AUTH:                             ${NEO4J_AUTH:-neo4j/ChangeMe123!}
+      NEO4J_PLUGINS:                          '["apoc"]'
+      NEO4J_dbms_security_procedures_unrestricted: "apoc.*"
+      NEO4J_dbms_memory_heap_initial__size:   512m
+      NEO4J_dbms_memory_heap_max__size:       1G
+      NEO4J_dbms_memory_pagecache_size:       512m
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+      - neo4j_import:/var/lib/neo4j/import
+      - ./docker/neo4j/init.cypher:/var/lib/neo4j/import/init.cypher
+    ports:
+      - "7474:7474"   # Neo4j Browser
+      - "7687:7687"   # Bolt
+    networks:
+      - causal-net
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:7474 || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+
+  # ── Redis (cache + refresh-token store) ───────────────────────────────────────
+  redis:
+    image: redis:7.2-alpine
+    container_name: causal-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD:-redis_secret}"]
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - causal-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-redis_secret}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ── Qdrant (vector search for RAG) ────────────────────────────────────────────
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: causal-qdrant
+    restart: unless-stopped
+    volumes:
+      - qdrant_storage:/qdrant/storage
+    ports:
+      - "6333:6333"   # REST + gRPC
+      - "6334:6334"   # gRPC (internal)
+    networks:
+      - causal-net
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/6333' || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+
+  # ── Ollama (local LLM inference) ──────────────────────────────────────────────
+  ollama:
+    image: ollama/ollama:latest
+    container_name: causal-ollama
+    restart: unless-stopped
+    # GPU passthrough is configured in docker-compose.gpu.yml.
+    # On Mac or CPU-only Linux, run without that override file.
+    # Tip: set OLLAMA_MODEL=mistral in .env for lower memory requirements on CPU.
+    volumes:
+      - ollama_models:/root/.ollama
+    ports:
+      - "11434:11434"
+    networks:
+      - causal-net
+    healthcheck:
+      test: ["CMD-SHELL", "ollama list || exit 1"]
+      interval: 30s
+      timeout: 20s
+      retries: 5
+      start_period: 30s
+
+  # ── Pull Ollama models after the daemon is healthy ────────────────────────────
+  ollama-pull:
+    image: ollama/ollama:latest
+    container_name: causal-ollama-pull
+    restart: "no"
+    depends_on:
+      ollama:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+        OLLAMA_HOST=http://ollama:11434
+        ollama pull ${OLLAMA_MODEL:-mixtral:8x7b} &&
+        ollama pull nomic-embed-text &&
+        echo 'Models ready.'
+      "
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+    networks:
+      - causal-net
+
+  # ── pgAdmin (PostgreSQL web UI) ───────────────────────────────────────────────
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: causal-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL:    admin@causalexplorer.dev
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+    volumes:
+      - ./docker/pgadmin/servers.json:/pgadmin4/servers.json:ro
+    ports:
+      - "5050:80"
+    networks:
+      - causal-net
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # ── Python AI sidecar (FastAPI + Ollama + Qdrant) ─────────────────────────────
+  causal-ai-service:
+    build:
+      context: .
+      dockerfile: causal-ai-service/Dockerfile
+    container_name: causal-ai-service
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      OLLAMA_URL:      http://ollama:11434
+      QDRANT_URL:      http://qdrant:6333
+    ports:
+      - "8000:8000"
+    networks:
+      - causal-net
+    depends_on:
+      ollama:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health')\" || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # ── .NET API (ASP.NET Core 8) ─────────────────────────────────────────────────
+  causal-api:
+    build:
+      context: .
+      dockerfile: src/CausalExplorer.API/Dockerfile
+    container_name: causal-api
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      ASPNETCORE_ENVIRONMENT:       Production
+      ASPNETCORE_URLS:              http://+:5001
+      ConnectionStrings__DefaultConnection: >-
+        Host=postgres;Port=5432;Database=${POSTGRES_DB:-CausalExplorerDb};
+        Username=${POSTGRES_USER:-causal};Password=${POSTGRES_PASSWORD}
+      ConnectionStrings__Redis:     redis:6379,password=${REDIS_PASSWORD:-redis_secret},abortConnect=false
+      Neo4j__Uri:                   bolt://neo4j:7687
+      Neo4j__Username:              ${NEO4J_USERNAME:-neo4j}
+      Neo4j__Password:              ${NEO4J_PASSWORD}
+      AIService__BaseUrl:           http://causal-ai-service:8000
+      AIService__ApiKey:            ${AI_SERVICE_API_KEY}
+      VectorSearch__QdrantUrl:      http://qdrant:6333
+      Jwt__Secret:                  ${JWT_SECRET}
+      Jwt__Issuer:                  ${JWT_ISSUER:-CausalExplorer}
+      Jwt__Audience:                ${JWT_AUDIENCE:-CausalExplorerClient}
+      Cors__AllowedOrigins__0:      ${CORS_ORIGINS:-http://localhost:3000}
+    ports:
+      - "5001:5001"
+    networks:
+      - causal-net
+    depends_on:
+      postgres:
+        condition: service_healthy
+      neo4j:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      causal-ai-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:5001/health/live || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s

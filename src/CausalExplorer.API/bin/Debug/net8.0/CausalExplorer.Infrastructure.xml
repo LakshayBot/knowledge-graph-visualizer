@@ -1,0 +1,609 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>CausalExplorer.Infrastructure</name>
+    </assembly>
+    <members>
+        <member name="T:CausalExplorer.Infrastructure.AI.AIServiceClient">
+            <summary>
+            HTTP client adapter that calls the Python FastAPI AI sidecar to implement <see cref="T:CausalExplorer.Application.Common.Interfaces.IAIService"/>.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.AI.AIServiceClient.#ctor(System.Net.Http.HttpClient,Microsoft.Extensions.Logging.ILogger{CausalExplorer.Infrastructure.AI.AIServiceClient})">
+            <summary>Initialises the client with the named <see cref="T:System.Net.Http.HttpClient"/> injected by DI.</summary>
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.AI.AIServiceClient.ExtractEventsFromTextAsync(System.String,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.AI.AIServiceClient.GenerateCausalLinkAsync(System.Guid,System.Guid,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.AI.AIServiceClient.ExpandChainNodeAsync(System.Guid,System.String,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.AI.AIServiceClient.SearchSimilarEventsAsync(System.String,System.Int32,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="T:CausalExplorer.Infrastructure.AI.AIServiceException">
+            <summary>
+            Exception thrown when the AI sidecar service returns a non-success response.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.AI.AIServiceException.#ctor(System.String)">
+            <summary>Initialises the exception with a descriptive message.</summary>
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.AI.AIServiceException.#ctor(System.String,System.Exception)">
+            <summary>Initialises the exception with a message and inner cause.</summary>
+        </member>
+        <member name="T:CausalExplorer.Infrastructure.AI.EmbeddingServiceClient">
+            <summary>
+            Calls the Python AI service's embedding endpoint to produce dense vector representations.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.AI.EmbeddingServiceClient.#ctor(System.Net.Http.HttpClient,Microsoft.Extensions.Logging.ILogger{CausalExplorer.Infrastructure.AI.EmbeddingServiceClient})">
+            <summary>Initialises with the named <see cref="T:System.Net.Http.HttpClient"/> provided by DI.</summary>
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.AI.EmbeddingServiceClient.GetEmbeddingAsync(System.String,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="T:CausalExplorer.Infrastructure.Cache.RedisCacheService">
+            <summary>
+            Redis-backed generic cache service.
+            </summary>
+        </member>
+        <member name="F:CausalExplorer.Infrastructure.Cache.RedisCacheService.ChainTtl">
+            <summary>TTL for causal chain graphs (15 minutes).</summary>
+        </member>
+        <member name="F:CausalExplorer.Infrastructure.Cache.RedisCacheService.EventNodeTtl">
+            <summary>TTL for event node detail views (30 minutes).</summary>
+        </member>
+        <member name="F:CausalExplorer.Infrastructure.Cache.RedisCacheService.UserProfileTtl">
+            <summary>TTL for user profile data (10 minutes).</summary>
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Cache.RedisCacheService.ChainKey(System.Guid,System.String,System.Int32)">
+            <summary>Cache key for a causal chain graph.</summary>
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Cache.RedisCacheService.EventNodeKey(System.Guid)">
+            <summary>Cache key for a single event node.</summary>
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Cache.RedisCacheService.UserKey(System.Guid)">
+            <summary>Cache key for a user profile.</summary>
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Cache.RedisCacheService.#ctor(StackExchange.Redis.IConnectionMultiplexer,Microsoft.Extensions.Logging.ILogger{CausalExplorer.Infrastructure.Cache.RedisCacheService})">
+            <summary>Initialises a new instance of <see cref="T:CausalExplorer.Infrastructure.Cache.RedisCacheService"/>.</summary>
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Cache.RedisCacheService.GetAsync``1(System.String)">
+            <summary>Retrieves and deserialises a cached value, or returns <c>null</c> on miss.</summary>
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Cache.RedisCacheService.SetAsync``1(System.String,``0,System.Nullable{System.TimeSpan})">
+            <summary>Serialises and stores a value with the given TTL.</summary>
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Cache.RedisCacheService.RemoveAsync(System.String)">
+            <summary>Removes a single key from the cache.</summary>
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Cache.RedisCacheService.RemoveByPatternAsync(System.String)">
+            <summary>
+            Removes all keys matching <paramref name="pattern"/> (e.g. <c>"chain:{id}:*"</c>).
+            Uses server-side SCAN to avoid blocking Redis with KEYS.
+            </summary>
+        </member>
+        <member name="T:CausalExplorer.Infrastructure.DependencyInjection">
+            <summary>
+            Provides an extension method to register all Infrastructure-layer services
+            with the dependency injection container.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.DependencyInjection.AddInfrastructure(Microsoft.Extensions.DependencyInjection.IServiceCollection,Microsoft.Extensions.Configuration.IConfiguration)">
+            <summary>
+            Registers EF Core, Neo4j, Redis, AI HTTP clients, vector search, JWT auth,
+            and all repository / service implementations.
+            </summary>
+            <param name="services">The service collection to configure.</param>
+            <param name="configuration">Application configuration.</param>
+            <returns>The configured <see cref="T:Microsoft.Extensions.DependencyInjection.IServiceCollection"/>.</returns>
+        </member>
+        <member name="T:CausalExplorer.Infrastructure.Graph.Neo4jCausalEdgeRepository">
+            <summary>
+            Neo4j Cypher implementation of <see cref="T:CausalExplorer.Domain.Interfaces.ICausalEdgeRepository"/>.
+            Causal edges are stored as <c>CAUSED</c> relationships between <c>EventNode</c> nodes.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Graph.Neo4jCausalEdgeRepository.#ctor(CausalExplorer.Infrastructure.Graph.Neo4jContext)">
+            <summary>Initialises the repository with the shared Neo4j context.</summary>
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Graph.Neo4jCausalEdgeRepository.GetByIdAsync(System.Guid,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Graph.Neo4jCausalEdgeRepository.GetByFromEventAsync(System.Guid,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Graph.Neo4jCausalEdgeRepository.GetByToEventAsync(System.Guid,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Graph.Neo4jCausalEdgeRepository.GetByEventIdAsync(System.Guid,System.Nullable{CausalExplorer.Domain.Enums.Perspective},System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Graph.Neo4jCausalEdgeRepository.AddAsync(CausalExplorer.Domain.Entities.CausalEdge,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Graph.Neo4jCausalEdgeRepository.Update(CausalExplorer.Domain.Entities.CausalEdge)">
+            <inheritdoc />
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Graph.Neo4jCausalEdgeRepository.Delete(CausalExplorer.Domain.Entities.CausalEdge)">
+            <inheritdoc />
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Graph.Neo4jCausalEdgeRepository.WouldCreateCycleAsync(System.Guid,System.Guid,System.Threading.CancellationToken)">
+            <summary>
+            Checks whether adding an edge from <paramref name="fromId"/> to <paramref name="toId"/>
+            would create a cycle in the graph.
+            </summary>
+        </member>
+        <member name="T:CausalExplorer.Infrastructure.Graph.Neo4jContext">
+            <summary>
+            Wraps the Neo4j <see cref="T:Neo4j.Driver.IDriver"/> singleton and provides factory methods
+            for read and write sessions.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Graph.Neo4jContext.#ctor(Neo4j.Driver.IDriver)">
+            <summary>
+            Initialises a new instance of <see cref="T:CausalExplorer.Infrastructure.Graph.Neo4jContext"/> with the given driver.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Graph.Neo4jContext.GetSession">
+            <summary>Opens an async session for read operations.</summary>
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Graph.Neo4jContext.GetWriteSession">
+            <summary>Opens an async session for write operations.</summary>
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Graph.Neo4jContext.IsHealthyAsync(System.Threading.CancellationToken)">
+            <summary>
+            Performs a lightweight connectivity health check against the Neo4j server.
+            </summary>
+            <returns><c>true</c> if the server is reachable; otherwise <c>false</c>.</returns>
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Graph.Neo4jContext.DisposeAsync">
+            <inheritdoc />
+        </member>
+        <member name="T:CausalExplorer.Infrastructure.Graph.Neo4jEventNodeRepository">
+            <summary>
+            Neo4j Cypher implementation of <see cref="T:CausalExplorer.Domain.Interfaces.IEventNodeRepository"/>.
+            All event node data is stored as graph nodes with label <c>EventNode</c>.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Graph.Neo4jEventNodeRepository.#ctor(CausalExplorer.Infrastructure.Graph.Neo4jContext)">
+            <summary>Initialises the repository with the shared Neo4j context.</summary>
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Graph.Neo4jEventNodeRepository.GetByIdAsync(System.Guid,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Graph.Neo4jEventNodeRepository.GetPagedAsync(System.Nullable{CausalExplorer.Domain.Enums.EventDomain},System.Int32,System.Int32,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Graph.Neo4jEventNodeRepository.SearchAsync(System.String,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Graph.Neo4jEventNodeRepository.GetUnverifiedAsync(System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Graph.Neo4jEventNodeRepository.ExistsAsync(System.Guid,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Graph.Neo4jEventNodeRepository.AddAsync(CausalExplorer.Domain.Entities.EventNode,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Graph.Neo4jEventNodeRepository.UpdateAsync(CausalExplorer.Domain.Entities.EventNode,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Graph.Neo4jEventNodeRepository.DeleteAsync(CausalExplorer.Domain.Entities.EventNode,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Graph.Neo4jEventNodeRepository.GetInitialChainNodesAsync(System.Guid,System.Threading.CancellationToken)">
+            <summary>
+            Returns an initial set of 3–5 nodes rooted at <paramref name="rootId"/>,
+            traversing up to 2 hops of CAUSED relationships.
+            Requires the APOC library to be installed in Neo4j.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Graph.Neo4jEventNodeRepository.GetChainWithDepthAsync(System.Guid,System.Int32,System.String,System.Threading.CancellationToken)">
+            <summary>
+            Returns all nodes in a causal chain up to <paramref name="depth"/> hops from root,
+            optionally filtered by perspective.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Graph.Neo4jEventNodeRepository.ExpandNodeAsync(System.Guid,System.Collections.Generic.IEnumerable{System.Guid},System.Threading.CancellationToken)">
+            <summary>
+            Lazy-loads additional neighbours of <paramref name="nodeId"/>,
+            excluding nodes whose IDs are in <paramref name="alreadyLoadedIds"/>.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Graph.Neo4jEventNodeRepository.NormaliseDomainString(System.String)">
+            <summary>
+            Normalises legacy/abbreviated domain strings stored in Neo4j seed data to
+            match the current <see cref="T:CausalExplorer.Domain.Enums.EventDomain"/> enum names.
+            e.g. "Economic" → "Economics", "Technological" → "Technology"
+            </summary>
+        </member>
+        <member name="T:CausalExplorer.Infrastructure.Identity.RefreshTokenStore">
+            <summary>
+            Repository for persisting and validating opaque refresh tokens via EF Core.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Identity.RefreshTokenStore.#ctor(CausalExplorer.Infrastructure.Persistence.CausalExplorerDbContext)">
+            <summary>Initialises a new instance with the shared database context.</summary>
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Identity.RefreshTokenStore.StoreAsync(System.Guid,System.String,System.String,System.Threading.CancellationToken)">
+            <summary>
+            Stores a new refresh token record for the given user.
+            </summary>
+            <param name="userId">The user the token belongs to.</param>
+            <param name="token">The opaque refresh token string.</param>
+            <param name="createdByIp">Optional IP address of the originating request.</param>
+            <param name="ct">Cancellation token.</param>
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Identity.RefreshTokenStore.IsValid(System.String)">
+            <summary>
+            Returns <c>true</c> if the token exists, is not expired, and has not been revoked.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Identity.RefreshTokenStore.RevokeAsync(System.String,System.Threading.CancellationToken)">
+            <summary>Revokes a specific refresh token, preventing further use.</summary>
+            <param name="token">The token to revoke.</param>
+            <param name="ct">Cancellation token.</param>
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Identity.RefreshTokenStore.RevokeAllForUserAsync(System.Guid,System.Threading.CancellationToken)">
+            <summary>Revokes all refresh tokens belonging to a user (e.g. on logout from all devices).</summary>
+            <param name="userId">The user whose tokens to revoke.</param>
+            <param name="ct">Cancellation token.</param>
+        </member>
+        <member name="T:CausalExplorer.Infrastructure.Identity.TokenService">
+            <summary>
+            JWT-based implementation of <see cref="T:CausalExplorer.Application.Common.Interfaces.ITokenService"/>.
+            Access tokens are signed HS256 JWTs with a 15-minute expiry.
+            Refresh tokens are 64-byte cryptographically-random base64 strings stored
+            out-of-band in the database (see <see cref="T:CausalExplorer.Infrastructure.Identity.RefreshTokenStore"/>).
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Identity.TokenService.#ctor(Microsoft.Extensions.Configuration.IConfiguration,CausalExplorer.Infrastructure.Identity.RefreshTokenStore)">
+            <summary>
+            Initialises the service from application configuration.
+            </summary>
+            <exception cref="T:System.InvalidOperationException">
+            Thrown when any required JWT configuration value is missing or the secret is shorter than 32 characters.
+            </exception>
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Identity.TokenService.GenerateAccessToken(CausalExplorer.Domain.Entities.User)">
+            <inheritdoc />
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Identity.TokenService.GenerateRefreshToken">
+            <inheritdoc />
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Identity.TokenService.ValidateRefreshToken(System.String)">
+            <inheritdoc />
+        </member>
+        <member name="T:CausalExplorer.Infrastructure.Persistence.AuditingInterceptor">
+            <summary>
+            Interceptor that automatically stamps <see cref="P:CausalExplorer.Domain.Common.BaseEntity.CreatedAt"/> and
+            <see cref="P:CausalExplorer.Domain.Common.BaseEntity.UpdatedAt"/> on every save.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Persistence.AuditingInterceptor.SavingChanges(Microsoft.EntityFrameworkCore.Diagnostics.DbContextEventData,Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult{System.Int32})">
+            <inheritdoc />
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Persistence.AuditingInterceptor.SavingChangesAsync(Microsoft.EntityFrameworkCore.Diagnostics.DbContextEventData,Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult{System.Int32},System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="T:CausalExplorer.Infrastructure.Persistence.CausalExplorerDbContext">
+            <summary>
+            Entity Framework Core database context for the CausalExplorer application.
+            Manages all SQL-persisted aggregate roots and applies entity configurations
+            discovered from the current assembly.
+            </summary>
+        </member>
+        <member name="P:CausalExplorer.Infrastructure.Persistence.CausalExplorerDbContext.EventNodes">
+            <summary>Gets the event nodes table.</summary>
+        </member>
+        <member name="P:CausalExplorer.Infrastructure.Persistence.CausalExplorerDbContext.CausalEdges">
+            <summary>Gets the causal edges table.</summary>
+        </member>
+        <member name="P:CausalExplorer.Infrastructure.Persistence.CausalExplorerDbContext.CausalChains">
+            <summary>Gets the causal chains table.</summary>
+        </member>
+        <member name="P:CausalExplorer.Infrastructure.Persistence.CausalExplorerDbContext.Users">
+            <summary>Gets the users table.</summary>
+        </member>
+        <member name="P:CausalExplorer.Infrastructure.Persistence.CausalExplorerDbContext.UserSavedChains">
+            <summary>Gets the user-saved-chains junction table.</summary>
+        </member>
+        <member name="P:CausalExplorer.Infrastructure.Persistence.CausalExplorerDbContext.RefreshTokens">
+            <summary>Gets the refresh tokens table.</summary>
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Persistence.CausalExplorerDbContext.#ctor(Microsoft.EntityFrameworkCore.DbContextOptions{CausalExplorer.Infrastructure.Persistence.CausalExplorerDbContext})">
+            <summary>
+            Initialises a new instance of <see cref="T:CausalExplorer.Infrastructure.Persistence.CausalExplorerDbContext"/>.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Persistence.CausalExplorerDbContext.OnModelCreating(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="T:CausalExplorer.Infrastructure.Persistence.Configurations.CausalChainConfiguration">
+            <summary>
+            EF Core entity type configuration for <see cref="T:CausalExplorer.Domain.Entities.CausalChain"/>.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Persistence.Configurations.CausalChainConfiguration.Configure(Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder{CausalExplorer.Domain.Entities.CausalChain})">
+            <inheritdoc />
+        </member>
+        <member name="T:CausalExplorer.Infrastructure.Persistence.Configurations.CausalEdgeConfiguration">
+            <summary>
+            EF Core entity type configuration for <see cref="T:CausalExplorer.Domain.Entities.CausalEdge"/>.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Persistence.Configurations.CausalEdgeConfiguration.Configure(Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder{CausalExplorer.Domain.Entities.CausalEdge})">
+            <inheritdoc />
+        </member>
+        <member name="T:CausalExplorer.Infrastructure.Persistence.Configurations.EventNodeConfiguration">
+            <summary>
+            EF Core entity type configuration for <see cref="T:CausalExplorer.Domain.Entities.EventNode"/>.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Persistence.Configurations.EventNodeConfiguration.Configure(Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder{CausalExplorer.Domain.Entities.EventNode})">
+            <inheritdoc />
+        </member>
+        <member name="T:CausalExplorer.Infrastructure.Persistence.Configurations.RefreshTokenConfiguration">
+            <summary>
+            EF Core entity type configuration for <see cref="T:CausalExplorer.Infrastructure.Persistence.RefreshTokenRecord"/>.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Persistence.Configurations.RefreshTokenConfiguration.Configure(Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder{CausalExplorer.Infrastructure.Persistence.RefreshTokenRecord})">
+            <inheritdoc />
+        </member>
+        <member name="T:CausalExplorer.Infrastructure.Persistence.Configurations.UserConfiguration">
+            <summary>
+            EF Core entity type configuration for <see cref="T:CausalExplorer.Domain.Entities.User"/>.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Persistence.Configurations.UserConfiguration.Configure(Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder{CausalExplorer.Domain.Entities.User})">
+            <inheritdoc />
+        </member>
+        <member name="T:CausalExplorer.Infrastructure.Persistence.Configurations.UserSavedChainConfiguration">
+            <summary>
+            EF Core entity type configuration for <see cref="T:CausalExplorer.Domain.Entities.UserSavedChain"/>.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Persistence.Configurations.UserSavedChainConfiguration.Configure(Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder{CausalExplorer.Domain.Entities.UserSavedChain})">
+            <inheritdoc />
+        </member>
+        <member name="T:CausalExplorer.Infrastructure.Persistence.Migrations.InitialCreate">
+            <inheritdoc />
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Persistence.Migrations.InitialCreate.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Persistence.Migrations.InitialCreate.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Persistence.Migrations.InitialCreate.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="T:CausalExplorer.Infrastructure.Persistence.RefreshTokenRecord">
+            <summary>
+            Infrastructure-only persistence record for opaque refresh tokens.
+            Not a domain entity — lives only in the Infrastructure layer.
+            </summary>
+        </member>
+        <member name="P:CausalExplorer.Infrastructure.Persistence.RefreshTokenRecord.Id">
+            <summary>Gets or sets the surrogate primary key.</summary>
+        </member>
+        <member name="P:CausalExplorer.Infrastructure.Persistence.RefreshTokenRecord.Token">
+            <summary>Gets or sets the opaque token string.</summary>
+        </member>
+        <member name="P:CausalExplorer.Infrastructure.Persistence.RefreshTokenRecord.UserId">
+            <summary>Gets or sets the owner user identifier.</summary>
+        </member>
+        <member name="P:CausalExplorer.Infrastructure.Persistence.RefreshTokenRecord.ExpiresAt">
+            <summary>Gets or sets the UTC expiry timestamp.</summary>
+        </member>
+        <member name="P:CausalExplorer.Infrastructure.Persistence.RefreshTokenRecord.IsRevoked">
+            <summary>Gets or sets a value indicating whether this token has been revoked.</summary>
+        </member>
+        <member name="P:CausalExplorer.Infrastructure.Persistence.RefreshTokenRecord.CreatedByIp">
+            <summary>Gets or sets the IP address that created this token.</summary>
+        </member>
+        <member name="P:CausalExplorer.Infrastructure.Persistence.RefreshTokenRecord.CreatedAt">
+            <summary>Gets or sets the UTC creation timestamp.</summary>
+        </member>
+        <member name="T:CausalExplorer.Infrastructure.Persistence.Repositories.CausalChainRepository">
+            <summary>
+            EF Core implementation of <see cref="T:CausalExplorer.Domain.Interfaces.ICausalChainRepository"/>.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Persistence.Repositories.CausalChainRepository.#ctor(CausalExplorer.Infrastructure.Persistence.CausalExplorerDbContext)">
+            <summary>Initialises a new instance of <see cref="T:CausalExplorer.Infrastructure.Persistence.Repositories.CausalChainRepository"/>.</summary>
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Persistence.Repositories.CausalChainRepository.GetByIdAsync(System.Guid,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Persistence.Repositories.CausalChainRepository.GetPagedAsync(System.Nullable{CausalExplorer.Domain.Enums.EventDomain},System.Int32,System.Int32,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Persistence.Repositories.CausalChainRepository.GetTrendingAsync(System.Int32,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Persistence.Repositories.CausalChainRepository.AddAsync(CausalExplorer.Domain.Entities.CausalChain,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Persistence.Repositories.CausalChainRepository.Update(CausalExplorer.Domain.Entities.CausalChain)">
+            <inheritdoc />
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Persistence.Repositories.CausalChainRepository.Delete(CausalExplorer.Domain.Entities.CausalChain)">
+            <inheritdoc />
+        </member>
+        <member name="T:CausalExplorer.Infrastructure.Persistence.Repositories.CausalEdgeRepository">
+            <summary>
+            EF Core implementation of <see cref="T:CausalExplorer.Domain.Interfaces.ICausalEdgeRepository"/>.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Persistence.Repositories.CausalEdgeRepository.#ctor(CausalExplorer.Infrastructure.Persistence.CausalExplorerDbContext)">
+            <summary>Initialises a new instance of <see cref="T:CausalExplorer.Infrastructure.Persistence.Repositories.CausalEdgeRepository"/>.</summary>
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Persistence.Repositories.CausalEdgeRepository.GetByIdAsync(System.Guid,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Persistence.Repositories.CausalEdgeRepository.GetByFromEventAsync(System.Guid,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Persistence.Repositories.CausalEdgeRepository.GetByToEventAsync(System.Guid,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Persistence.Repositories.CausalEdgeRepository.GetByEventIdAsync(System.Guid,System.Nullable{CausalExplorer.Domain.Enums.Perspective},System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Persistence.Repositories.CausalEdgeRepository.AddAsync(CausalExplorer.Domain.Entities.CausalEdge,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Persistence.Repositories.CausalEdgeRepository.Update(CausalExplorer.Domain.Entities.CausalEdge)">
+            <inheritdoc />
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Persistence.Repositories.CausalEdgeRepository.Delete(CausalExplorer.Domain.Entities.CausalEdge)">
+            <inheritdoc />
+        </member>
+        <member name="T:CausalExplorer.Infrastructure.Persistence.Repositories.EventNodeRepository">
+            <summary>
+            EF Core implementation of <see cref="T:CausalExplorer.Domain.Interfaces.IEventNodeRepository"/>.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Persistence.Repositories.EventNodeRepository.#ctor(CausalExplorer.Infrastructure.Persistence.CausalExplorerDbContext)">
+            <summary>Initialises a new instance of <see cref="T:CausalExplorer.Infrastructure.Persistence.Repositories.EventNodeRepository"/>.</summary>
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Persistence.Repositories.EventNodeRepository.GetByIdAsync(System.Guid,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Persistence.Repositories.EventNodeRepository.GetPagedAsync(System.Nullable{CausalExplorer.Domain.Enums.EventDomain},System.Int32,System.Int32,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Persistence.Repositories.EventNodeRepository.SearchAsync(System.String,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Persistence.Repositories.EventNodeRepository.GetUnverifiedAsync(System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Persistence.Repositories.EventNodeRepository.AddAsync(CausalExplorer.Domain.Entities.EventNode,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Persistence.Repositories.EventNodeRepository.UpdateAsync(CausalExplorer.Domain.Entities.EventNode,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Persistence.Repositories.EventNodeRepository.DeleteAsync(CausalExplorer.Domain.Entities.EventNode,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Persistence.Repositories.EventNodeRepository.ExistsAsync(System.Guid,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="T:CausalExplorer.Infrastructure.Persistence.Repositories.UserRepository">
+            <summary>
+            EF Core implementation of <see cref="T:CausalExplorer.Domain.Interfaces.IUserRepository"/>.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Persistence.Repositories.UserRepository.#ctor(CausalExplorer.Infrastructure.Persistence.CausalExplorerDbContext)">
+            <summary>Initialises a new instance of <see cref="T:CausalExplorer.Infrastructure.Persistence.Repositories.UserRepository"/>.</summary>
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Persistence.Repositories.UserRepository.GetByIdAsync(System.Guid,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Persistence.Repositories.UserRepository.GetByEmailAsync(System.String,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Persistence.Repositories.UserRepository.GetByUsernameAsync(System.String,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Persistence.Repositories.UserRepository.EmailExistsAsync(System.String,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Persistence.Repositories.UserRepository.UsernameExistsAsync(System.String,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Persistence.Repositories.UserRepository.AddAsync(CausalExplorer.Domain.Entities.User,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Persistence.Repositories.UserRepository.Update(CausalExplorer.Domain.Entities.User)">
+            <inheritdoc />
+        </member>
+        <member name="T:CausalExplorer.Infrastructure.Persistence.Repositories.UserSavedChainRepository">
+            <summary>
+            EF Core implementation of <see cref="T:CausalExplorer.Domain.Interfaces.IUserSavedChainRepository"/>.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Persistence.Repositories.UserSavedChainRepository.#ctor(CausalExplorer.Infrastructure.Persistence.CausalExplorerDbContext)">
+            <summary>Initialises a new instance of <see cref="T:CausalExplorer.Infrastructure.Persistence.Repositories.UserSavedChainRepository"/>.</summary>
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Persistence.Repositories.UserSavedChainRepository.GetByUserIdAsync(System.Guid,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Persistence.Repositories.UserSavedChainRepository.GetAsync(System.Guid,System.Guid,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Persistence.Repositories.UserSavedChainRepository.AddAsync(CausalExplorer.Domain.Entities.UserSavedChain,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Persistence.Repositories.UserSavedChainRepository.Delete(CausalExplorer.Domain.Entities.UserSavedChain)">
+            <inheritdoc />
+        </member>
+        <member name="T:CausalExplorer.Infrastructure.Persistence.UnitOfWork">
+            <summary>
+            EF Core implementation of <see cref="T:CausalExplorer.Domain.Interfaces.IUnitOfWork"/>.
+            Coordinates repository access and dispatches domain events on save.
+            </summary>
+        </member>
+        <member name="P:CausalExplorer.Infrastructure.Persistence.UnitOfWork.EventNodes">
+            <inheritdoc />
+        </member>
+        <member name="P:CausalExplorer.Infrastructure.Persistence.UnitOfWork.CausalEdges">
+            <inheritdoc />
+        </member>
+        <member name="P:CausalExplorer.Infrastructure.Persistence.UnitOfWork.CausalChains">
+            <inheritdoc />
+        </member>
+        <member name="P:CausalExplorer.Infrastructure.Persistence.UnitOfWork.Users">
+            <inheritdoc />
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Persistence.UnitOfWork.#ctor(CausalExplorer.Infrastructure.Persistence.CausalExplorerDbContext,MediatR.IPublisher,CausalExplorer.Domain.Interfaces.IEventNodeRepository,CausalExplorer.Domain.Interfaces.ICausalEdgeRepository,CausalExplorer.Domain.Interfaces.ICausalChainRepository,CausalExplorer.Domain.Interfaces.IUserRepository)">
+            <summary>
+            Initialises a new instance of <see cref="T:CausalExplorer.Infrastructure.Persistence.UnitOfWork"/>.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Persistence.UnitOfWork.SaveChangesAsync(System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Persistence.UnitOfWork.BeginTransactionAsync(System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Persistence.UnitOfWork.CommitTransactionAsync(System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Persistence.UnitOfWork.RollbackTransactionAsync(System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Persistence.UnitOfWork.DisposeAsync">
+            <inheritdoc />
+        </member>
+        <member name="T:CausalExplorer.Infrastructure.Search.QdrantVectorSearchService">
+            <summary>
+            Implements <see cref="T:CausalExplorer.Application.Common.Interfaces.IVectorSearchService"/> by talking directly to the
+            Qdrant REST API via <see cref="T:System.Net.Http.HttpClient"/>.
+            Collection name: <c>causal_events</c>.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Search.QdrantVectorSearchService.#ctor(System.Net.Http.HttpClient,CausalExplorer.Application.Common.Interfaces.IEmbeddingService,Microsoft.Extensions.Logging.ILogger{CausalExplorer.Infrastructure.Search.QdrantVectorSearchService})">
+            <summary>Initialises the service with its HTTP client and embedding service.</summary>
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Search.QdrantVectorSearchService.UpsertEventEmbeddingAsync(System.Guid,System.String,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Search.QdrantVectorSearchService.SearchSimilarAsync(System.String,System.Int32,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Search.QdrantVectorSearchService.DeleteEmbeddingAsync(System.Guid,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+    </members>
+</doc>

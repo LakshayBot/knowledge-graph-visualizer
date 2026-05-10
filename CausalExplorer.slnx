@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/CausalExplorer.API/CausalExplorer.API.csproj" />
+    <Project Path="src/CausalExplorer.Application/CausalExplorer.Application.csproj" />
+    <Project Path="src/CausalExplorer.Domain/CausalExplorer.Domain.csproj" />
+    <Project Path="src/CausalExplorer.Infrastructure/CausalExplorer.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/CausalExplorer.API.Tests/CausalExplorer.API.Tests.csproj" />
+    <Project Path="tests/CausalExplorer.Application.Tests/CausalExplorer.Application.Tests.csproj" />
+    <Project Path="tests/CausalExplorer.Domain.Tests/CausalExplorer.Domain.Tests.csproj" />
+  </Folder>
+</Solution>

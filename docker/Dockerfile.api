@@ -1,0 +1,32 @@
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
+WORKDIR /app
+EXPOSE 5000
+EXPOSE 5001
+
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
+
+COPY ["src/CausalExplorer.API/CausalExplorer.API.csproj", "src/CausalExplorer.API/"]
+COPY ["src/CausalExplorer.Application/CausalExplorer.Application.csproj", "src/CausalExplorer.Application/"]
+COPY ["src/CausalExplorer.Infrastructure/CausalExplorer.Infrastructure.csproj", "src/CausalExplorer.Infrastructure/"]
+COPY ["src/CausalExplorer.Domain/CausalExplorer.Domain.csproj", "src/CausalExplorer.Domain/"]
+
+RUN dotnet restore "src/CausalExplorer.API/CausalExplorer.API.csproj"
+
+COPY . .
+
+WORKDIR "/src/src/CausalExplorer.API"
+RUN dotnet build "CausalExplorer.API.csproj" -c Release -o /app/build
+
+FROM build AS publish
+RUN dotnet publish "CausalExplorer.API.csproj" -c Release -o /app/publish /p:UseAppHost=false
+
+FROM base AS final
+WORKDIR /app
+COPY --from=publish /app/publish .
+
+# Non-root user for security
+RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser
+USER appuser
+
+ENTRYPOINT ["dotnet", "CausalExplorer.API.dll"]

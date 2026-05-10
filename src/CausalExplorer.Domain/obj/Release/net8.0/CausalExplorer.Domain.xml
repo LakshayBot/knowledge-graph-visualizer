@@ -1,0 +1,1004 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>CausalExplorer.Domain</name>
+    </assembly>
+    <members>
+        <member name="T:CausalExplorer.Domain.Common.BaseEntity">
+            <summary>
+            Abstract base class for all domain entities.
+            Provides identity, audit timestamps, and a domain-event collection.
+            </summary>
+        </member>
+        <member name="P:CausalExplorer.Domain.Common.BaseEntity.Id">
+            <summary>Gets the unique identifier of this entity.</summary>
+        </member>
+        <member name="P:CausalExplorer.Domain.Common.BaseEntity.CreatedAt">
+            <summary>Gets the UTC date and time at which this entity was created.</summary>
+        </member>
+        <member name="P:CausalExplorer.Domain.Common.BaseEntity.UpdatedAt">
+            <summary>Gets the UTC date and time at which this entity was last updated.</summary>
+        </member>
+        <member name="P:CausalExplorer.Domain.Common.BaseEntity.DomainEvents">
+            <summary>Gets the collection of domain events raised by this entity.</summary>
+        </member>
+        <member name="M:CausalExplorer.Domain.Common.BaseEntity.#ctor">
+            <summary>
+            Initialises a new entity with a new <see cref="T:System.Guid"/> and the current UTC timestamp.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.Domain.Common.BaseEntity.#ctor(System.Guid)">
+            <summary>
+            Initialises an entity with an explicit <paramref name="id"/> — used when
+            rehydrating from persistence.
+            </summary>
+            <param name="id">The persisted identifier.</param>
+        </member>
+        <member name="M:CausalExplorer.Domain.Common.BaseEntity.#ctor(System.Guid,System.DateTime,System.DateTime)">
+            <summary>
+            Initialises an entity with an explicit <paramref name="id"/> and audit timestamps —
+            used when rehydrating from persistence with full fidelity.
+            </summary>
+            <param name="id">The persisted identifier.</param>
+            <param name="createdAt">The original creation timestamp (UTC).</param>
+            <param name="updatedAt">The last-updated timestamp (UTC).</param>
+        </member>
+        <member name="M:CausalExplorer.Domain.Common.BaseEntity.RaiseDomainEvent(CausalExplorer.Domain.Common.IDomainEvent)">
+            <summary>Raises a domain event by adding it to the internal event collection.</summary>
+            <param name="domainEvent">The domain event to raise.</param>
+        </member>
+        <member name="M:CausalExplorer.Domain.Common.BaseEntity.ClearDomainEvents">
+            <summary>Clears all pending domain events — typically called after they are dispatched.</summary>
+        </member>
+        <member name="M:CausalExplorer.Domain.Common.BaseEntity.Touch">
+            <summary>Updates the <see cref="P:CausalExplorer.Domain.Common.BaseEntity.UpdatedAt"/> timestamp to the current UTC time.</summary>
+        </member>
+        <member name="T:CausalExplorer.Domain.Common.BaseValueObject">
+            <summary>
+            Abstract base class for value objects.
+            Provides structural equality comparison based on the components returned by
+            <see cref="M:CausalExplorer.Domain.Common.BaseValueObject.GetEqualityComponents"/>.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.Domain.Common.BaseValueObject.GetEqualityComponents">
+            <summary>
+            Returns the ordered sequence of components that participate in equality comparison.
+            </summary>
+            <returns>An enumerable of the components that define equality.</returns>
+        </member>
+        <member name="M:CausalExplorer.Domain.Common.BaseValueObject.Equals(CausalExplorer.Domain.Common.BaseValueObject)">
+            <inheritdoc />
+        </member>
+        <member name="M:CausalExplorer.Domain.Common.BaseValueObject.Equals(System.Object)">
+            <inheritdoc />
+        </member>
+        <member name="M:CausalExplorer.Domain.Common.BaseValueObject.GetHashCode">
+            <inheritdoc />
+        </member>
+        <member name="M:CausalExplorer.Domain.Common.BaseValueObject.op_Equality(CausalExplorer.Domain.Common.BaseValueObject,CausalExplorer.Domain.Common.BaseValueObject)">
+            <summary>Equality operator delegating to <see cref="M:CausalExplorer.Domain.Common.BaseValueObject.Equals(CausalExplorer.Domain.Common.BaseValueObject)"/>.</summary>
+        </member>
+        <member name="M:CausalExplorer.Domain.Common.BaseValueObject.op_Inequality(CausalExplorer.Domain.Common.BaseValueObject,CausalExplorer.Domain.Common.BaseValueObject)">
+            <summary>Inequality operator delegating to <see cref="M:CausalExplorer.Domain.Common.BaseValueObject.Equals(CausalExplorer.Domain.Common.BaseValueObject)"/>.</summary>
+        </member>
+        <member name="T:CausalExplorer.Domain.Common.IDomainEvent">
+            <summary>
+            Marker interface for domain events raised within the domain model.
+            All domain events should implement this interface.
+            Extends <see cref="T:MediatR.INotification"/> so events can be dispatched via MediatR's IPublisher.
+            </summary>
+        </member>
+        <member name="P:CausalExplorer.Domain.Common.IDomainEvent.OccurredOn">
+            <summary>Gets the UTC date and time the domain event occurred.</summary>
+        </member>
+        <member name="T:CausalExplorer.Domain.Entities.CausalChain">
+            <summary>
+            Represents a named, curated sequence of causally linked events — a navigable
+            path through the causal knowledge graph rooted at a single event.
+            </summary>
+        </member>
+        <member name="P:CausalExplorer.Domain.Entities.CausalChain.RootEventId">
+            <summary>Gets the identifier of the root (originating) event node.</summary>
+        </member>
+        <member name="P:CausalExplorer.Domain.Entities.CausalChain.Title">
+            <summary>Gets the human-readable title of this causal chain.</summary>
+        </member>
+        <member name="P:CausalExplorer.Domain.Entities.CausalChain.Domain">
+            <summary>Gets the primary domain this chain operates within.</summary>
+        </member>
+        <member name="P:CausalExplorer.Domain.Entities.CausalChain.LastUpdatedAt">
+            <summary>Gets the UTC timestamp of the most recent modification to this chain.</summary>
+        </member>
+        <member name="P:CausalExplorer.Domain.Entities.CausalChain.NodeCount">
+            <summary>Gets the total number of event nodes in this chain.</summary>
+        </member>
+        <member name="P:CausalExplorer.Domain.Entities.CausalChain.ViewCount">
+            <summary>Gets the cumulative number of times this chain has been viewed.</summary>
+        </member>
+        <member name="M:CausalExplorer.Domain.Entities.CausalChain.Create(System.Guid,System.String,CausalExplorer.Domain.Enums.EventDomain)">
+            <summary>
+            Creates a new <see cref="T:CausalExplorer.Domain.Entities.CausalChain"/> with an initial node count of 1
+            (the root event).
+            </summary>
+            <param name="rootEventId">The identifier of the root event node.</param>
+            <param name="title">The chain title. Must not be null or whitespace.</param>
+            <param name="domain">The primary domain of this chain.</param>
+            <returns>A newly constructed <see cref="T:CausalExplorer.Domain.Entities.CausalChain"/>.</returns>
+            <exception cref="T:System.ArgumentException">
+            Thrown when <paramref name="title"/> is null or whitespace.
+            </exception>
+        </member>
+        <member name="M:CausalExplorer.Domain.Entities.CausalChain.IncrementNodeCount">
+            <summary>
+            Increments the node count and raises a <see cref="T:CausalExplorer.Domain.Events.ChainUpdatedDomainEvent"/>.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.Domain.Entities.CausalChain.DecrementNodeCount">
+            <summary>
+            Decrements the node count (minimum 1 — the root node always remains)
+            and raises a <see cref="T:CausalExplorer.Domain.Events.ChainUpdatedDomainEvent"/>.
+            </summary>
+            <exception cref="T:System.InvalidOperationException">
+            Thrown when the chain already contains only the root node.
+            </exception>
+        </member>
+        <member name="M:CausalExplorer.Domain.Entities.CausalChain.RecordView">
+            <summary>
+            Records a view of this causal chain by incrementing the view counter.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.Domain.Entities.CausalChain.Rename(System.String)">
+            <summary>
+            Updates the title of this causal chain.
+            </summary>
+            <param name="title">New title. Must not be null or whitespace.</param>
+        </member>
+        <member name="T:CausalExplorer.Domain.Entities.CausalEdge">
+            <summary>
+            Represents a directed causal relationship (edge) between two <see cref="T:CausalExplorer.Domain.Entities.EventNode"/> instances
+            in the causal knowledge graph.
+            </summary>
+        </member>
+        <member name="P:CausalExplorer.Domain.Entities.CausalEdge.FromEventId">
+            <summary>Gets the identifier of the source (cause) event node.</summary>
+        </member>
+        <member name="P:CausalExplorer.Domain.Entities.CausalEdge.ToEventId">
+            <summary>Gets the identifier of the target (effect) event node.</summary>
+        </member>
+        <member name="P:CausalExplorer.Domain.Entities.CausalEdge.RelationshipType">
+            <summary>Gets the type of causal relationship this edge represents.</summary>
+        </member>
+        <member name="P:CausalExplorer.Domain.Entities.CausalEdge.Strength">
+            <summary>
+            Gets the strength of the causal relationship, expressed as a decimal in [0, 1].
+            A higher value indicates a stronger, more direct causal link.
+            </summary>
+        </member>
+        <member name="P:CausalExplorer.Domain.Entities.CausalEdge.Perspective">
+            <summary>Gets the analytical perspective from which this edge was derived.</summary>
+        </member>
+        <member name="P:CausalExplorer.Domain.Entities.CausalEdge.Explanation">
+            <summary>Gets the human-readable explanation of why this causal link exists.</summary>
+        </member>
+        <member name="P:CausalExplorer.Domain.Entities.CausalEdge.IsContested">
+            <summary>
+            Gets a value indicating whether the causal relationship represented by this edge
+            is contested by credible alternative interpretations.
+            </summary>
+        </member>
+        <member name="P:CausalExplorer.Domain.Entities.CausalEdge.Sources">
+            <summary>Gets the source documents supporting this causal relationship.</summary>
+        </member>
+        <member name="M:CausalExplorer.Domain.Entities.CausalEdge.Create(System.Guid,System.Guid,CausalExplorer.Domain.Enums.CausalRelationshipType,System.Decimal,CausalExplorer.Domain.Enums.Perspective,System.String,System.Boolean)">
+            <summary>
+            Creates a new <see cref="T:CausalExplorer.Domain.Entities.CausalEdge"/> and raises a
+            <see cref="T:CausalExplorer.Domain.Events.CausalEdgeAddedDomainEvent"/>.
+            </summary>
+            <param name="fromEventId">Source event node identifier.</param>
+            <param name="toEventId">Target event node identifier. Must differ from <paramref name="fromEventId"/>.</param>
+            <param name="relationshipType">The type of causal relationship.</param>
+            <param name="strength">Strength of the relationship in [0, 1].</param>
+            <param name="perspective">The analytical perspective of the relationship.</param>
+            <param name="explanation">Human-readable justification. Must not be null or whitespace.</param>
+            <param name="isContested">Whether the relationship is actively contested.</param>
+            <returns>A newly constructed <see cref="T:CausalExplorer.Domain.Entities.CausalEdge"/>.</returns>
+            <exception cref="T:System.ArgumentException">
+            Thrown when <paramref name="fromEventId"/> equals <paramref name="toEventId"/>,
+            or when <paramref name="explanation"/> is null or whitespace.
+            </exception>
+            <exception cref="T:System.ArgumentOutOfRangeException">
+            Thrown when <paramref name="strength"/> is outside [0, 1].
+            </exception>
+        </member>
+        <member name="M:CausalExplorer.Domain.Entities.CausalEdge.UpdateExplanation(System.String)">
+            <summary>
+            Updates the explanation text for this causal relationship.
+            </summary>
+            <param name="explanation">New explanation. Must not be null or whitespace.</param>
+        </member>
+        <member name="M:CausalExplorer.Domain.Entities.CausalEdge.SetContested(System.Boolean)">
+            <summary>
+            Marks this edge as contested or clears the contested flag.
+            </summary>
+            <param name="isContested">The new contested status.</param>
+        </member>
+        <member name="M:CausalExplorer.Domain.Entities.CausalEdge.UpdateStrength(System.Decimal)">
+            <summary>
+            Updates the strength of this causal relationship.
+            </summary>
+            <param name="strength">New strength value in [0, 1].</param>
+        </member>
+        <member name="M:CausalExplorer.Domain.Entities.CausalEdge.AddSource(CausalExplorer.Domain.ValueObjects.Source)">
+            <summary>
+            Attaches a supporting <see cref="T:CausalExplorer.Domain.ValueObjects.Source"/> document to this edge.
+            </summary>
+            <param name="source">The source to attach. Must not be null.</param>
+        </member>
+        <member name="T:CausalExplorer.Domain.Entities.EventNode">
+            <summary>
+            Represents a single event in the causal knowledge graph — a node that can be
+            linked to other nodes via <see cref="T:CausalExplorer.Domain.Entities.CausalEdge"/> relationships.
+            </summary>
+        </member>
+        <member name="P:CausalExplorer.Domain.Entities.EventNode.Title">
+            <summary>Gets the short descriptive title of the event.</summary>
+        </member>
+        <member name="P:CausalExplorer.Domain.Entities.EventNode.Summary">
+            <summary>Gets the multi-sentence summary explaining what happened and why it matters.</summary>
+        </member>
+        <member name="P:CausalExplorer.Domain.Entities.EventNode.EventDate">
+            <summary>Gets the UTC date on which the real-world event occurred.</summary>
+        </member>
+        <member name="P:CausalExplorer.Domain.Entities.EventNode.Domain">
+            <summary>Gets the high-level domain this event belongs to.</summary>
+        </member>
+        <member name="P:CausalExplorer.Domain.Entities.EventNode.ConfidenceScore">
+            <summary>
+            Gets the raw confidence score (0–1). Use <see cref="M:CausalExplorer.Domain.Entities.EventNode.GetConfidenceLevel"/> for
+            the qualitative classification.
+            </summary>
+        </member>
+        <member name="P:CausalExplorer.Domain.Entities.EventNode.FreshnessScore">
+            <summary>
+            Gets the freshness score (0–1) reflecting how recently the event has been
+            reviewed or updated.
+            </summary>
+        </member>
+        <member name="P:CausalExplorer.Domain.Entities.EventNode.Perspectives">
+            <summary>Gets the analytical perspectives from which this event has been characterised.</summary>
+        </member>
+        <member name="P:CausalExplorer.Domain.Entities.EventNode.Sources">
+            <summary>Gets the supporting source documents for this event.</summary>
+        </member>
+        <member name="P:CausalExplorer.Domain.Entities.EventNode.IsVerified">
+            <summary>
+            Gets a value indicating whether this event node has been reviewed and
+            verified by a moderator or administrator.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.Domain.Entities.EventNode.Create(System.String,System.String,System.DateTime,CausalExplorer.Domain.Enums.EventDomain,System.Decimal,System.Decimal)">
+            <summary>
+            Creates a new, unverified <see cref="T:CausalExplorer.Domain.Entities.EventNode"/> and raises an
+            <see cref="T:CausalExplorer.Domain.Events.EventNodeCreatedDomainEvent"/>.
+            </summary>
+            <param name="title">Short descriptive title. Must not be null or whitespace.</param>
+            <param name="summary">Multi-sentence description of the event.</param>
+            <param name="eventDate">UTC date on which the event occurred.</param>
+            <param name="domain">High-level domain classification.</param>
+            <param name="confidenceScore">Initial confidence score in [0, 1].</param>
+            <param name="freshnessScore">Initial freshness score in [0, 1].</param>
+            <returns>A newly constructed <see cref="T:CausalExplorer.Domain.Entities.EventNode"/>.</returns>
+            <exception cref="T:System.ArgumentException">
+            Thrown when <paramref name="title"/> or <paramref name="summary"/> is null or whitespace.
+            </exception>
+            <exception cref="T:System.ArgumentOutOfRangeException">
+            Thrown when <paramref name="confidenceScore"/> or <paramref name="freshnessScore"/> is
+            outside [0, 1].
+            </exception>
+        </member>
+        <member name="M:CausalExplorer.Domain.Entities.EventNode.Reconstitute(System.Guid,System.String,System.String,System.DateTime,CausalExplorer.Domain.Enums.EventDomain,System.Decimal,System.Decimal,System.Boolean,System.DateTime,System.Collections.Generic.IEnumerable{CausalExplorer.Domain.Enums.Perspective})">
+            <summary>
+            Reconstitutes an existing <see cref="T:CausalExplorer.Domain.Entities.EventNode"/> from persistent storage without
+            raising domain events. Use this factory when hydrating from a graph or relational
+            store rather than creating a brand-new aggregate.
+            </summary>
+            <param name="id">The persisted aggregate identifier.</param>
+            <param name="title">Stored title.</param>
+            <param name="summary">Stored summary.</param>
+            <param name="eventDate">UTC date on which the real-world event occurred.</param>
+            <param name="domain">Stored domain classification.</param>
+            <param name="confidenceScore">Stored confidence score in [0, 1].</param>
+            <param name="freshnessScore">Stored freshness score in [0, 1].</param>
+            <param name="isVerified">Whether the node has been verified by a moderator.</param>
+            <param name="createdAt">Original creation timestamp (UTC).</param>
+            <param name="perspectives">Analytical perspectives already assigned to the node.</param>
+            <returns>A fully-hydrated <see cref="T:CausalExplorer.Domain.Entities.EventNode"/> with no pending domain events.</returns>
+        </member>
+        <member name="M:CausalExplorer.Domain.Entities.EventNode.GetConfidenceLevel">
+            <summary>
+            Returns the qualitative <see cref="T:CausalExplorer.Domain.ValueObjects.ConfidenceLevel"/> for this node's current score.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.Domain.Entities.EventNode.UpdateDescription(System.String,System.String)">
+            <summary>
+            Updates the title and summary of this event node.
+            </summary>
+            <param name="title">New title. Must not be null or whitespace.</param>
+            <param name="summary">New summary. Must not be null or whitespace.</param>
+        </member>
+        <member name="M:CausalExplorer.Domain.Entities.EventNode.UpdateScores(System.Decimal,System.Decimal)">
+            <summary>
+            Updates the confidence and freshness scores of this event node.
+            </summary>
+            <param name="confidenceScore">New confidence score in [0, 1].</param>
+            <param name="freshnessScore">New freshness score in [0, 1].</param>
+        </member>
+        <member name="M:CausalExplorer.Domain.Entities.EventNode.AddPerspective(CausalExplorer.Domain.Enums.Perspective)">
+            <summary>
+            Adds an analytical <see cref="T:CausalExplorer.Domain.Enums.Perspective"/> to this event node if not already present.
+            </summary>
+            <param name="perspective">The perspective to add.</param>
+        </member>
+        <member name="M:CausalExplorer.Domain.Entities.EventNode.AddSource(CausalExplorer.Domain.ValueObjects.Source)">
+            <summary>
+            Attaches a supporting <see cref="T:CausalExplorer.Domain.ValueObjects.Source"/> document to this event node.
+            </summary>
+            <param name="source">The source to attach. Must not be null.</param>
+        </member>
+        <member name="M:CausalExplorer.Domain.Entities.EventNode.Verify(System.Guid)">
+            <summary>
+            Marks this event node as verified and raises an
+            <see cref="T:CausalExplorer.Domain.Events.EventNodeVerifiedDomainEvent"/>.
+            </summary>
+            <param name="verifiedByUserId">The identifier of the user performing the verification.</param>
+            <exception cref="T:System.InvalidOperationException">Thrown when the node is already verified.</exception>
+        </member>
+        <member name="M:CausalExplorer.Domain.Entities.EventNode.#ctor(System.Guid,System.DateTime,System.DateTime)">
+            <summary>
+            Private constructor used by <see cref="M:CausalExplorer.Domain.Entities.EventNode.Reconstitute(System.Guid,System.String,System.String,System.DateTime,CausalExplorer.Domain.Enums.EventDomain,System.Decimal,System.Decimal,System.Boolean,System.DateTime,System.Collections.Generic.IEnumerable{CausalExplorer.Domain.Enums.Perspective})"/> to set the persisted
+            <paramref name="id"/> and audit timestamps via the base-class overload.
+            </summary>
+        </member>
+        <member name="T:CausalExplorer.Domain.Entities.User">
+            <summary>
+            Represents a registered platform user, including authentication credentials
+            and role assignment.
+            </summary>
+        </member>
+        <member name="P:CausalExplorer.Domain.Entities.User.Email">
+            <summary>Gets the user's email address (unique per platform).</summary>
+        </member>
+        <member name="P:CausalExplorer.Domain.Entities.User.Username">
+            <summary>Gets the user's public display name (unique per platform).</summary>
+        </member>
+        <member name="P:CausalExplorer.Domain.Entities.User.PasswordHash">
+            <summary>Gets the BCrypt-hashed password credential. Never expose in responses.</summary>
+        </member>
+        <member name="P:CausalExplorer.Domain.Entities.User.Role">
+            <summary>Gets the role assigned to this user, governing access permissions.</summary>
+        </member>
+        <member name="P:CausalExplorer.Domain.Entities.User.LastLoginAt">
+            <summary>Gets the UTC timestamp of the most recent successful login, if any.</summary>
+        </member>
+        <member name="P:CausalExplorer.Domain.Entities.User.IsActive">
+            <summary>Gets a value indicating whether this user account is active.</summary>
+        </member>
+        <member name="M:CausalExplorer.Domain.Entities.User.Create(System.String,System.String,System.String)">
+            <summary>
+            Creates a new, active <see cref="T:CausalExplorer.Domain.Entities.User"/> with the <see cref="F:CausalExplorer.Domain.Enums.UserRole.User"/> role.
+            </summary>
+            <param name="email">A valid email address.</param>
+            <param name="username">A non-whitespace display name.</param>
+            <param name="passwordHash">Pre-hashed password credential.</param>
+            <returns>A newly constructed <see cref="T:CausalExplorer.Domain.Entities.User"/>.</returns>
+            <exception cref="T:System.ArgumentException">
+            Thrown when any argument is null or whitespace.
+            </exception>
+        </member>
+        <member name="M:CausalExplorer.Domain.Entities.User.RecordLogin">
+            <summary>Records a successful login by updating <see cref="P:CausalExplorer.Domain.Entities.User.LastLoginAt"/>.</summary>
+        </member>
+        <member name="M:CausalExplorer.Domain.Entities.User.AssignRole(CausalExplorer.Domain.Enums.UserRole)">
+            <summary>Promotes or demotes the user to the specified <paramref name="role"/>.</summary>
+            <param name="role">The new role to assign.</param>
+        </member>
+        <member name="M:CausalExplorer.Domain.Entities.User.Deactivate">
+            <summary>Deactivates this user account, preventing authentication.</summary>
+            <exception cref="T:System.InvalidOperationException">Thrown when the account is already inactive.</exception>
+        </member>
+        <member name="M:CausalExplorer.Domain.Entities.User.Reactivate">
+            <summary>Reactivates a previously deactivated account.</summary>
+            <exception cref="T:System.InvalidOperationException">Thrown when the account is already active.</exception>
+        </member>
+        <member name="M:CausalExplorer.Domain.Entities.User.UpdatePasswordHash(System.String)">
+            <summary>Updates the password hash, e.g. after a password-reset flow.</summary>
+            <param name="newPasswordHash">The new BCrypt hash.</param>
+        </member>
+        <member name="T:CausalExplorer.Domain.Entities.UserSavedChain">
+            <summary>
+            Represents the association between a <see cref="T:CausalExplorer.Domain.Entities.User"/> and a <see cref="T:CausalExplorer.Domain.Entities.CausalChain"/>
+            that the user has explicitly saved to their personal library.
+            </summary>
+        </member>
+        <member name="P:CausalExplorer.Domain.Entities.UserSavedChain.UserId">
+            <summary>Gets the identifier of the user who saved the chain.</summary>
+        </member>
+        <member name="P:CausalExplorer.Domain.Entities.UserSavedChain.ChainId">
+            <summary>Gets the identifier of the saved causal chain.</summary>
+        </member>
+        <member name="P:CausalExplorer.Domain.Entities.UserSavedChain.SavedAt">
+            <summary>Gets the UTC timestamp at which the chain was saved.</summary>
+        </member>
+        <member name="P:CausalExplorer.Domain.Entities.UserSavedChain.Notes">
+            <summary>
+            Gets optional user-supplied notes attached to this saved chain.
+            May be null if no notes have been added.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.Domain.Entities.UserSavedChain.Create(System.Guid,System.Guid,System.String)">
+            <summary>
+            Creates a new <see cref="T:CausalExplorer.Domain.Entities.UserSavedChain"/> association.
+            </summary>
+            <param name="userId">The identifier of the user saving the chain.</param>
+            <param name="chainId">The identifier of the chain being saved.</param>
+            <param name="notes">Optional personal notes (may be null).</param>
+            <returns>A newly constructed <see cref="T:CausalExplorer.Domain.Entities.UserSavedChain"/>.</returns>
+        </member>
+        <member name="M:CausalExplorer.Domain.Entities.UserSavedChain.UpdateNotes(System.String)">
+            <summary>
+            Updates the personal notes for this saved chain.
+            </summary>
+            <param name="notes">New notes text. Pass null or whitespace to clear.</param>
+        </member>
+        <member name="T:CausalExplorer.Domain.Enums.CausalRelationshipType">
+            <summary>
+            Describes the causal relationship between two event nodes in a causal graph.
+            </summary>
+        </member>
+        <member name="F:CausalExplorer.Domain.Enums.CausalRelationshipType.DirectlyCaused">
+            <summary>One event was the direct and sufficient cause of another.</summary>
+        </member>
+        <member name="F:CausalExplorer.Domain.Enums.CausalRelationshipType.EnabledConditionsFor">
+            <summary>One event created the necessary preconditions for another to occur.</summary>
+        </member>
+        <member name="F:CausalExplorer.Domain.Enums.CausalRelationshipType.ContributedTo">
+            <summary>One event was one of several contributing factors to another.</summary>
+        </member>
+        <member name="F:CausalExplorer.Domain.Enums.CausalRelationshipType.Contested">
+            <summary>The causal link is actively disputed among analysts or sources.</summary>
+        </member>
+        <member name="F:CausalExplorer.Domain.Enums.CausalRelationshipType.Correlated">
+            <summary>The events are correlated but a causal direction is not established.</summary>
+        </member>
+        <member name="T:CausalExplorer.Domain.Enums.EventDomain">
+            <summary>
+            Represents the high-level domain to which a causal event belongs.
+            </summary>
+        </member>
+        <member name="F:CausalExplorer.Domain.Enums.EventDomain.Geopolitics">
+            <summary>Events relating to international relations, diplomacy, and state politics.</summary>
+        </member>
+        <member name="F:CausalExplorer.Domain.Enums.EventDomain.Economics">
+            <summary>Events relating to markets, trade, fiscal and monetary policy.</summary>
+        </member>
+        <member name="F:CausalExplorer.Domain.Enums.EventDomain.Technology">
+            <summary>Events relating to scientific discovery, innovation, and digital transformation.</summary>
+        </member>
+        <member name="F:CausalExplorer.Domain.Enums.EventDomain.Social">
+            <summary>Events relating to society, demographics, culture, and civil movements.</summary>
+        </member>
+        <member name="F:CausalExplorer.Domain.Enums.EventDomain.Environmental">
+            <summary>Events relating to climate, ecology, natural disasters, and resource depletion.</summary>
+        </member>
+        <member name="F:CausalExplorer.Domain.Enums.EventDomain.Military">
+            <summary>Events relating to armed conflict, defence, and security.</summary>
+        </member>
+        <member name="F:CausalExplorer.Domain.Enums.EventDomain.Cultural">
+            <summary>Events relating to arts, media, identity, and cultural exchange.</summary>
+        </member>
+        <member name="T:CausalExplorer.Domain.Enums.Perspective">
+            <summary>
+            Represents the analytical perspective from which a causal relationship is interpreted.
+            </summary>
+        </member>
+        <member name="F:CausalExplorer.Domain.Enums.Perspective.Mainstream">
+            <summary>The dominant, consensus-driven interpretation from established institutions.</summary>
+        </member>
+        <member name="F:CausalExplorer.Domain.Enums.Perspective.Geopolitical">
+            <summary>An interpretation framed around national interests and power dynamics.</summary>
+        </member>
+        <member name="F:CausalExplorer.Domain.Enums.Perspective.Structural">
+            <summary>An interpretation focusing on systemic, institutional, or structural forces.</summary>
+        </member>
+        <member name="F:CausalExplorer.Domain.Enums.Perspective.Economic">
+            <summary>An interpretation driven by financial incentives and economic rationality.</summary>
+        </member>
+        <member name="F:CausalExplorer.Domain.Enums.Perspective.Revisionist">
+            <summary>An interpretation that challenges or revises the mainstream historical narrative.</summary>
+        </member>
+        <member name="T:CausalExplorer.Domain.Enums.SourceType">
+            <summary>
+            Classifies the provenance type of a supporting source document.
+            </summary>
+        </member>
+        <member name="F:CausalExplorer.Domain.Enums.SourceType.News">
+            <summary>Mainstream or investigative journalism outlet.</summary>
+        </member>
+        <member name="F:CausalExplorer.Domain.Enums.SourceType.Academic">
+            <summary>Peer-reviewed academic paper or conference proceeding.</summary>
+        </member>
+        <member name="F:CausalExplorer.Domain.Enums.SourceType.Government">
+            <summary>Official government document, statement, or data release.</summary>
+        </member>
+        <member name="F:CausalExplorer.Domain.Enums.SourceType.ThinkTank">
+            <summary>Analysis or report from a policy research or think-tank organisation.</summary>
+        </member>
+        <member name="T:CausalExplorer.Domain.Enums.UserRole">
+            <summary>
+            Represents the access role assigned to a platform user.
+            </summary>
+        </member>
+        <member name="F:CausalExplorer.Domain.Enums.UserRole.Guest">
+            <summary>Unauthenticated visitor with read-only access.</summary>
+        </member>
+        <member name="F:CausalExplorer.Domain.Enums.UserRole.User">
+            <summary>Authenticated user who can save chains and submit suggestions.</summary>
+        </member>
+        <member name="F:CausalExplorer.Domain.Enums.UserRole.Contributor">
+            <summary>Trusted user who can create and edit event nodes and edges.</summary>
+        </member>
+        <member name="F:CausalExplorer.Domain.Enums.UserRole.Moderator">
+            <summary>User who can review, approve, or reject contributor submissions.</summary>
+        </member>
+        <member name="F:CausalExplorer.Domain.Enums.UserRole.Admin">
+            <summary>Full platform administrator with unrestricted access.</summary>
+        </member>
+        <member name="T:CausalExplorer.Domain.Events.CausalEdgeAddedDomainEvent">
+            <summary>
+            Domain event raised when a new <see cref="T:CausalExplorer.Domain.Entities.CausalEdge"/> is added to a causal graph.
+            </summary>
+            <param name="EdgeId">The identifier of the newly added edge.</param>
+            <param name="FromEventId">The identifier of the source event node.</param>
+            <param name="ToEventId">The identifier of the target event node.</param>
+            <param name="OccurredOn">The UTC time at which the event was raised.</param>
+        </member>
+        <member name="M:CausalExplorer.Domain.Events.CausalEdgeAddedDomainEvent.#ctor(System.Guid,System.Guid,System.Guid,System.DateTime)">
+            <summary>
+            Domain event raised when a new <see cref="T:CausalExplorer.Domain.Entities.CausalEdge"/> is added to a causal graph.
+            </summary>
+            <param name="EdgeId">The identifier of the newly added edge.</param>
+            <param name="FromEventId">The identifier of the source event node.</param>
+            <param name="ToEventId">The identifier of the target event node.</param>
+            <param name="OccurredOn">The UTC time at which the event was raised.</param>
+        </member>
+        <member name="P:CausalExplorer.Domain.Events.CausalEdgeAddedDomainEvent.EdgeId">
+            <summary>The identifier of the newly added edge.</summary>
+        </member>
+        <member name="P:CausalExplorer.Domain.Events.CausalEdgeAddedDomainEvent.FromEventId">
+            <summary>The identifier of the source event node.</summary>
+        </member>
+        <member name="P:CausalExplorer.Domain.Events.CausalEdgeAddedDomainEvent.ToEventId">
+            <summary>The identifier of the target event node.</summary>
+        </member>
+        <member name="P:CausalExplorer.Domain.Events.CausalEdgeAddedDomainEvent.OccurredOn">
+            <summary>The UTC time at which the event was raised.</summary>
+        </member>
+        <member name="T:CausalExplorer.Domain.Events.ChainUpdatedDomainEvent">
+            <summary>
+            Domain event raised when a <see cref="T:CausalExplorer.Domain.Entities.CausalChain"/> is updated
+            (e.g. nodes or edges are added or removed).
+            </summary>
+            <param name="ChainId">The identifier of the updated causal chain.</param>
+            <param name="NodeCount">The updated total number of nodes in the chain.</param>
+            <param name="OccurredOn">The UTC time at which the event was raised.</param>
+        </member>
+        <member name="M:CausalExplorer.Domain.Events.ChainUpdatedDomainEvent.#ctor(System.Guid,System.Int32,System.DateTime)">
+            <summary>
+            Domain event raised when a <see cref="T:CausalExplorer.Domain.Entities.CausalChain"/> is updated
+            (e.g. nodes or edges are added or removed).
+            </summary>
+            <param name="ChainId">The identifier of the updated causal chain.</param>
+            <param name="NodeCount">The updated total number of nodes in the chain.</param>
+            <param name="OccurredOn">The UTC time at which the event was raised.</param>
+        </member>
+        <member name="P:CausalExplorer.Domain.Events.ChainUpdatedDomainEvent.ChainId">
+            <summary>The identifier of the updated causal chain.</summary>
+        </member>
+        <member name="P:CausalExplorer.Domain.Events.ChainUpdatedDomainEvent.NodeCount">
+            <summary>The updated total number of nodes in the chain.</summary>
+        </member>
+        <member name="P:CausalExplorer.Domain.Events.ChainUpdatedDomainEvent.OccurredOn">
+            <summary>The UTC time at which the event was raised.</summary>
+        </member>
+        <member name="T:CausalExplorer.Domain.Events.EventNodeCreatedDomainEvent">
+            <summary>
+            Domain event raised when a new <see cref="T:CausalExplorer.Domain.Entities.EventNode"/> is created.
+            </summary>
+            <param name="EventNodeId">The identifier of the newly created event node.</param>
+            <param name="Title">The title of the new event node.</param>
+            <param name="OccurredOn">The UTC time at which the event was raised.</param>
+        </member>
+        <member name="M:CausalExplorer.Domain.Events.EventNodeCreatedDomainEvent.#ctor(System.Guid,System.String,System.DateTime)">
+            <summary>
+            Domain event raised when a new <see cref="T:CausalExplorer.Domain.Entities.EventNode"/> is created.
+            </summary>
+            <param name="EventNodeId">The identifier of the newly created event node.</param>
+            <param name="Title">The title of the new event node.</param>
+            <param name="OccurredOn">The UTC time at which the event was raised.</param>
+        </member>
+        <member name="P:CausalExplorer.Domain.Events.EventNodeCreatedDomainEvent.EventNodeId">
+            <summary>The identifier of the newly created event node.</summary>
+        </member>
+        <member name="P:CausalExplorer.Domain.Events.EventNodeCreatedDomainEvent.Title">
+            <summary>The title of the new event node.</summary>
+        </member>
+        <member name="P:CausalExplorer.Domain.Events.EventNodeCreatedDomainEvent.OccurredOn">
+            <summary>The UTC time at which the event was raised.</summary>
+        </member>
+        <member name="T:CausalExplorer.Domain.Events.EventNodeVerifiedDomainEvent">
+            <summary>
+            Domain event raised when an <see cref="T:CausalExplorer.Domain.Entities.EventNode"/> transitions to a verified state.
+            </summary>
+            <param name="EventNodeId">The identifier of the verified event node.</param>
+            <param name="VerifiedByUserId">The identifier of the moderator or admin who performed the verification.</param>
+            <param name="OccurredOn">The UTC time at which the event was raised.</param>
+        </member>
+        <member name="M:CausalExplorer.Domain.Events.EventNodeVerifiedDomainEvent.#ctor(System.Guid,System.Guid,System.DateTime)">
+            <summary>
+            Domain event raised when an <see cref="T:CausalExplorer.Domain.Entities.EventNode"/> transitions to a verified state.
+            </summary>
+            <param name="EventNodeId">The identifier of the verified event node.</param>
+            <param name="VerifiedByUserId">The identifier of the moderator or admin who performed the verification.</param>
+            <param name="OccurredOn">The UTC time at which the event was raised.</param>
+        </member>
+        <member name="P:CausalExplorer.Domain.Events.EventNodeVerifiedDomainEvent.EventNodeId">
+            <summary>The identifier of the verified event node.</summary>
+        </member>
+        <member name="P:CausalExplorer.Domain.Events.EventNodeVerifiedDomainEvent.VerifiedByUserId">
+            <summary>The identifier of the moderator or admin who performed the verification.</summary>
+        </member>
+        <member name="P:CausalExplorer.Domain.Events.EventNodeVerifiedDomainEvent.OccurredOn">
+            <summary>The UTC time at which the event was raised.</summary>
+        </member>
+        <member name="T:CausalExplorer.Domain.Interfaces.ICausalChainRepository">
+            <summary>
+            Defines the contract for persistence operations on <see cref="T:CausalExplorer.Domain.Entities.CausalChain"/> aggregates.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.Domain.Interfaces.ICausalChainRepository.GetByIdAsync(System.Guid,System.Threading.CancellationToken)">
+            <summary>
+            Retrieves a <see cref="T:CausalExplorer.Domain.Entities.CausalChain"/> by its unique identifier.
+            </summary>
+            <param name="id">The chain identifier.</param>
+            <param name="cancellationToken">Cancellation token.</param>
+        </member>
+        <member name="M:CausalExplorer.Domain.Interfaces.ICausalChainRepository.GetPagedAsync(System.Nullable{CausalExplorer.Domain.Enums.EventDomain},System.Int32,System.Int32,System.Threading.CancellationToken)">
+            <summary>
+            Returns a paged list of causal chains, optionally filtered by domain.
+            </summary>
+            <param name="domain">Optional domain filter.</param>
+            <param name="pageNumber">1-based page index.</param>
+            <param name="pageSize">Maximum number of results per page.</param>
+            <param name="cancellationToken">Cancellation token.</param>
+        </member>
+        <member name="M:CausalExplorer.Domain.Interfaces.ICausalChainRepository.GetTrendingAsync(System.Int32,System.Threading.CancellationToken)">
+            <summary>
+            Returns the most-viewed causal chains, limited to <paramref name="count"/> results.
+            </summary>
+            <param name="count">Maximum number of trending chains to return.</param>
+            <param name="cancellationToken">Cancellation token.</param>
+        </member>
+        <member name="M:CausalExplorer.Domain.Interfaces.ICausalChainRepository.AddAsync(CausalExplorer.Domain.Entities.CausalChain,System.Threading.CancellationToken)">
+            <summary>Adds a new <see cref="T:CausalExplorer.Domain.Entities.CausalChain"/> to the repository.</summary>
+        </member>
+        <member name="M:CausalExplorer.Domain.Interfaces.ICausalChainRepository.Update(CausalExplorer.Domain.Entities.CausalChain)">
+            <summary>Marks an existing <see cref="T:CausalExplorer.Domain.Entities.CausalChain"/> as modified.</summary>
+        </member>
+        <member name="M:CausalExplorer.Domain.Interfaces.ICausalChainRepository.Delete(CausalExplorer.Domain.Entities.CausalChain)">
+            <summary>Removes a <see cref="T:CausalExplorer.Domain.Entities.CausalChain"/> from the repository.</summary>
+        </member>
+        <member name="T:CausalExplorer.Domain.Interfaces.ICausalEdgeRepository">
+            <summary>
+            Defines the contract for persistence operations on <see cref="T:CausalExplorer.Domain.Entities.CausalEdge"/> aggregates.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.Domain.Interfaces.ICausalEdgeRepository.GetByIdAsync(System.Guid,System.Threading.CancellationToken)">
+            <summary>
+            Retrieves a <see cref="T:CausalExplorer.Domain.Entities.CausalEdge"/> by its unique identifier.
+            </summary>
+            <param name="id">The edge identifier.</param>
+            <param name="cancellationToken">Cancellation token.</param>
+        </member>
+        <member name="M:CausalExplorer.Domain.Interfaces.ICausalEdgeRepository.GetByFromEventAsync(System.Guid,System.Threading.CancellationToken)">
+            <summary>
+            Returns all edges originating from the specified event node.
+            </summary>
+            <param name="fromEventId">Source event node identifier.</param>
+            <param name="cancellationToken">Cancellation token.</param>
+        </member>
+        <member name="M:CausalExplorer.Domain.Interfaces.ICausalEdgeRepository.GetByToEventAsync(System.Guid,System.Threading.CancellationToken)">
+            <summary>
+            Returns all edges targeting the specified event node.
+            </summary>
+            <param name="toEventId">Target event node identifier.</param>
+            <param name="cancellationToken">Cancellation token.</param>
+        </member>
+        <member name="M:CausalExplorer.Domain.Interfaces.ICausalEdgeRepository.GetByEventIdAsync(System.Guid,System.Nullable{CausalExplorer.Domain.Enums.Perspective},System.Threading.CancellationToken)">
+            <summary>
+            Returns all edges connected to the given event node, in either direction,
+            optionally filtered by <paramref name="perspective"/>.
+            </summary>
+            <param name="eventId">The event node identifier.</param>
+            <param name="perspective">Optional perspective filter.</param>
+            <param name="cancellationToken">Cancellation token.</param>
+        </member>
+        <member name="M:CausalExplorer.Domain.Interfaces.ICausalEdgeRepository.AddAsync(CausalExplorer.Domain.Entities.CausalEdge,System.Threading.CancellationToken)">
+            <summary>Adds a new <see cref="T:CausalExplorer.Domain.Entities.CausalEdge"/> to the repository.</summary>
+        </member>
+        <member name="M:CausalExplorer.Domain.Interfaces.ICausalEdgeRepository.BulkAddAsync(System.Collections.Generic.IEnumerable{CausalExplorer.Domain.Entities.CausalEdge},System.Threading.CancellationToken)">
+            <summary>
+            Bulk-adds multiple <see cref="T:CausalExplorer.Domain.Entities.CausalEdge"/> instances in a single round-trip.
+            Edges referencing non-existent node IDs are silently skipped.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.Domain.Interfaces.ICausalEdgeRepository.Update(CausalExplorer.Domain.Entities.CausalEdge)">
+            <summary>Marks an existing <see cref="T:CausalExplorer.Domain.Entities.CausalEdge"/> as modified.</summary>
+        </member>
+        <member name="M:CausalExplorer.Domain.Interfaces.ICausalEdgeRepository.Delete(CausalExplorer.Domain.Entities.CausalEdge)">
+            <summary>Removes a <see cref="T:CausalExplorer.Domain.Entities.CausalEdge"/> from the repository.</summary>
+        </member>
+        <member name="T:CausalExplorer.Domain.Interfaces.IEventNodeRepository">
+            <summary>
+            Defines the contract for persistence operations on <see cref="T:CausalExplorer.Domain.Entities.EventNode"/> aggregates.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.Domain.Interfaces.IEventNodeRepository.GetByIdAsync(System.Guid,System.Threading.CancellationToken)">
+            <summary>
+            Retrieves an <see cref="T:CausalExplorer.Domain.Entities.EventNode"/> by its unique identifier.
+            </summary>
+            <param name="id">The event node identifier.</param>
+            <param name="cancellationToken">Cancellation token.</param>
+            <returns>The matching node, or <c>null</c> if not found.</returns>
+        </member>
+        <member name="M:CausalExplorer.Domain.Interfaces.IEventNodeRepository.GetPagedAsync(System.Nullable{CausalExplorer.Domain.Enums.EventDomain},System.Int32,System.Int32,System.Threading.CancellationToken)">
+            <summary>
+            Returns a paged list of event nodes, optionally filtered by domain.
+            </summary>
+            <param name="domain">Optional domain filter.</param>
+            <param name="pageNumber">1-based page index.</param>
+            <param name="pageSize">Maximum number of results per page.</param>
+            <param name="cancellationToken">Cancellation token.</param>
+        </member>
+        <member name="M:CausalExplorer.Domain.Interfaces.IEventNodeRepository.SearchAsync(System.String,System.Threading.CancellationToken)">
+            <summary>
+            Searches event nodes whose title or summary contains the given <paramref name="query"/> term.
+            </summary>
+            <param name="query">Full-text search term.</param>
+            <param name="cancellationToken">Cancellation token.</param>
+        </member>
+        <member name="M:CausalExplorer.Domain.Interfaces.IEventNodeRepository.GetUnverifiedAsync(System.Threading.CancellationToken)">
+            <summary>
+            Returns all event nodes that have not yet been verified.
+            </summary>
+            <param name="cancellationToken">Cancellation token.</param>
+        </member>
+        <member name="M:CausalExplorer.Domain.Interfaces.IEventNodeRepository.AddAsync(CausalExplorer.Domain.Entities.EventNode,System.Threading.CancellationToken)">
+            <summary>Adds a new <see cref="T:CausalExplorer.Domain.Entities.EventNode"/> to the repository.</summary>
+        </member>
+        <member name="M:CausalExplorer.Domain.Interfaces.IEventNodeRepository.BulkAddAsync(System.Collections.Generic.IEnumerable{CausalExplorer.Domain.Entities.EventNode},System.Threading.CancellationToken)">
+            <summary>
+            Bulk-adds multiple <see cref="T:CausalExplorer.Domain.Entities.EventNode"/> instances in a single round-trip.
+            Uses MERGE so duplicate IDs are safely ignored.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.Domain.Interfaces.IEventNodeRepository.UpdateAsync(CausalExplorer.Domain.Entities.EventNode,System.Threading.CancellationToken)">
+            <summary>Marks an existing <see cref="T:CausalExplorer.Domain.Entities.EventNode"/> as modified.</summary>
+        </member>
+        <member name="M:CausalExplorer.Domain.Interfaces.IEventNodeRepository.DeleteAsync(CausalExplorer.Domain.Entities.EventNode,System.Threading.CancellationToken)">
+            <summary>Removes an <see cref="T:CausalExplorer.Domain.Entities.EventNode"/> from the repository.</summary>
+        </member>
+        <member name="M:CausalExplorer.Domain.Interfaces.IEventNodeRepository.ExistsAsync(System.Guid,System.Threading.CancellationToken)">
+            <summary>Determines whether an event node with the given <paramref name="id"/> exists.</summary>
+        </member>
+        <member name="T:CausalExplorer.Domain.Interfaces.IUnitOfWork">
+            <summary>
+            Coordinates transactional consistency across one or more repositories within a
+            single business operation. Follows the Unit of Work pattern.
+            </summary>
+        </member>
+        <member name="P:CausalExplorer.Domain.Interfaces.IUnitOfWork.EventNodes">
+            <summary>Gets the event-node repository scoped to this unit of work.</summary>
+        </member>
+        <member name="P:CausalExplorer.Domain.Interfaces.IUnitOfWork.CausalEdges">
+            <summary>Gets the causal-edge repository scoped to this unit of work.</summary>
+        </member>
+        <member name="P:CausalExplorer.Domain.Interfaces.IUnitOfWork.CausalChains">
+            <summary>Gets the causal-chain repository scoped to this unit of work.</summary>
+        </member>
+        <member name="P:CausalExplorer.Domain.Interfaces.IUnitOfWork.Users">
+            <summary>Gets the user repository scoped to this unit of work.</summary>
+        </member>
+        <member name="M:CausalExplorer.Domain.Interfaces.IUnitOfWork.SaveChangesAsync(System.Threading.CancellationToken)">
+            <summary>
+            Persists all tracked changes to the underlying data store as a single atomic operation.
+            Domain events collected on aggregates are dispatched before the save completes.
+            </summary>
+            <param name="cancellationToken">Cancellation token.</param>
+            <returns>The number of state entries written to the store.</returns>
+        </member>
+        <member name="M:CausalExplorer.Domain.Interfaces.IUnitOfWork.BeginTransactionAsync(System.Threading.CancellationToken)">
+            <summary>Begins an explicit database transaction.</summary>
+            <param name="cancellationToken">Cancellation token.</param>
+        </member>
+        <member name="M:CausalExplorer.Domain.Interfaces.IUnitOfWork.CommitTransactionAsync(System.Threading.CancellationToken)">
+            <summary>Commits the current transaction.</summary>
+            <param name="cancellationToken">Cancellation token.</param>
+        </member>
+        <member name="M:CausalExplorer.Domain.Interfaces.IUnitOfWork.RollbackTransactionAsync(System.Threading.CancellationToken)">
+            <summary>Rolls back the current transaction.</summary>
+            <param name="cancellationToken">Cancellation token.</param>
+        </member>
+        <member name="T:CausalExplorer.Domain.Interfaces.IUserRepository">
+            <summary>
+            Defines the contract for persistence operations on <see cref="T:CausalExplorer.Domain.Entities.User"/> aggregates.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.Domain.Interfaces.IUserRepository.GetByIdAsync(System.Guid,System.Threading.CancellationToken)">
+            <summary>
+            Retrieves a <see cref="T:CausalExplorer.Domain.Entities.User"/> by their unique identifier.
+            </summary>
+            <param name="id">The user identifier.</param>
+            <param name="cancellationToken">Cancellation token.</param>
+        </member>
+        <member name="M:CausalExplorer.Domain.Interfaces.IUserRepository.GetByEmailAsync(System.String,System.Threading.CancellationToken)">
+            <summary>
+            Retrieves a <see cref="T:CausalExplorer.Domain.Entities.User"/> by their email address (case-insensitive).
+            </summary>
+            <param name="email">The email address to search for.</param>
+            <param name="cancellationToken">Cancellation token.</param>
+        </member>
+        <member name="M:CausalExplorer.Domain.Interfaces.IUserRepository.GetByUsernameAsync(System.String,System.Threading.CancellationToken)">
+            <summary>
+            Retrieves a <see cref="T:CausalExplorer.Domain.Entities.User"/> by their username (case-insensitive).
+            </summary>
+            <param name="username">The username to search for.</param>
+            <param name="cancellationToken">Cancellation token.</param>
+        </member>
+        <member name="M:CausalExplorer.Domain.Interfaces.IUserRepository.EmailExistsAsync(System.String,System.Threading.CancellationToken)">
+            <summary>
+            Determines whether a user with the specified email already exists.
+            </summary>
+            <param name="email">The email to check.</param>
+            <param name="cancellationToken">Cancellation token.</param>
+        </member>
+        <member name="M:CausalExplorer.Domain.Interfaces.IUserRepository.UsernameExistsAsync(System.String,System.Threading.CancellationToken)">
+            <summary>
+            Determines whether a user with the specified username already exists.
+            </summary>
+            <param name="username">The username to check.</param>
+            <param name="cancellationToken">Cancellation token.</param>
+        </member>
+        <member name="M:CausalExplorer.Domain.Interfaces.IUserRepository.AddAsync(CausalExplorer.Domain.Entities.User,System.Threading.CancellationToken)">
+            <summary>Adds a new <see cref="T:CausalExplorer.Domain.Entities.User"/> to the repository.</summary>
+        </member>
+        <member name="M:CausalExplorer.Domain.Interfaces.IUserRepository.Update(CausalExplorer.Domain.Entities.User)">
+            <summary>Marks an existing <see cref="T:CausalExplorer.Domain.Entities.User"/> as modified.</summary>
+        </member>
+        <member name="T:CausalExplorer.Domain.Interfaces.IUserSavedChainRepository">
+            <summary>
+            Defines the contract for persistence operations on <see cref="T:CausalExplorer.Domain.Entities.UserSavedChain"/> associations.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.Domain.Interfaces.IUserSavedChainRepository.GetByUserIdAsync(System.Guid,System.Threading.CancellationToken)">
+            <summary>
+            Returns all chains saved by the specified user, ordered by most-recently saved.
+            </summary>
+            <param name="userId">The identifier of the user.</param>
+            <param name="cancellationToken">Cancellation token.</param>
+        </member>
+        <member name="M:CausalExplorer.Domain.Interfaces.IUserSavedChainRepository.GetAsync(System.Guid,System.Guid,System.Threading.CancellationToken)">
+            <summary>
+            Returns the saved-chain entry for a specific user and chain combination, or
+            <c>null</c> if the user has not saved that chain.
+            </summary>
+            <param name="userId">The identifier of the user.</param>
+            <param name="chainId">The identifier of the chain.</param>
+            <param name="cancellationToken">Cancellation token.</param>
+        </member>
+        <member name="M:CausalExplorer.Domain.Interfaces.IUserSavedChainRepository.AddAsync(CausalExplorer.Domain.Entities.UserSavedChain,System.Threading.CancellationToken)">
+            <summary>Adds a new <see cref="T:CausalExplorer.Domain.Entities.UserSavedChain"/> association.</summary>
+        </member>
+        <member name="M:CausalExplorer.Domain.Interfaces.IUserSavedChainRepository.Delete(CausalExplorer.Domain.Entities.UserSavedChain)">
+            <summary>Removes a saved-chain association.</summary>
+        </member>
+        <member name="T:CausalExplorer.Domain.ValueObjects.ConfidenceLevelKind">
+            <summary>
+            Enumeration of human-readable confidence levels derived from a numeric score.
+            </summary>
+        </member>
+        <member name="F:CausalExplorer.Domain.ValueObjects.ConfidenceLevelKind.Established">
+            <summary>Score &gt; 0.85 — broad consensus and strong evidence.</summary>
+        </member>
+        <member name="F:CausalExplorer.Domain.ValueObjects.ConfidenceLevelKind.WidelyAccepted">
+            <summary>Score &gt; 0.65 — accepted by most analysts with minor caveats.</summary>
+        </member>
+        <member name="F:CausalExplorer.Domain.ValueObjects.ConfidenceLevelKind.Debated">
+            <summary>Score &gt; 0.40 — actively debated with competing interpretations.</summary>
+        </member>
+        <member name="F:CausalExplorer.Domain.ValueObjects.ConfidenceLevelKind.Speculative">
+            <summary>Score ≤ 0.40 — limited evidence; treated as a working hypothesis.</summary>
+        </member>
+        <member name="T:CausalExplorer.Domain.ValueObjects.ConfidenceLevel">
+            <summary>
+            Value object that wraps a numeric confidence score and exposes a derived
+            <see cref="T:CausalExplorer.Domain.ValueObjects.ConfidenceLevelKind"/> classification.
+            </summary>
+        </member>
+        <member name="P:CausalExplorer.Domain.ValueObjects.ConfidenceLevel.Score">
+            <summary>Gets the raw numeric score in the range [0, 1].</summary>
+        </member>
+        <member name="P:CausalExplorer.Domain.ValueObjects.ConfidenceLevel.Kind">
+            <summary>Gets the qualitative classification derived from <see cref="P:CausalExplorer.Domain.ValueObjects.ConfidenceLevel.Score"/>.</summary>
+        </member>
+        <member name="M:CausalExplorer.Domain.ValueObjects.ConfidenceLevel.FromScore(System.Decimal)">
+            <summary>
+            Creates a <see cref="T:CausalExplorer.Domain.ValueObjects.ConfidenceLevel"/> from a numeric score.
+            </summary>
+            <param name="score">A decimal value in the range [0, 1].</param>
+            <returns>A new <see cref="T:CausalExplorer.Domain.ValueObjects.ConfidenceLevel"/> instance.</returns>
+            <exception cref="T:System.ArgumentOutOfRangeException">
+            Thrown when <paramref name="score"/> is outside [0, 1].
+            </exception>
+        </member>
+        <member name="M:CausalExplorer.Domain.ValueObjects.ConfidenceLevel.GetEqualityComponents">
+            <inheritdoc />
+        </member>
+        <member name="M:CausalExplorer.Domain.ValueObjects.ConfidenceLevel.ToString">
+            <inheritdoc />
+        </member>
+        <member name="T:CausalExplorer.Domain.ValueObjects.Source">
+            <summary>
+            Value object representing a single supporting source for an event node or causal edge.
+            </summary>
+        </member>
+        <member name="P:CausalExplorer.Domain.ValueObjects.Source.Url">
+            <summary>Gets the fully-qualified URL of the source document.</summary>
+        </member>
+        <member name="P:CausalExplorer.Domain.ValueObjects.Source.Title">
+            <summary>Gets the human-readable title of the source document.</summary>
+        </member>
+        <member name="P:CausalExplorer.Domain.ValueObjects.Source.PublishedDate">
+            <summary>Gets the UTC date on which the source was originally published.</summary>
+        </member>
+        <member name="P:CausalExplorer.Domain.ValueObjects.Source.ReliabilityScore">
+            <summary>
+            Gets the reliability score of the source, on a scale of 0 (unreliable) to 1 (highly reliable).
+            </summary>
+        </member>
+        <member name="P:CausalExplorer.Domain.ValueObjects.Source.SourceType">
+            <summary>Gets the type classification of the source.</summary>
+        </member>
+        <member name="M:CausalExplorer.Domain.ValueObjects.Source.Create(System.String,System.String,System.DateTime,System.Decimal,CausalExplorer.Domain.Enums.SourceType)">
+            <summary>
+            Creates a new <see cref="T:CausalExplorer.Domain.ValueObjects.Source"/> value object after validating inputs.
+            </summary>
+            <param name="url">The URL of the source. Must be a valid absolute URI.</param>
+            <param name="title">The title of the source. Must not be null or whitespace.</param>
+            <param name="publishedDate">The publication date (UTC).</param>
+            <param name="reliabilityScore">A decimal in the range [0, 1].</param>
+            <param name="sourceType">The type of the source.</param>
+            <returns>A new <see cref="T:CausalExplorer.Domain.ValueObjects.Source"/> instance.</returns>
+            <exception cref="T:System.ArgumentException">
+            Thrown when <paramref name="url"/> is not a valid absolute URI,
+            <paramref name="title"/> is null or whitespace, or
+            <paramref name="reliabilityScore"/> is outside [0, 1].
+            </exception>
+        </member>
+        <member name="M:CausalExplorer.Domain.ValueObjects.Source.GetEqualityComponents">
+            <inheritdoc />
+        </member>
+        <member name="M:CausalExplorer.Domain.ValueObjects.Source.ToString">
+            <inheritdoc />
+        </member>
+    </members>
+</doc>

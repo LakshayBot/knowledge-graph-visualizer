@@ -1,0 +1,14 @@
+/Users/lakshaymalhotra/Desktop/Github_Projects/knowledge-explorer/CausalExplorer/src/CausalExplorer.Domain/bin/Debug/net8.0/CausalExplorer.Domain.deps.json
+/Users/lakshaymalhotra/Desktop/Github_Projects/knowledge-explorer/CausalExplorer/src/CausalExplorer.Domain/bin/Debug/net8.0/CausalExplorer.Domain.dll
+/Users/lakshaymalhotra/Desktop/Github_Projects/knowledge-explorer/CausalExplorer/src/CausalExplorer.Domain/bin/Debug/net8.0/CausalExplorer.Domain.pdb
+/Users/lakshaymalhotra/Desktop/Github_Projects/knowledge-explorer/CausalExplorer/src/CausalExplorer.Domain/bin/Debug/net8.0/CausalExplorer.Domain.xml
+/Users/lakshaymalhotra/Desktop/Github_Projects/knowledge-explorer/CausalExplorer/src/CausalExplorer.Domain/obj/Debug/net8.0/CausalExplorer.Domain.GeneratedMSBuildEditorConfig.editorconfig
+/Users/lakshaymalhotra/Desktop/Github_Projects/knowledge-explorer/CausalExplorer/src/CausalExplorer.Domain/obj/Debug/net8.0/CausalExplorer.Domain.AssemblyInfoInputs.cache
+/Users/lakshaymalhotra/Desktop/Github_Projects/knowledge-explorer/CausalExplorer/src/CausalExplorer.Domain/obj/Debug/net8.0/CausalExplorer.Domain.AssemblyInfo.cs
+/Users/lakshaymalhotra/Desktop/Github_Projects/knowledge-explorer/CausalExplorer/src/CausalExplorer.Domain/obj/Debug/net8.0/CausalExplorer.Domain.csproj.CoreCompileInputs.cache
+/Users/lakshaymalhotra/Desktop/Github_Projects/knowledge-explorer/CausalExplorer/src/CausalExplorer.Domain/obj/Debug/net8.0/CausalExplorer.Domain.dll
+/Users/lakshaymalhotra/Desktop/Github_Projects/knowledge-explorer/CausalExplorer/src/CausalExplorer.Domain/obj/Debug/net8.0/refint/CausalExplorer.Domain.dll
+/Users/lakshaymalhotra/Desktop/Github_Projects/knowledge-explorer/CausalExplorer/src/CausalExplorer.Domain/obj/Debug/net8.0/CausalExplorer.Domain.xml
+/Users/lakshaymalhotra/Desktop/Github_Projects/knowledge-explorer/CausalExplorer/src/CausalExplorer.Domain/obj/Debug/net8.0/CausalExplorer.Domain.pdb
+/Users/lakshaymalhotra/Desktop/Github_Projects/knowledge-explorer/CausalExplorer/src/CausalExplorer.Domain/obj/Debug/net8.0/ref/CausalExplorer.Domain.dll
+/Users/lakshaymalhotra/Desktop/Github_Projects/knowledge-explorer/CausalExplorer/src/CausalExplorer.Domain/obj/Debug/net8.0/CausalExplorer.Domain.csproj.AssemblyReference.cache

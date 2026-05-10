@@ -1,0 +1,6 @@
+{
+  "CausalExplorer.API, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null": "\/Users\/lakshaymalhotra\/Desktop\/Github_Projects\/knowledge-explorer\/CausalExplorer\/src\/CausalExplorer.API",
+  "CausalExplorer.Application, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null": "\/Users\/lakshaymalhotra\/Desktop\/Github_Projects\/knowledge-explorer\/CausalExplorer\/src\/CausalExplorer.Application",
+  "CausalExplorer.Domain, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null": "\/Users\/lakshaymalhotra\/Desktop\/Github_Projects\/knowledge-explorer\/CausalExplorer\/src\/CausalExplorer.Domain",
+  "CausalExplorer.Infrastructure, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null": "\/Users\/lakshaymalhotra\/Desktop\/Github_Projects\/knowledge-explorer\/CausalExplorer\/src\/CausalExplorer.Infrastructure"
+}

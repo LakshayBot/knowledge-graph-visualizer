@@ -1,0 +1,435 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>CausalExplorer.API</name>
+    </assembly>
+    <members>
+        <member name="T:CausalExplorer.API.Controllers.v1.ApiControllerBase">
+            <summary>
+            Abstract base controller shared by all versioned API controllers.
+            Provides the common route template, <see cref="T:MediatR.ISender"/> injection,
+            and baseline <see cref="T:Microsoft.AspNetCore.Mvc.ProducesResponseTypeAttribute"/> declarations.
+            </summary>
+        </member>
+        <member name="P:CausalExplorer.API.Controllers.v1.ApiControllerBase.Sender">
+            <summary>MediatR sender, resolved from DI on first access.</summary>
+        </member>
+        <member name="T:CausalExplorer.API.Controllers.v1.AuthController">
+            <summary>
+            Handles user registration, login, token refresh, and token revocation.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.API.Controllers.v1.AuthController.Register(CausalExplorer.Application.Auth.Commands.RegisterCommand,System.Threading.CancellationToken)">
+            <summary>
+            Registers a new user account and returns an initial token pair.
+            </summary>
+            <param name="command">Registration details.</param>
+            <param name="cancellationToken">Cancellation token.</param>
+            <response code="201">User registered. Returns access and refresh tokens.</response>
+            <response code="400">Validation error or email already in use.</response>
+            <response code="409">Email already registered.</response>
+        </member>
+        <member name="M:CausalExplorer.API.Controllers.v1.AuthController.Login(CausalExplorer.Application.Auth.Commands.LoginCommand,System.Threading.CancellationToken)">
+            <summary>
+            Authenticates a user and returns a JWT access token plus refresh token.
+            </summary>
+            <param name="command">Login credentials.</param>
+            <param name="cancellationToken">Cancellation token.</param>
+            <response code="200">Login successful. Returns token pair.</response>
+            <response code="400">Invalid credentials.</response>
+        </member>
+        <member name="M:CausalExplorer.API.Controllers.v1.AuthController.Refresh(CausalExplorer.Application.Auth.Commands.RefreshTokenCommand,System.Threading.CancellationToken)">
+            <summary>
+            Exchanges a valid refresh token for a new access/refresh token pair.
+            </summary>
+            <param name="command">The current refresh token.</param>
+            <param name="cancellationToken">Cancellation token.</param>
+            <response code="200">New token pair issued.</response>
+            <response code="400">Refresh token invalid or expired.</response>
+        </member>
+        <member name="M:CausalExplorer.API.Controllers.v1.AuthController.Revoke(CausalExplorer.Application.Auth.Commands.RevokeTokenCommand,System.Threading.CancellationToken)">
+            <summary>
+            Revokes a refresh token, preventing future use. Requires an authenticated session.
+            </summary>
+            <param name="command">The refresh token to revoke.</param>
+            <param name="cancellationToken">Cancellation token.</param>
+            <response code="204">Token revoked successfully.</response>
+            <response code="400">Token not found or already revoked.</response>
+        </member>
+        <member name="T:CausalExplorer.API.Controllers.v1.CausalChainsController">
+            <summary>
+            Operations for browsing, creating, expanding, and saving causal chains.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.API.Controllers.v1.CausalChainsController.#ctor(CausalExplorer.Application.Common.Interfaces.ICurrentUserService)">
+            <summary>Initialises the controller.</summary>
+        </member>
+        <member name="M:CausalExplorer.API.Controllers.v1.CausalChainsController.GetCausalChain(System.Guid,System.Nullable{CausalExplorer.Domain.Enums.Perspective},System.Int32,System.Threading.CancellationToken)">
+            <summary>
+            Returns the full graph structure for a causal chain, optionally filtered by
+            perspective and traversal depth.
+            </summary>
+            <param name="id">Chain GUID.</param>
+            <param name="perspective">Perspective filter (optional).</param>
+            <param name="depth">Maximum hop depth from root (default 3).</param>
+            <param name="cancellationToken">Cancellation token.</param>
+            <response code="200">Full graph DTO with nodes, edges, and chain metadata.</response>
+            <response code="404">Chain not found.</response>
+        </member>
+        <member name="M:CausalExplorer.API.Controllers.v1.CausalChainsController.GetInitialChain(System.Guid,System.Nullable{CausalExplorer.Domain.Enums.Perspective},System.Threading.CancellationToken)">
+            <summary>
+            Returns 3–5 most relevant initial nodes for a first-render of the chain
+            (shallow, quick load).
+            </summary>
+            <param name="id">Chain GUID (used to resolve root event).</param>
+            <param name="perspective">Perspective filter (optional).</param>
+            <param name="cancellationToken">Cancellation token.</param>
+            <response code="200">Compact initial graph DTO.</response>
+            <response code="404">Chain not found.</response>
+        </member>
+        <member name="M:CausalExplorer.API.Controllers.v1.CausalChainsController.CreateCausalChain(CausalExplorer.Application.CausalChains.Commands.CreateCausalChainCommand,System.Threading.CancellationToken)">
+            <summary>
+            Creates a new named causal chain rooted at a given event node.
+            Requires an authenticated user.
+            </summary>
+            <param name="command">Chain creation payload.</param>
+            <param name="cancellationToken">Cancellation token.</param>
+            <response code="201">Chain created. Returns chain summary DTO.</response>
+            <response code="400">Validation error or root event not found.</response>
+        </member>
+        <member name="M:CausalExplorer.API.Controllers.v1.CausalChainsController.ExpandChainNode(System.Guid,System.Guid,System.String,System.Threading.CancellationToken)">
+            <summary>
+            Expands a specific node within a chain by calling the AI service to suggest
+            new connected nodes. This is an expensive AI operation — rate-limited to
+            10 requests/minute per user.
+            </summary>
+            <param name="chainId">The chain GUID.</param>
+            <param name="nodeId">The node to expand.</param>
+            <param name="perspective">Perspective to apply to the expansion (default: Economic).</param>
+            <param name="cancellationToken">Cancellation token.</param>
+            <response code="200">New nodes and edges to merge into the existing graph.</response>
+            <response code="404">Chain or node not found.</response>
+            <response code="429">Rate limit exceeded (AI endpoint).</response>
+            <response code="502">AI service temporarily unavailable.</response>
+        </member>
+        <member name="M:CausalExplorer.API.Controllers.v1.CausalChainsController.SaveChain(System.Guid,CausalExplorer.API.Controllers.v1.SaveChainRequest,System.Threading.CancellationToken)">
+            <summary>
+            Saves a causal chain to the current user's personal library.
+            Requires an authenticated user.
+            </summary>
+            <param name="chainId">The chain GUID to save.</param>
+            <param name="request">Optional notes to attach to the saved chain.</param>
+            <param name="cancellationToken">Cancellation token.</param>
+            <response code="200">Saved chain entry DTO.</response>
+            <response code="404">Chain not found.</response>
+        </member>
+        <member name="T:CausalExplorer.API.Controllers.v1.SaveChainRequest">
+            <summary>Request body for the save-chain endpoint.</summary>
+        </member>
+        <member name="M:CausalExplorer.API.Controllers.v1.SaveChainRequest.#ctor(System.String)">
+            <summary>Request body for the save-chain endpoint.</summary>
+        </member>
+        <member name="T:CausalExplorer.API.Controllers.v1.CausalEdgesController">
+            <summary>
+            Operations for creating, querying, updating, and removing directed causal edges
+            between event nodes in the knowledge graph.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.API.Controllers.v1.CausalEdgesController.GetEdgesForNode(System.Guid,CausalExplorer.Application.CausalEdges.Queries.EdgeDirection,System.Nullable{CausalExplorer.Domain.Enums.Perspective},System.Threading.CancellationToken)">
+            <summary>
+            Returns all edges connected to a given node, optionally filtered by direction and perspective.
+            </summary>
+            <param name="nodeId">The event node GUID.</param>
+            <param name="direction">Edge direction filter: Incoming, Outgoing, or Both (default).</param>
+            <param name="perspective">Perspective filter (optional).</param>
+            <param name="cancellationToken">Cancellation token.</param>
+            <response code="200">List of edges with connected node summaries.</response>
+        </member>
+        <member name="M:CausalExplorer.API.Controllers.v1.CausalEdgesController.GetEdgesBetweenNodes(System.Guid,System.Guid,System.Threading.CancellationToken)">
+            <summary>
+            Returns all edges between two specific event nodes.
+            </summary>
+            <param name="fromId">Source event node GUID.</param>
+            <param name="toId">Target event node GUID.</param>
+            <param name="cancellationToken">Cancellation token.</param>
+            <response code="200">List of causal edges between the two nodes.</response>
+        </member>
+        <member name="M:CausalExplorer.API.Controllers.v1.CausalEdgesController.AddCausalEdge(CausalExplorer.Application.CausalEdges.Commands.AddCausalEdgeCommand,System.Threading.CancellationToken)">
+            <summary>
+            Adds a new directed causal edge between two event nodes.
+            Requires Contributor, Moderator, or Admin role.
+            </summary>
+            <param name="command">Edge creation payload.</param>
+            <param name="cancellationToken">Cancellation token.</param>
+            <response code="201">Edge created. Returns the new causal edge DTO.</response>
+            <response code="400">Validation error or cycle detected.</response>
+            <response code="403">Insufficient role.</response>
+        </member>
+        <member name="M:CausalExplorer.API.Controllers.v1.CausalEdgesController.UpdateCausalEdge(System.Guid,CausalExplorer.Application.CausalEdges.Commands.UpdateCausalEdgeCommand,System.Threading.CancellationToken)">
+            <summary>
+            Updates explanation, strength, or contested status of an existing causal edge.
+            Requires Contributor, Moderator, or Admin role.
+            </summary>
+            <param name="id">The causal edge GUID.</param>
+            <param name="command">Update payload.</param>
+            <param name="cancellationToken">Cancellation token.</param>
+            <response code="200">Updated causal edge DTO.</response>
+            <response code="400">Validation error.</response>
+            <response code="403">Insufficient role.</response>
+            <response code="404">Edge not found.</response>
+        </member>
+        <member name="M:CausalExplorer.API.Controllers.v1.CausalEdgesController.RemoveCausalEdge(System.Guid,System.Threading.CancellationToken)">
+            <summary>
+            Removes a causal edge from the graph.
+            Requires Contributor, Moderator, or Admin role.
+            </summary>
+            <param name="id">The causal edge GUID.</param>
+            <param name="cancellationToken">Cancellation token.</param>
+            <response code="204">Edge removed successfully.</response>
+            <response code="403">Insufficient role.</response>
+            <response code="404">Edge not found.</response>
+        </member>
+        <member name="T:CausalExplorer.API.Controllers.v1.EventNodesController">
+            <summary>
+            CRUD and search operations for event node resources in the knowledge graph.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.API.Controllers.v1.EventNodesController.#ctor(CausalExplorer.Application.Common.Interfaces.ICurrentUserService)">
+            <summary>Initialises the controller.</summary>
+        </member>
+        <member name="M:CausalExplorer.API.Controllers.v1.EventNodesController.GetEventNodes(System.Nullable{CausalExplorer.Domain.Enums.EventDomain},System.Nullable{CausalExplorer.Domain.Enums.Perspective},System.Nullable{System.DateTime},System.Nullable{System.DateTime},System.Int32,System.Int32,System.Threading.CancellationToken)">
+            <summary>Returns a paged list of event nodes, with optional filters.</summary>
+            <param name="domain">Filter by event domain (optional).</param>
+            <param name="perspective">Filter by perspective (optional).</param>
+            <param name="dateFrom">Filter events on or after this date (optional).</param>
+            <param name="dateTo">Filter events on or before this date (optional).</param>
+            <param name="page">1-based page number (default 1).</param>
+            <param name="pageSize">Items per page, max 100 (default 20).</param>
+            <param name="cancellationToken">Cancellation token.</param>
+            <response code="200">Paged list of event nodes.</response>
+        </member>
+        <member name="M:CausalExplorer.API.Controllers.v1.EventNodesController.GetEventNodeById(System.Guid,System.Threading.CancellationToken)">
+            <summary>Returns a single event node by its unique identifier.</summary>
+            <param name="id">The event node GUID.</param>
+            <param name="cancellationToken">Cancellation token.</param>
+            <response code="200">The requested event node with edge counts.</response>
+            <response code="404">Event node not found.</response>
+        </member>
+        <member name="M:CausalExplorer.API.Controllers.v1.EventNodesController.Search(System.String,System.Int32,System.Int32,System.Threading.CancellationToken)">
+            <summary>
+            Full-text search over event node titles and summaries.
+            </summary>
+            <param name="q">Search term (min 2 characters).</param>
+            <param name="page">Page number (default 1).</param>
+            <param name="pageSize">Results per page (default 20).</param>
+            <param name="cancellationToken">Cancellation token.</param>
+            <response code="200">Matching event nodes.</response>
+            <response code="400">Search term is missing or too short.</response>
+        </member>
+        <member name="M:CausalExplorer.API.Controllers.v1.EventNodesController.SemanticSearch(System.String,System.Int32,System.Threading.CancellationToken)">
+            <summary>
+            Semantic (vector) search over event nodes using natural-language queries.
+            Uses embeddings + Qdrant to find conceptually similar events even when
+            exact keywords do not match.
+            </summary>
+            <param name="q">Natural-language query (e.g. "why did the US impose tariffs on China").</param>
+            <param name="topK">Maximum number of results to return (default 10, max 50).</param>
+            <param name="cancellationToken">Cancellation token.</param>
+            <response code="200">Semantically similar event nodes ranked by relevance.</response>
+            <response code="400">Query is missing or too short.</response>
+        </member>
+        <member name="M:CausalExplorer.API.Controllers.v1.EventNodesController.CreateEventNode(CausalExplorer.Application.EventNodes.Commands.CreateEventNodeCommand,System.Threading.CancellationToken)">
+            <param name="command">Event node creation payload.</param>
+            <param name="cancellationToken">Cancellation token.</param>
+            <response code="201">Event node created. Location header points to the new resource.</response>
+            <response code="400">Validation error.</response>
+            <response code="403">Insufficient role.</response>
+        </member>
+        <member name="M:CausalExplorer.API.Controllers.v1.EventNodesController.UpdateEventNode(System.Guid,CausalExplorer.Application.EventNodes.Commands.UpdateEventNodeCommand,System.Threading.CancellationToken)">
+            <summary>
+            Updates the mutable fields of an existing event node.
+            Requires Contributor, Moderator, or Admin role.
+            </summary>
+            <param name="id">The event node GUID.</param>
+            <param name="command">Update payload.</param>
+            <param name="cancellationToken">Cancellation token.</param>
+            <response code="200">Updated event node.</response>
+            <response code="400">Validation error.</response>
+            <response code="403">Insufficient role.</response>
+            <response code="404">Event node not found.</response>
+        </member>
+        <member name="M:CausalExplorer.API.Controllers.v1.EventNodesController.DeleteEventNode(System.Guid,System.Threading.CancellationToken)">
+            <summary>
+            Permanently deletes an event node and detaches all its graph edges.
+            Requires Moderator or Admin role.
+            </summary>
+            <param name="id">The event node GUID.</param>
+            <param name="cancellationToken">Cancellation token.</param>
+            <response code="204">Deleted successfully.</response>
+            <response code="403">Insufficient role.</response>
+            <response code="404">Event node not found.</response>
+        </member>
+        <member name="M:CausalExplorer.API.Controllers.v1.EventNodesController.VerifyEventNode(System.Guid,System.Threading.CancellationToken)">
+            <summary>
+            Marks an event node as verified by a moderator or admin.
+            Requires Moderator or Admin role.
+            </summary>
+            <param name="id">The event node GUID.</param>
+            <param name="cancellationToken">Cancellation token.</param>
+            <response code="200">Verified event node detail.</response>
+            <response code="403">Insufficient role.</response>
+            <response code="404">Event node not found.</response>
+        </member>
+        <member name="T:CausalExplorer.API.Controllers.v1.UsersController">
+            <summary>
+            User profile and saved-chain operations for the currently authenticated user.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.API.Controllers.v1.UsersController.#ctor(CausalExplorer.Application.Common.Interfaces.ICurrentUserService)">
+            <summary>Initialises the controller.</summary>
+        </member>
+        <member name="M:CausalExplorer.API.Controllers.v1.UsersController.GetCurrentUser(System.Threading.CancellationToken)">
+            <summary>
+            Returns the profile of the currently authenticated user.
+            </summary>
+            <param name="cancellationToken">Cancellation token.</param>
+            <response code="200">The user's profile DTO.</response>
+        </member>
+        <member name="M:CausalExplorer.API.Controllers.v1.UsersController.GetMySavedChains(System.Threading.CancellationToken)">
+            <summary>
+            Returns all causal chains saved to the current user's personal library.
+            </summary>
+            <param name="cancellationToken">Cancellation token.</param>
+            <response code="200">List of saved chain DTOs, most recent first.</response>
+        </member>
+        <member name="T:CausalExplorer.API.Extensions.ApplicationBuilderExtensions">
+            <summary>
+            Extension methods to configure the ASP.NET Core middleware pipeline
+            in the correct, documented order.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.API.Extensions.ApplicationBuilderExtensions.UseApiPipeline(Microsoft.AspNetCore.Builder.WebApplication)">
+            <summary>
+            Registers all middleware in the prescribed order:
+            correlation ID → exception handling → Serilog → HTTPS redirect → CORS →
+            rate limiting → auth → authorization → response compression → controllers.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.API.Extensions.ApplicationBuilderExtensions.UseSwaggerIfDevelopment(Microsoft.AspNetCore.Builder.WebApplication)">
+            <summary>
+            Registers Swagger UI (always enabled — this is not a public-facing production deployment).
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.API.Extensions.ApplicationBuilderExtensions.MapHealthEndpoints(Microsoft.AspNetCore.Builder.WebApplication)">
+            <summary>
+            Maps the detailed <c>/health</c> endpoint that reports per-service status,
+            plus a <c>/health/live</c> liveness probe and a <c>/health/ready</c> readiness probe.
+            </summary>
+        </member>
+        <member name="T:CausalExplorer.API.Extensions.ServiceCollectionExtensions">
+            <summary>
+            Extension methods for configuring all API-layer services on <see cref="T:Microsoft.Extensions.DependencyInjection.IServiceCollection"/>.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.API.Extensions.ServiceCollectionExtensions.AddJwtBearerAuthentication(Microsoft.Extensions.DependencyInjection.IServiceCollection,Microsoft.Extensions.Configuration.IConfiguration)">
+            <summary>Adds JWT bearer authentication with issuer/audience/lifetime/signing key validation.</summary>
+        </member>
+        <member name="M:CausalExplorer.API.Extensions.ServiceCollectionExtensions.AddAuthorizationPolicies(Microsoft.Extensions.DependencyInjection.IServiceCollection)">
+            <summary>Adds named authorization policies.</summary>
+        </member>
+        <member name="M:CausalExplorer.API.Extensions.ServiceCollectionExtensions.AddApiVersioningSupport(Microsoft.Extensions.DependencyInjection.IServiceCollection)">
+            <summary>Adds API versioning defaulting to v1.</summary>
+        </member>
+        <member name="M:CausalExplorer.API.Extensions.ServiceCollectionExtensions.AddRateLimitingPolicies(Microsoft.Extensions.DependencyInjection.IServiceCollection,Microsoft.Extensions.Configuration.IConfiguration)">
+            <summary>
+            Adds fixed-window rate limiters:
+            anonymous (IP-based), authenticated (UserId-based), and AI-endpoint (UserId-based).
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.API.Extensions.ServiceCollectionExtensions.AddCorsPolicies(Microsoft.Extensions.DependencyInjection.IServiceCollection,Microsoft.Extensions.Configuration.IConfiguration)">
+            <summary>Adds CORS policy allowing configured origins.</summary>
+        </member>
+        <member name="M:CausalExplorer.API.Extensions.ServiceCollectionExtensions.AddSwaggerDocumentation(Microsoft.Extensions.DependencyInjection.IServiceCollection)">
+            <summary>Adds Swagger with JWT bearer security definition, grouped by API version.</summary>
+        </member>
+        <member name="M:CausalExplorer.API.Extensions.ServiceCollectionExtensions.AddPlatformHealthChecks(Microsoft.Extensions.DependencyInjection.IServiceCollection,Microsoft.Extensions.Configuration.IConfiguration)">
+            <summary>
+            Adds health checks: EF Core (Postgres), Neo4j (custom), Redis (custom), AI service (HTTP ping).
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.API.Extensions.ServiceCollectionExtensions.AddCurrentUserService(Microsoft.Extensions.DependencyInjection.IServiceCollection)">
+            <summary>Registers <see cref="T:CausalExplorer.Application.Common.Interfaces.ICurrentUserService"/> as a scoped HTTP-context–aware service.</summary>
+        </member>
+        <member name="T:CausalExplorer.API.Filters.ApiKeyAuthFilter">
+            <summary>
+            Action filter that enforces service-to-service API key authentication.
+            Used to restrict AI-sidecar–facing endpoints (e.g. event extraction callbacks).
+            The expected key is read from <c>ApiKey:ServiceKey</c> in configuration.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.API.Filters.ApiKeyAuthFilter.OnAuthorization(Microsoft.AspNetCore.Mvc.Filters.AuthorizationFilterContext)">
+            <inheritdoc />
+        </member>
+        <member name="T:CausalExplorer.API.Middleware.CorrelationIdMiddleware">
+            <summary>
+            Reads the <c>X-Correlation-ID</c> request header (or generates a new GUID),
+            stores it in <see cref="P:Microsoft.AspNetCore.Http.HttpContext.Items"/>, echoes it on the response header,
+            and enriches the Serilog log context with the value.
+            </summary>
+        </member>
+        <member name="F:CausalExplorer.API.Middleware.CorrelationIdMiddleware.HeaderName">
+            <summary>The HTTP header name used to propagate correlation IDs.</summary>
+        </member>
+        <member name="F:CausalExplorer.API.Middleware.CorrelationIdMiddleware.ItemKey">
+            <summary>The key used to store the correlation ID in <see cref="P:Microsoft.AspNetCore.Http.HttpContext.Items"/>.</summary>
+        </member>
+        <member name="M:CausalExplorer.API.Middleware.CorrelationIdMiddleware.#ctor(Microsoft.AspNetCore.Http.RequestDelegate)">
+            <summary>Initialises the middleware.</summary>
+        </member>
+        <member name="M:CausalExplorer.API.Middleware.CorrelationIdMiddleware.InvokeAsync(Microsoft.AspNetCore.Http.HttpContext)">
+            <summary>Processes the request.</summary>
+        </member>
+        <member name="T:CausalExplorer.API.Middleware.ExceptionHandlingMiddleware">
+            <summary>
+            Global exception-handling middleware. Converts application exceptions to
+            RFC 7807 <c>application/problem+json</c> responses and never leaks internal details.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.API.Middleware.ExceptionHandlingMiddleware.#ctor(Microsoft.AspNetCore.Http.RequestDelegate,Microsoft.Extensions.Logging.ILogger{CausalExplorer.API.Middleware.ExceptionHandlingMiddleware})">
+            <summary>Initialises the middleware.</summary>
+        </member>
+        <member name="M:CausalExplorer.API.Middleware.ExceptionHandlingMiddleware.InvokeAsync(Microsoft.AspNetCore.Http.HttpContext)">
+            <summary>Processes the request, catching any unhandled exception.</summary>
+        </member>
+        <member name="T:CausalExplorer.API.RateLimitPolicies">
+            <summary>Named rate-limiter policy identifiers used across controllers.</summary>
+        </member>
+        <member name="F:CausalExplorer.API.RateLimitPolicies.Anonymous">
+            <summary>20 req/min per remote IP — applied to anonymous endpoints.</summary>
+        </member>
+        <member name="F:CausalExplorer.API.RateLimitPolicies.Authenticated">
+            <summary>100 req/min per authenticated user — default for protected endpoints.</summary>
+        </member>
+        <member name="F:CausalExplorer.API.RateLimitPolicies.AiExpensive">
+            <summary>10 req/min per authenticated user — applied to expensive AI operations.</summary>
+        </member>
+        <member name="T:CausalExplorer.API.Services.CurrentUserService">
+            <summary>
+            Reads the current user's identity from the ASP.NET Core <see cref="T:Microsoft.AspNetCore.Http.IHttpContextAccessor"/>.
+            Registered as a scoped service so it captures the correct <see cref="T:Microsoft.AspNetCore.Http.HttpContext"/> per request.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.API.Services.CurrentUserService.#ctor(Microsoft.AspNetCore.Http.IHttpContextAccessor)">
+            <summary>Initialises the service with the HTTP context accessor.</summary>
+        </member>
+        <member name="P:CausalExplorer.API.Services.CurrentUserService.UserId">
+            <inheritdoc />
+        </member>
+        <member name="P:CausalExplorer.API.Services.CurrentUserService.IsAuthenticated">
+            <inheritdoc />
+        </member>
+        <member name="P:CausalExplorer.API.Services.CurrentUserService.Role">
+            <inheritdoc />
+        </member>
+    </members>
+</doc>
