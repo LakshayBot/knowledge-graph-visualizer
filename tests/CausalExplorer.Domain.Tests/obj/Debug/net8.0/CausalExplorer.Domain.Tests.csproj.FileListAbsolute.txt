@@ -104,3 +104,4 @@
 /Users/lakshaymalhotra/Desktop/Github_Projects/knowledge-explorer/CausalExplorer/tests/CausalExplorer.Domain.Tests/obj/Debug/net8.0/CausalExplorer.Domain.Tests.genruntimeconfig.cache
 /Users/lakshaymalhotra/Desktop/Github_Projects/knowledge-explorer/CausalExplorer/tests/CausalExplorer.Domain.Tests/obj/Debug/net8.0/ref/CausalExplorer.Domain.Tests.dll
 /Users/lakshaymalhotra/Desktop/Github_Projects/knowledge-explorer/CausalExplorer/tests/CausalExplorer.Domain.Tests/bin/Debug/net8.0/MediatR.Contracts.dll
+/Users/lakshaymalhotra/Desktop/Github_Projects/knowledge-explorer/CausalExplorer/tests/CausalExplorer.Domain.Tests/obj/Debug/net8.0/CausalExplorer.Domain.Tests.sourcelink.json

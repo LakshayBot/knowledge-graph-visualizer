@@ -16,3 +16,4 @@
 /Users/lakshaymalhotra/Desktop/Github_Projects/knowledge-explorer/CausalExplorer/src/CausalExplorer.Application/obj/Debug/net8.0/CausalExplorer.Application.xml
 /Users/lakshaymalhotra/Desktop/Github_Projects/knowledge-explorer/CausalExplorer/src/CausalExplorer.Application/obj/Debug/net8.0/CausalExplorer.Application.pdb
 /Users/lakshaymalhotra/Desktop/Github_Projects/knowledge-explorer/CausalExplorer/src/CausalExplorer.Application/obj/Debug/net8.0/ref/CausalExplorer.Application.dll
+/Users/lakshaymalhotra/Desktop/Github_Projects/knowledge-explorer/CausalExplorer/src/CausalExplorer.Application/obj/Debug/net8.0/CausalExplorer.Application.sourcelink.json

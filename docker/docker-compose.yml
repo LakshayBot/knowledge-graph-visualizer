@@ -23,16 +23,16 @@ services:
     restart: unless-stopped
     environment:
       ASPNETCORE_ENVIRONMENT: Production
-      ASPNETCORE_URLS: http://+:5000
+      ASPNETCORE_URLS: http://+:5001
       ConnectionStrings__DefaultConnection: >-
         Host=postgres;Port=5432;Database=causalexplorer;Username=postgres;Password=${POSTGRES_PASSWORD:-postgres}
     ports:
-      - "5000:5000"
+      - "5001:5001"
     depends_on:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:5000/health || exit 1"]
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:5001/health/live || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -45,7 +45,7 @@ services:
     environment:
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       OPENAI_MODEL: gpt-4o
-      ALLOWED_ORIGINS: '["http://localhost:3000","http://localhost:5000"]'
+      ALLOWED_ORIGINS: '["http://localhost:3000","http://localhost:5001"]'
     ports:
       - "8000:8000"
     healthcheck:

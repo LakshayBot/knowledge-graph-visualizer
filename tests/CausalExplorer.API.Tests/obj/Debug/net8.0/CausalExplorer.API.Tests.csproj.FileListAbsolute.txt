@@ -493,3 +493,4 @@
 /Users/lakshaymalhotra/Desktop/Github_Projects/knowledge-explorer/CausalExplorer/tests/CausalExplorer.API.Tests/bin/Debug/net8.0/Swashbuckle.AspNetCore.Annotations.dll
 /Users/lakshaymalhotra/Desktop/Github_Projects/knowledge-explorer/CausalExplorer/tests/CausalExplorer.API.Tests/bin/Debug/net8.0/appsettings.Production.json
 /Users/lakshaymalhotra/Desktop/Github_Projects/knowledge-explorer/CausalExplorer/tests/CausalExplorer.API.Tests/bin/Debug/net8.0/Microsoft.EntityFrameworkCore.InMemory.dll
+/Users/lakshaymalhotra/Desktop/Github_Projects/knowledge-explorer/CausalExplorer/tests/CausalExplorer.API.Tests/obj/Debug/net8.0/CausalExplorer.API.Tests.sourcelink.json

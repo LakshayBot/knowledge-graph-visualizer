@@ -52,7 +52,11 @@ public sealed class QdrantVectorSearchService : IVectorSearchService
                 {
                     id      = eventId.ToString(),
                     vector,
-                    payload = new { eventId = eventId.ToString(), text }
+                    payload = new Dictionary<string, object>
+                    {
+                        ["event_id"] = eventId.ToString(),
+                        ["text"] = text
+                    }
                 }
             }
         };
@@ -104,9 +108,9 @@ public sealed class QdrantVectorSearchService : IVectorSearchService
         var result = await response.Content.ReadFromJsonAsync<QdrantSearchResponse>(JsonOptions, ct);
 
         return result?.Result
-            .Where(r => r.Payload?.EventId is not null)
+            .Where(r => r.Payload?.ResolvedEventId is not null)
             .Select(r => new SimilarEventResult(
-                Guid.Parse(r.Payload.EventId),
+                Guid.Parse(r.Payload.ResolvedEventId!),
                 r.Score))
             .ToList() ?? [];
     }
@@ -135,5 +139,10 @@ public sealed class QdrantVectorSearchService : IVectorSearchService
 
     private sealed record QdrantScoredPoint(string Id, double Score, QdrantPayload Payload);
 
-    private sealed record QdrantPayload([property: JsonPropertyName("event_id")] string EventId);
+    private sealed record QdrantPayload(
+        [property: JsonPropertyName("event_id")] string? EventId,
+        [property: JsonPropertyName("eventId")] string? LegacyEventId)
+    {
+        public string? ResolvedEventId => EventId ?? LegacyEventId;
+    }
 }

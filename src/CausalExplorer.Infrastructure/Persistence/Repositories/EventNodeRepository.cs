@@ -1,6 +1,7 @@
 using CausalExplorer.Domain.Entities;
 using CausalExplorer.Domain.Enums;
 using CausalExplorer.Domain.Interfaces;
+using CausalExplorer.Infrastructure.Search;
 using Microsoft.EntityFrameworkCore;
 
 namespace CausalExplorer.Infrastructure.Persistence.Repositories;
@@ -45,15 +46,32 @@ internal sealed class EventNodeRepository : IEventNodeRepository
         string query,
         CancellationToken cancellationToken = default)
     {
-        var lower = query.ToLowerInvariant();
+        var keywords = SearchTextProcessor.GetKeywords(query);
+        if (keywords.Count == 0)
+            return [];
 
-        return await _context.EventNodes
+        var minMatches = SearchTextProcessor.GetMinimumMatchCount(keywords);
+        var candidates = await _context.EventNodes
             .AsNoTracking()
-            .Where(e => EF.Functions.ILike(e.Title, $"%{lower}%")
-                     || EF.Functions.ILike(e.Summary, $"%{lower}%"))
             .OrderByDescending(e => e.CreatedAt)
-            .Take(50)
+            .Take(500)
             .ToListAsync(cancellationToken);
+
+        return candidates
+            .Select(node => new
+            {
+                Node = node,
+                MatchCount = keywords.Count(keyword =>
+                    node.Title.Contains(keyword, StringComparison.OrdinalIgnoreCase) ||
+                    node.Summary.Contains(keyword, StringComparison.OrdinalIgnoreCase)),
+                Score = SearchTextProcessor.Score(node.Title, node.Summary, keywords)
+            })
+            .Where(result => result.MatchCount >= minMatches)
+            .OrderByDescending(result => result.Score)
+            .ThenByDescending(result => result.Node.CreatedAt)
+            .Take(50)
+            .Select(result => result.Node)
+            .ToList();
     }
 
     /// <inheritdoc />

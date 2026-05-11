@@ -5,6 +5,12 @@
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /repo
 
+ENV PATH="${PATH}:/root/.dotnet/tools"
+
+# The setup script uses this SDK stage for EF Core migrations when the host
+# does not have the required .NET/PostgreSQL tooling installed.
+RUN dotnet tool install --global dotnet-ef --version 8.0.0
+
 # Copy csproj files first so NuGet restore is cached as a separate layer.
 # All four projects are copied together so that ProjectReference chains are
 # fully resolved during restore (prevents NETSDK1064 on transitive analyzer packages).

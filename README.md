@@ -102,10 +102,10 @@ cd causal-explorer/CausalExplorer
 
 ```bash
 # Production
-./docker/scripts/setup.sh
+./setup.sh
 
 # Development (hot-reload, pgAdmin, Redis Insight)
-./docker/scripts/setup.sh --dev
+./setup.sh --dev
 ```
 
 The script will:
@@ -138,7 +138,7 @@ docker compose up -d
 | Neo4j Browser | http://localhost:7474 |
 | Qdrant Dashboard | http://localhost:6333/dashboard |
 | pgAdmin (dev) | http://localhost:5050 |
-| Redis Insight (dev) | http://localhost:8001 |
+| Redis Insight (dev) | http://localhost:5540 |
 
 ## How to Use the API — End-to-End Flow
 

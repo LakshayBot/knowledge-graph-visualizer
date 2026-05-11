@@ -1,8 +1,8 @@
 # API Reference — CausalExplorer
 
-Base URL: `http://localhost:5000/api/v1`
+Base URL: `http://localhost:5001/api/v1`
 
-Interactive docs: `http://localhost:5000/swagger`
+Interactive docs: `http://localhost:5001/swagger`
 
 ---
 

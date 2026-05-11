@@ -118,3 +118,9 @@
 /Users/lakshaymalhotra/Desktop/Github_Projects/knowledge-explorer/CausalExplorer/tests/CausalExplorer.Application.Tests/obj/Debug/net8.0/CausalExplorer.Application.Tests.genruntimeconfig.cache
 /Users/lakshaymalhotra/Desktop/Github_Projects/knowledge-explorer/CausalExplorer/tests/CausalExplorer.Application.Tests/obj/Debug/net8.0/ref/CausalExplorer.Application.Tests.dll
 /Users/lakshaymalhotra/Desktop/Github_Projects/knowledge-explorer/CausalExplorer/tests/CausalExplorer.Application.Tests/bin/Debug/net8.0/BCrypt.Net-Next.dll
+/Users/lakshaymalhotra/Desktop/Github_Projects/knowledge-explorer/CausalExplorer/tests/CausalExplorer.Application.Tests/bin/Debug/net8.0/Microsoft.Extensions.Configuration.Abstractions.dll
+/Users/lakshaymalhotra/Desktop/Github_Projects/knowledge-explorer/CausalExplorer/tests/CausalExplorer.Application.Tests/bin/Debug/net8.0/Microsoft.Extensions.Configuration.Binder.dll
+/Users/lakshaymalhotra/Desktop/Github_Projects/knowledge-explorer/CausalExplorer/tests/CausalExplorer.Application.Tests/bin/Debug/net8.0/Microsoft.Extensions.Options.dll
+/Users/lakshaymalhotra/Desktop/Github_Projects/knowledge-explorer/CausalExplorer/tests/CausalExplorer.Application.Tests/bin/Debug/net8.0/Microsoft.Extensions.Options.ConfigurationExtensions.dll
+/Users/lakshaymalhotra/Desktop/Github_Projects/knowledge-explorer/CausalExplorer/tests/CausalExplorer.Application.Tests/bin/Debug/net8.0/Microsoft.Extensions.Primitives.dll
+/Users/lakshaymalhotra/Desktop/Github_Projects/knowledge-explorer/CausalExplorer/tests/CausalExplorer.Application.Tests/obj/Debug/net8.0/CausalExplorer.Application.Tests.sourcelink.json

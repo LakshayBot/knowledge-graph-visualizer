@@ -735,6 +735,12 @@
         <member name="M:CausalExplorer.Domain.Interfaces.ICausalEdgeRepository.AddAsync(CausalExplorer.Domain.Entities.CausalEdge,System.Threading.CancellationToken)">
             <summary>Adds a new <see cref="T:CausalExplorer.Domain.Entities.CausalEdge"/> to the repository.</summary>
         </member>
+        <member name="M:CausalExplorer.Domain.Interfaces.ICausalEdgeRepository.BulkAddAsync(System.Collections.Generic.IEnumerable{CausalExplorer.Domain.Entities.CausalEdge},System.Threading.CancellationToken)">
+            <summary>
+            Bulk-adds multiple <see cref="T:CausalExplorer.Domain.Entities.CausalEdge"/> instances in a single round-trip.
+            Edges referencing non-existent node IDs are silently skipped.
+            </summary>
+        </member>
         <member name="M:CausalExplorer.Domain.Interfaces.ICausalEdgeRepository.Update(CausalExplorer.Domain.Entities.CausalEdge)">
             <summary>Marks an existing <see cref="T:CausalExplorer.Domain.Entities.CausalEdge"/> as modified.</summary>
         </member>
@@ -778,6 +784,12 @@
         </member>
         <member name="M:CausalExplorer.Domain.Interfaces.IEventNodeRepository.AddAsync(CausalExplorer.Domain.Entities.EventNode,System.Threading.CancellationToken)">
             <summary>Adds a new <see cref="T:CausalExplorer.Domain.Entities.EventNode"/> to the repository.</summary>
+        </member>
+        <member name="M:CausalExplorer.Domain.Interfaces.IEventNodeRepository.BulkAddAsync(System.Collections.Generic.IEnumerable{CausalExplorer.Domain.Entities.EventNode},System.Threading.CancellationToken)">
+            <summary>
+            Bulk-adds multiple <see cref="T:CausalExplorer.Domain.Entities.EventNode"/> instances in a single round-trip.
+            Uses MERGE so duplicate IDs are safely ignored.
+            </summary>
         </member>
         <member name="M:CausalExplorer.Domain.Interfaces.IEventNodeRepository.UpdateAsync(CausalExplorer.Domain.Entities.EventNode,System.Threading.CancellationToken)">
             <summary>Marks an existing <see cref="T:CausalExplorer.Domain.Entities.EventNode"/> as modified.</summary>

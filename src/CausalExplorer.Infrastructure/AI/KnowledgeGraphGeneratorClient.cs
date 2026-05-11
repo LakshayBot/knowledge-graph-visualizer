@@ -10,11 +10,16 @@ namespace CausalExplorer.Infrastructure.AI;
 /// <summary>
 /// Calls the Python AI sidecar's <c>POST /api/graph/generate</c> endpoint to produce
 /// a Wikipedia-sourced, LLM-extracted causal knowledge graph for a given topic.
+/// Uses an async job pattern: submits the job and polls <c>GET /api/graph/jobs/{id}</c>
+/// until the result is ready, so the HTTP call never times out due to slow LLM inference.
 /// </summary>
 public sealed class KnowledgeGraphGeneratorClient : IKnowledgeGraphGenerator
 {
     private readonly HttpClient _http;
     private readonly ILogger<KnowledgeGraphGeneratorClient> _logger;
+
+    private static readonly TimeSpan PollInterval  = TimeSpan.FromSeconds(5);
+    private static readonly TimeSpan MaxWait        = TimeSpan.FromMinutes(15);
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -34,38 +39,107 @@ public sealed class KnowledgeGraphGeneratorClient : IKnowledgeGraphGenerator
     /// <inheritdoc />
     public async Task<GeneratedGraphDto> GenerateAsync(string topic, CancellationToken ct = default)
     {
-        _logger.LogInformation("KnowledgeGraphGenerator: generating graph for topic '{Topic}'", topic);
+        _logger.LogInformation("KnowledgeGraphGenerator: submitting job for topic '{Topic}'", topic);
 
         var request = new { topic, max_articles = 3 };
 
-        HttpResponseMessage response;
+        // ── Step 1: submit job ─────────────────────────────────────────────────
+        HttpResponseMessage submitResponse;
         try
         {
-            response = await _http.PostAsJsonAsync("/api/graph/generate", request, JsonOptions, ct);
+            submitResponse = await _http.PostAsJsonAsync("/api/graph/generate", request, JsonOptions, ct);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "KnowledgeGraphGenerator: HTTP call failed for topic '{Topic}'", topic);
+            _logger.LogError(ex, "KnowledgeGraphGenerator: job submission HTTP call failed for topic '{Topic}'", topic);
             throw;
         }
 
-        if (!response.IsSuccessStatusCode)
+        if (!submitResponse.IsSuccessStatusCode)
         {
-            var body = await response.Content.ReadAsStringAsync(ct);
+            var body = await submitResponse.Content.ReadAsStringAsync(ct);
             _logger.LogError(
-                "KnowledgeGraphGenerator: sidecar returned {Status} for topic '{Topic}': {Body}",
-                (int)response.StatusCode, topic, body);
+                "KnowledgeGraphGenerator: sidecar returned {Status} on submit for topic '{Topic}': {Body}",
+                (int)submitResponse.StatusCode, topic, body);
             throw new InvalidOperationException(
-                $"AI service graph generation failed ({(int)response.StatusCode}): {body}");
+                $"AI service graph generation failed ({(int)submitResponse.StatusCode}): {body}");
         }
 
-        var raw = await response.Content.ReadFromJsonAsync<RawGenerateGraphResponse>(JsonOptions, ct)
-            ?? throw new InvalidOperationException("AI service returned an empty graph response.");
+        var submitted = await submitResponse.Content.ReadFromJsonAsync<RawJobSubmittedResponse>(JsonOptions, ct)
+            ?? throw new InvalidOperationException("AI service returned empty job submission response.");
 
         _logger.LogInformation(
-            "KnowledgeGraphGenerator: received {Events} events, {Edges} edges for topic '{Topic}' (cached={Cache})",
-            raw.Events.Count, raw.Edges.Count, topic, raw.FromCache);
+            "KnowledgeGraphGenerator: job {JobId} submitted (status={Status}) for topic '{Topic}'",
+            submitted.JobId, submitted.Status, topic);
 
+        // If the sidecar returned a cache hit it already marks status=done — skip polling loop.
+        if (submitted.Status == "done")
+        {
+            // Poll once to get the result.
+            return await PollUntilDoneAsync(submitted.JobId, topic, ct);
+        }
+
+        // ── Step 2: poll until done ────────────────────────────────────────────
+        return await PollUntilDoneAsync(submitted.JobId, topic, ct);
+    }
+
+    private async Task<GeneratedGraphDto> PollUntilDoneAsync(
+        string jobId,
+        string topic,
+        CancellationToken ct)
+    {
+        var deadline = DateTimeOffset.UtcNow.Add(MaxWait);
+
+        while (DateTimeOffset.UtcNow < deadline)
+        {
+            ct.ThrowIfCancellationRequested();
+
+            var pollResponse = await _http.GetAsync($"/api/graph/jobs/{jobId}", ct);
+
+            if (!pollResponse.IsSuccessStatusCode)
+            {
+                var errBody = await pollResponse.Content.ReadAsStringAsync(ct);
+                _logger.LogWarning(
+                    "KnowledgeGraphGenerator: job poll returned {Status}: {Body}",
+                    (int)pollResponse.StatusCode, errBody);
+                await Task.Delay(PollInterval, ct);
+                continue;
+            }
+
+            var status = await pollResponse.Content.ReadFromJsonAsync<RawJobStatusResponse>(JsonOptions, ct);
+            if (status is null)
+            {
+                await Task.Delay(PollInterval, ct);
+                continue;
+            }
+
+            _logger.LogDebug("KnowledgeGraphGenerator: job {JobId} status={Status}", jobId, status.Status);
+
+            switch (status.Status)
+            {
+                case "done" when status.Result is not null:
+                    _logger.LogInformation(
+                        "KnowledgeGraphGenerator: job {JobId} done — {Events} events, {Edges} edges (cached={Cache})",
+                        jobId, status.Result.Events.Count, status.Result.Edges.Count, status.Result.FromCache);
+                    return MapToDto(status.Result);
+
+                case "error":
+                    throw new InvalidOperationException(
+                        $"AI service graph generation failed: {status.Error ?? "unknown error"}");
+
+                default:
+                    // pending or running — wait and retry
+                    await Task.Delay(PollInterval, ct);
+                    break;
+            }
+        }
+
+        throw new TimeoutException(
+            $"KnowledgeGraphGenerator: job {jobId} did not complete within {MaxWait.TotalMinutes} minutes.");
+    }
+
+    private static GeneratedGraphDto MapToDto(RawGenerateGraphResponse raw)
+    {
         var events = raw.Events.Select(e => new GeneratedEventDto(
             Id:              e.Id,
             Title:           e.Title,
@@ -95,6 +169,16 @@ public sealed class KnowledgeGraphGeneratorClient : IKnowledgeGraphGenerator
     }
 
     // ── Raw JSON DTOs (snake_case from Python) ────────────────────────────────
+
+    private sealed record RawJobSubmittedResponse(
+        [property: JsonPropertyName("job_id")] string JobId,
+        [property: JsonPropertyName("status")] string Status);
+
+    private sealed record RawJobStatusResponse(
+        [property: JsonPropertyName("job_id")] string JobId,
+        [property: JsonPropertyName("status")] string Status,
+        [property: JsonPropertyName("result")] RawGenerateGraphResponse? Result,
+        [property: JsonPropertyName("error")]  string? Error);
 
     private sealed record RawGenerateGraphResponse(
         [property: JsonPropertyName("topic")]       string Topic,

@@ -177,8 +177,10 @@ services:
     restart: unless-stopped
     env_file: .env
     environment:
-      OLLAMA_URL:      http://ollama:11434
-      QDRANT_URL:      http://qdrant:6333
+      OLLAMA_URL:       http://ollama:11434
+      QDRANT_URL:       http://qdrant:6333
+      GROK_API_KEY:     ${GROK_API_KEY}
+      GENERATION_MODE:  ${GENERATION_MODE:-minimal}
     ports:
       - "8000:8000"
     networks:

@@ -21,3 +21,4 @@
 /Users/lakshaymalhotra/Desktop/Github_Projects/knowledge-explorer/CausalExplorer/src/CausalExplorer.Infrastructure/obj/Debug/net8.0/CausalExplorer.Infrastructure.pdb
 /Users/lakshaymalhotra/Desktop/Github_Projects/knowledge-explorer/CausalExplorer/src/CausalExplorer.Infrastructure/obj/Debug/net8.0/CausalExplorer.Infrastructure.genruntimeconfig.cache
 /Users/lakshaymalhotra/Desktop/Github_Projects/knowledge-explorer/CausalExplorer/src/CausalExplorer.Infrastructure/obj/Debug/net8.0/ref/CausalExplorer.Infrastructure.dll
+/Users/lakshaymalhotra/Desktop/Github_Projects/knowledge-explorer/CausalExplorer/src/CausalExplorer.Infrastructure/obj/Debug/net8.0/CausalExplorer.Infrastructure.sourcelink.json

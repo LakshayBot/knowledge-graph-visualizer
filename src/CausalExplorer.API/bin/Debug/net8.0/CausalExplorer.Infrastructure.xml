@@ -46,6 +46,20 @@
         <member name="M:CausalExplorer.Infrastructure.AI.EmbeddingServiceClient.GetEmbeddingAsync(System.String,System.Threading.CancellationToken)">
             <inheritdoc />
         </member>
+        <member name="T:CausalExplorer.Infrastructure.AI.KnowledgeGraphGeneratorClient">
+            <summary>
+            Calls the Python AI sidecar's <c>POST /api/graph/generate</c> endpoint to produce
+            a Wikipedia-sourced, LLM-extracted causal knowledge graph for a given topic.
+            Uses an async job pattern: submits the job and polls <c>GET /api/graph/jobs/{id}</c>
+            until the result is ready, so the HTTP call never times out due to slow LLM inference.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.AI.KnowledgeGraphGeneratorClient.#ctor(System.Net.Http.HttpClient,Microsoft.Extensions.Logging.ILogger{CausalExplorer.Infrastructure.AI.KnowledgeGraphGeneratorClient})">
+            <summary>Initialises the client with the typed <see cref="T:System.Net.Http.HttpClient"/> provided by DI.</summary>
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.AI.KnowledgeGraphGeneratorClient.GenerateAsync(System.String,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
         <member name="T:CausalExplorer.Infrastructure.Cache.RedisCacheService">
             <summary>
             Redis-backed generic cache service.
@@ -126,6 +140,9 @@
         <member name="M:CausalExplorer.Infrastructure.Graph.Neo4jCausalEdgeRepository.AddAsync(CausalExplorer.Domain.Entities.CausalEdge,System.Threading.CancellationToken)">
             <inheritdoc />
         </member>
+        <member name="M:CausalExplorer.Infrastructure.Graph.Neo4jCausalEdgeRepository.BulkAddAsync(System.Collections.Generic.IEnumerable{CausalExplorer.Domain.Entities.CausalEdge},System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
         <member name="M:CausalExplorer.Infrastructure.Graph.Neo4jCausalEdgeRepository.Update(CausalExplorer.Domain.Entities.CausalEdge)">
             <inheritdoc />
         </member>
@@ -189,6 +206,9 @@
             <inheritdoc />
         </member>
         <member name="M:CausalExplorer.Infrastructure.Graph.Neo4jEventNodeRepository.AddAsync(CausalExplorer.Domain.Entities.EventNode,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Graph.Neo4jEventNodeRepository.BulkAddAsync(System.Collections.Generic.IEnumerable{CausalExplorer.Domain.Entities.EventNode},System.Threading.CancellationToken)">
             <inheritdoc />
         </member>
         <member name="M:CausalExplorer.Infrastructure.Graph.Neo4jEventNodeRepository.UpdateAsync(CausalExplorer.Domain.Entities.EventNode,System.Threading.CancellationToken)">
@@ -461,6 +481,9 @@
         <member name="M:CausalExplorer.Infrastructure.Persistence.Repositories.CausalEdgeRepository.AddAsync(CausalExplorer.Domain.Entities.CausalEdge,System.Threading.CancellationToken)">
             <inheritdoc />
         </member>
+        <member name="M:CausalExplorer.Infrastructure.Persistence.Repositories.CausalEdgeRepository.BulkAddAsync(System.Collections.Generic.IEnumerable{CausalExplorer.Domain.Entities.CausalEdge},System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
         <member name="M:CausalExplorer.Infrastructure.Persistence.Repositories.CausalEdgeRepository.Update(CausalExplorer.Domain.Entities.CausalEdge)">
             <inheritdoc />
         </member>
@@ -488,6 +511,9 @@
             <inheritdoc />
         </member>
         <member name="M:CausalExplorer.Infrastructure.Persistence.Repositories.EventNodeRepository.AddAsync(CausalExplorer.Domain.Entities.EventNode,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:CausalExplorer.Infrastructure.Persistence.Repositories.EventNodeRepository.BulkAddAsync(System.Collections.Generic.IEnumerable{CausalExplorer.Domain.Entities.EventNode},System.Threading.CancellationToken)">
             <inheritdoc />
         </member>
         <member name="M:CausalExplorer.Infrastructure.Persistence.Repositories.EventNodeRepository.UpdateAsync(CausalExplorer.Domain.Entities.EventNode,System.Threading.CancellationToken)">
@@ -604,6 +630,11 @@
         </member>
         <member name="M:CausalExplorer.Infrastructure.Search.QdrantVectorSearchService.DeleteEmbeddingAsync(System.Guid,System.Threading.CancellationToken)">
             <inheritdoc />
+        </member>
+        <member name="T:CausalExplorer.Infrastructure.Search.SearchTextProcessor">
+            <summary>
+            Normalises natural-language search text into terms useful for persistence lookups.
+            </summary>
         </member>
     </members>
 </doc>

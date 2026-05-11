@@ -2,6 +2,7 @@ using CausalExplorer.Domain.Entities;
 using CausalExplorer.Domain.Enums;
 using CausalExplorer.Domain.Interfaces;
 using CausalExplorer.Domain.ValueObjects;
+using CausalExplorer.Infrastructure.Search;
 using Neo4j.Driver;
 
 namespace CausalExplorer.Infrastructure.Graph;
@@ -64,29 +65,32 @@ internal sealed class Neo4jEventNodeRepository : IEventNodeRepository
     {
         await using var session = _neo4j.GetSession();
 
-        // Split into individual keywords (>3 chars) so natural-language queries
-        // like "why are asian regions facing extreme heat" still find nodes whose
-        // titles/summaries contain words like "heat", "asian", "extreme".
-        var keywords = query
-            .Split(' ', StringSplitOptions.RemoveEmptyEntries)
-            .Select(w => w.ToLowerInvariant())
-            .Where(w => w.Length > 3)
-            .Distinct()
-            .ToList();
-
-        // Fall back to treating the whole query as one keyword if nothing qualifies.
+        var keywords = SearchTextProcessor.GetKeywords(query);
         if (keywords.Count == 0)
-            keywords = [query.ToLowerInvariant()];
+            return [];
 
         var result = await session.RunAsync(
             @"MATCH (n:EventNode)
-              WHERE ANY(kw IN $keywords WHERE
-                    toLower(n.title)   CONTAINS kw
-                 OR toLower(n.summary) CONTAINS kw)
+              WITH n,
+                   toLower(coalesce(n.title, '') + ' ' + coalesce(n.summary, '')) AS text,
+                   toLower(coalesce(n.title, '')) AS title,
+                   toLower(coalesce(n.summary, '')) AS summary,
+                   $keywords AS keywords
+              WITH n,
+                   [kw IN keywords WHERE text CONTAINS kw] AS matched,
+                   reduce(score = 0, kw IN keywords |
+                       score
+                       + CASE WHEN title CONTAINS kw THEN 3 ELSE 0 END
+                       + CASE WHEN summary CONTAINS kw THEN 1 ELSE 0 END) AS score
+              WHERE size(matched) >= $minMatches
               RETURN n
-              ORDER BY n.createdAt DESC
+              ORDER BY score DESC, n.createdAt DESC
               LIMIT 50",
-            new { keywords });
+            new
+            {
+                keywords,
+                minMatches = SearchTextProcessor.GetMinimumMatchCount(keywords)
+            });
 
         var records = await result.ToListAsync();
         return records.Select(r => MapNode(r["n"].As<INode>())).ToList();

@@ -100,7 +100,7 @@ services:
       - ./src:/repo/src:ro    # mount source for watch
     environment:
       ASPNETCORE_ENVIRONMENT:       Development
-      ASPNETCORE_URLS:              http://+:5000
+      ASPNETCORE_URLS:              http://+:5001
       ConnectionStrings__DefaultConnection: >-
         Host=postgres;Port=5432;Database=CausalExplorerDb_Dev;Username=causal_dev;Password=dev_password
       ConnectionStrings__Redis:     redis:6379,abortConnect=false
@@ -117,5 +117,4 @@ services:
     working_dir: /repo/src/CausalExplorer.API
     command: ["dotnet", "watch", "run", "--no-launch-profile"]
     ports:
-      - "5000:5000"
-      - "5001:5001"   # HTTPS (optional)
+      - "5001:5001"

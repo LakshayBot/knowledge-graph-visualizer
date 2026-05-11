@@ -4,7 +4,7 @@
 # Copies .env, builds images, starts infrastructure, applies migrations,
 # seeds Neo4j, and starts all application services.
 #
-# Usage: ./docker/scripts/setup.sh [--dev]
+# Usage: ./setup.sh [--dev]
 #
 # Flags:
 #   --dev   Use docker-compose.dev.yml overlay (hot-reload, pgAdmin, Redis Insight)
@@ -145,14 +145,58 @@ if command -v dotnet &> /dev/null && command -v pg_isready &> /dev/null; then
   POSTGRES_PORT="${POSTGRES_PORT_LOCAL}" \
   bash "${SCRIPTS_DIR}/apply-migrations.sh"
 else
-  echo "  dotnet SDK or pg_isready not found on host — running migrations inside a temporary container..."
-  ${COMPOSE_CMD} ${COMPOSE_FILES} run --rm \
-    -e POSTGRES_HOST=postgres \
-    -e POSTGRES_PORT=5432 \
-    causal-api \
+  echo "  dotnet SDK or pg_isready not found on host — running migrations inside a temporary SDK container..."
+
+  MIGRATIONS_IMAGE="causal-explorer-api-migrations:local"
+  ${COMPOSE_CMD} ${COMPOSE_FILES} build causal-api
+  docker build \
+    --target build \
+    --tag "${MIGRATIONS_IMAGE}" \
+    --file src/CausalExplorer.API/Dockerfile \
+    .
+
+  if [ "${DEV_MODE}" = true ]; then
+    MIGRATIONS_ENVIRONMENT="Development"
+    MIGRATIONS_DB="CausalExplorerDb_Dev"
+    MIGRATIONS_USER="causal_dev"
+    MIGRATIONS_PASSWORD="dev_password"
+    MIGRATIONS_REDIS="redis:6379,abortConnect=false"
+    MIGRATIONS_NEO4J_PASSWORD="devpassword123"
+    MIGRATIONS_JWT_SECRET="dev-jwt-secret-min-32-characters-long!!"
+    MIGRATIONS_JWT_ISSUER="CausalExplorer-Dev"
+    MIGRATIONS_JWT_AUDIENCE="CausalExplorerClient-Dev"
+  else
+    MIGRATIONS_ENVIRONMENT="Production"
+    MIGRATIONS_DB="${POSTGRES_DB:-CausalExplorerDb}"
+    MIGRATIONS_USER="${POSTGRES_USER:-causal}"
+    MIGRATIONS_PASSWORD="${POSTGRES_PASSWORD}"
+    MIGRATIONS_REDIS="redis:6379,password=${REDIS_PASSWORD:-redis_secret},abortConnect=false"
+    MIGRATIONS_NEO4J_PASSWORD="${NEO4J_PASSWORD:-ChangeMe123!}"
+    MIGRATIONS_JWT_SECRET="${JWT_SECRET}"
+    MIGRATIONS_JWT_ISSUER="${JWT_ISSUER:-CausalExplorer}"
+    MIGRATIONS_JWT_AUDIENCE="${JWT_AUDIENCE:-CausalExplorerClient}"
+  fi
+
+  docker run --rm \
+    --network causal-explorer_causal-net \
+    --env-file .env \
+    -e ASPNETCORE_ENVIRONMENT="${MIGRATIONS_ENVIRONMENT}" \
+    -e "ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=${MIGRATIONS_DB};Username=${MIGRATIONS_USER};Password=${MIGRATIONS_PASSWORD}" \
+    -e "ConnectionStrings__Redis=${MIGRATIONS_REDIS}" \
+    -e Neo4j__Uri=bolt://neo4j:7687 \
+    -e Neo4j__Username=neo4j \
+    -e "Neo4j__Password=${MIGRATIONS_NEO4J_PASSWORD}" \
+    -e AIService__BaseUrl=http://causal-ai-service:8000 \
+    -e VectorSearch__QdrantUrl=http://qdrant:6333 \
+    -e "Jwt__Secret=${MIGRATIONS_JWT_SECRET}" \
+    -e "Jwt__Issuer=${MIGRATIONS_JWT_ISSUER}" \
+    -e "Jwt__Audience=${MIGRATIONS_JWT_AUDIENCE}" \
+    -w /repo \
+    "${MIGRATIONS_IMAGE}" \
     dotnet ef database update \
       --project src/CausalExplorer.Infrastructure/CausalExplorer.Infrastructure.csproj \
       --startup-project src/CausalExplorer.API/CausalExplorer.API.csproj \
+      --configuration Release \
       --no-build
 fi
 
@@ -168,20 +212,26 @@ echo "  Ollama models ready."
 # ── Step 7: Start all application services ────────────────────────────────────
 echo ""
 echo "▶ Step 7/7: Starting all remaining services..."
-${COMPOSE_CMD} ${COMPOSE_FILES} up -d
+stale_api_containers="$(docker ps -aq --filter "name=causal-explorer-causal-api-run-" || true)"
+if [ -n "${stale_api_containers}" ]; then
+  echo "  Removing stale one-off API containers from older setup runs..."
+  # shellcheck disable=SC2086
+  docker rm -f ${stale_api_containers} >/dev/null
+fi
+${COMPOSE_CMD} ${COMPOSE_FILES} up -d --remove-orphans
 
 echo ""
 echo "╔══════════════════════════════════════════════════════════╗"
 echo "║              Setup complete!                             ║"
 echo "╠══════════════════════════════════════════════════════════╣"
-echo "║  .NET API      → http://localhost:5000                   ║"
-echo "║  Swagger UI    → http://localhost:5000/swagger           ║"
+echo "║  .NET API      → http://localhost:5001                   ║"
+echo "║  Swagger UI    → http://localhost:5001/swagger           ║"
 echo "║  AI Sidecar    → http://localhost:8000                   ║"
 echo "║  Neo4j Browser → http://localhost:7474                   ║"
 echo "║  Qdrant UI     → http://localhost:6333/dashboard         ║"
 if [ "${DEV_MODE}" = true ]; then
 echo "║  pgAdmin       → http://localhost:5050                   ║"
-echo "║  Redis Insight → http://localhost:8001                   ║"
+echo "║  Redis Insight → http://localhost:5540                   ║"
 fi
 echo "╚══════════════════════════════════════════════════════════╝"
 echo ""

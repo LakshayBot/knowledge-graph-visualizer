@@ -144,11 +144,11 @@ public static class DependencyInjection
             options.Retry.MaxRetryAttempts = 3;
         });
 
-        // Knowledge-graph generator — longer timeout for Wikipedia fetch + LLM pipeline.
+        // Knowledge-graph generator — short timeout per HTTP call; client polls via job pattern.
         services.AddHttpClient<KnowledgeGraphGeneratorClient>(client =>
         {
             client.BaseAddress = new Uri(baseUrl);
-            client.Timeout     = TimeSpan.FromSeconds(300);
+            client.Timeout     = TimeSpan.FromSeconds(30);
         });
 
         services.AddScoped<IAIService, AIServiceClient>();

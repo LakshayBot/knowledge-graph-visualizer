@@ -12,3 +12,4 @@
 /Users/lakshaymalhotra/Desktop/Github_Projects/knowledge-explorer/CausalExplorer/src/CausalExplorer.Domain/obj/Debug/net8.0/CausalExplorer.Domain.pdb
 /Users/lakshaymalhotra/Desktop/Github_Projects/knowledge-explorer/CausalExplorer/src/CausalExplorer.Domain/obj/Debug/net8.0/ref/CausalExplorer.Domain.dll
 /Users/lakshaymalhotra/Desktop/Github_Projects/knowledge-explorer/CausalExplorer/src/CausalExplorer.Domain/obj/Debug/net8.0/CausalExplorer.Domain.csproj.AssemblyReference.cache
+/Users/lakshaymalhotra/Desktop/Github_Projects/knowledge-explorer/CausalExplorer/src/CausalExplorer.Domain/obj/Debug/net8.0/CausalExplorer.Domain.sourcelink.json

@@ -1,12 +1,18 @@
 """
 CausalExplorer AI Service
-FastAPI sidecar that wraps Ollama (LLM) and Qdrant (vector search) to provide
-event extraction, causal link generation, chain expansion, semantic search,
-and on-demand knowledge-graph generation from Wikipedia.
+FastAPI sidecar that:
+  - Uses Grok (xAI API) for on-demand causal knowledge-graph generation.
+  - Uses Ollama (local) ONLY for dense vector embeddings (nomic-embed-text → Qdrant).
+
+Generation modes (GENERATION_MODE env var):
+  minimal  → grok-3-mini, 1500 max_tokens, temp 0.2  [default — lowest token cost]
+  balanced → grok-3,      3000 max_tokens, temp 0.3
+  quality  → grok-3,      6000 max_tokens, temp 0.4
 """
 from __future__ import annotations
 
 import json
+import asyncio
 import logging
 import os
 import re
@@ -16,7 +22,7 @@ from typing import Any
 
 import httpx
 import structlog
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import BackgroundTasks, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from qdrant_client import QdrantClient
@@ -26,18 +32,33 @@ from tenacity import retry, stop_after_attempt, wait_exponential
 
 # ── Configuration ──────────────────────────────────────────────────────────────
 
-OLLAMA_URL   = os.getenv("OLLAMA_URL",   "http://localhost:11434")
-QDRANT_URL   = os.getenv("QDRANT_URL",   "http://localhost:6333")
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "mistral")
-EMBED_MODEL  = os.getenv("EMBED_MODEL",  "nomic-embed-text")
-AI_API_KEY   = os.getenv("AI_SERVICE_API_KEY", "")
-LOG_LEVEL    = os.getenv("LOG_LEVEL",    "INFO")
-COLLECTION   = "causal_events"
-VECTOR_DIM   = 768          # nomic-embed-text output dimension
+OLLAMA_URL      = os.getenv("OLLAMA_URL",      "http://localhost:11434")
+QDRANT_URL      = os.getenv("QDRANT_URL",      "http://localhost:6333")
+EMBED_MODEL     = os.getenv("EMBED_MODEL",     "nomic-embed-text")
+LOG_LEVEL       = os.getenv("LOG_LEVEL",       "INFO")
 
-# Knowledge-graph generation cache: normalised_query → (payload, timestamp)
+# Grok / xAI
+GROK_API_KEY    = os.getenv("GROK_API_KEY",    "")
+GROK_API_URL    = "https://api.x.ai/v1/chat/completions"
+GENERATION_MODE = os.getenv("GENERATION_MODE", "minimal").lower()
+
+# Profile table: mode → (model, max_tokens, temperature)
+_GROK_PROFILES: dict[str, dict] = {
+    "minimal":  {"model": "grok-3-mini", "max_tokens": 1500, "temperature": 0.2},
+    "balanced": {"model": "grok-3",      "max_tokens": 3000, "temperature": 0.3},
+    "quality":  {"model": "grok-3",      "max_tokens": 6000, "temperature": 0.4},
+}
+# Fall back to minimal if an unknown mode is set
+_GROK_PROFILE = _GROK_PROFILES.get(GENERATION_MODE, _GROK_PROFILES["minimal"])
+
+COLLECTION  = "causal_events"
+VECTOR_DIM  = 768   # nomic-embed-text output dimension
+
+# In-memory caches
 _KG_CACHE: dict[str, tuple[dict, float]] = {}
 KG_CACHE_TTL_SECONDS = 3600   # 1 hour
+
+_JOB_STORE: dict[str, dict] = {}
 
 structlog.configure(wrapper_class=structlog.make_filtering_bound_logger(
     getattr(logging, LOG_LEVEL.upper(), logging.INFO)
@@ -48,10 +69,10 @@ log = structlog.get_logger()
 
 app = FastAPI(
     title="CausalExplorer AI Service",
-    version="1.1.0",
+    version="2.0.0",
     description=(
-        "LLM-powered event extraction, causal reasoning, semantic search, "
-        "and on-demand Wikipedia-sourced knowledge graph generation."
+        "Grok-powered causal knowledge-graph generation. "
+        "Ollama used exclusively for local vector embeddings."
     ),
 )
 
@@ -78,17 +99,24 @@ async def startup_event() -> None:
             log.info("qdrant.collection.exists", name=COLLECTION)
         else:
             raise
+    log.info(
+        "ai_service.startup",
+        generation_mode=GENERATION_MODE,
+        grok_model=_GROK_PROFILE["model"],
+        max_tokens=_GROK_PROFILE["max_tokens"],
+        grok_key_set=bool(GROK_API_KEY),
+    )
 
-# ── Shared request/response models ────────────────────────────────────────────
+# ── Pydantic models ────────────────────────────────────────────────────────────
 
 class ExtractEventsRequest(BaseModel):
     text: str
 
 class ExtractedEventItem(BaseModel):
-    title:       str
-    summary:     str
-    event_date:  str
-    domain:      str
+    title:      str
+    summary:    str
+    event_date: str
+    domain:     str
 
 class ExtractEventsResponse(BaseModel):
     events: list[ExtractedEventItem]
@@ -103,9 +131,9 @@ class CausalLinkResponse(BaseModel):
     is_contested: bool
 
 class ExpandChainRequest(BaseModel):
-    node_id:             uuid.UUID
-    perspective:         str = "Economic"
-    already_loaded_ids:  list[uuid.UUID] = Field(default_factory=list)
+    node_id:            uuid.UUID
+    perspective:        str = "Economic"
+    already_loaded_ids: list[uuid.UUID] = Field(default_factory=list)
 
 class SuggestedNode(BaseModel):
     title:             str
@@ -140,19 +168,16 @@ class EmbeddingRequest(BaseModel):
 class EmbeddingResponse(BaseModel):
     embedding: list[float]
 
-# ── Knowledge-graph generation models ─────────────────────────────────────────
-
 class GenerateGraphRequest(BaseModel):
-    topic: str = Field(..., min_length=3, max_length=300,
-                       description="Natural-language topic or question to build a causal graph for.")
-    max_articles: int = Field(default=3, ge=1, le=5)
+    topic:        str = Field(..., min_length=3, max_length=300)
+    max_articles: int = Field(default=3, ge=1, le=5)   # kept for API compat; ignored by Grok path
 
 class GeneratedEventNode(BaseModel):
-    id:               str   # UUID string assigned here
+    id:               str
     title:            str
     summary:          str
-    event_date:       str   # ISO 8601 date e.g. "2023-06-01"
-    domain:           str   # One of: Geopolitics, Economics, Technology, Social, Environmental, Military, Cultural
+    event_date:       str
+    domain:           str
     confidence_score: float = Field(ge=0.0, le=1.0)
     freshness_score:  float = Field(ge=0.0, le=1.0)
     source_url:       str
@@ -161,147 +186,30 @@ class GeneratedEventNode(BaseModel):
 class GeneratedEdge(BaseModel):
     from_event_id:     str
     to_event_id:       str
-    relationship_type: str   # DirectlyCaused | EnabledConditionsFor | ContributedTo | Correlated | Contested
+    relationship_type: str
     strength:          float = Field(ge=0.0, le=1.0)
-    perspective:       str   # Mainstream | Geopolitical | Structural | Economic | Revisionist
+    perspective:       str
     explanation:       str
-    is_contested:      bool  = False
+    is_contested:      bool = False
 
 class GenerateGraphResponse(BaseModel):
-    topic:           str
-    events:          list[GeneratedEventNode]
-    edges:           list[GeneratedEdge]
-    source_urls:     list[str]
-    from_cache:      bool = False
+    topic:       str
+    events:      list[GeneratedEventNode]
+    edges:       list[GeneratedEdge]
+    source_urls: list[str]
+    from_cache:  bool = False
 
-# ── Ollama helpers ─────────────────────────────────────────────────────────────
+class GraphJobSubmittedResponse(BaseModel):
+    job_id: str
+    status: str = "pending"
 
-def _correlation_id(request: Request) -> str:
-    return request.headers.get("X-Correlation-ID", str(uuid.uuid4()))
+class GraphJobStatusResponse(BaseModel):
+    job_id: str
+    status: str
+    result: GenerateGraphResponse | None = None
+    error:  str | None                   = None
 
-
-@retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
-async def _ollama_generate(prompt: str, timeout: int = 180) -> str:
-    async with httpx.AsyncClient(base_url=OLLAMA_URL, timeout=timeout) as client:
-        resp = await client.post("/api/generate", json={
-            "model":  OLLAMA_MODEL,
-            "prompt": prompt,
-            "stream": False,
-        })
-        resp.raise_for_status()
-        return resp.json()["response"]
-
-
-@retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
-async def _ollama_embed(text: str) -> list[float]:
-    async with httpx.AsyncClient(base_url=OLLAMA_URL, timeout=60) as client:
-        resp = await client.post("/api/embeddings", json={
-            "model":  EMBED_MODEL,
-            "prompt": text,
-        })
-        resp.raise_for_status()
-        return resp.json()["embedding"]
-
-
-def _parse_json_from_llm(raw: str, array: bool = True) -> Any:
-    """
-    Extract the first JSON array or object from raw LLM output,
-    handling markdown code fences and leading/trailing noise.
-    """
-    # Strip markdown fences
-    raw = re.sub(r"```(?:json)?", "", raw).strip()
-    pattern = r'\[.*\]' if array else r'\{.*\}'
-    match = re.search(pattern, raw, re.DOTALL)
-    if not match:
-        raise ValueError(f"No JSON {'array' if array else 'object'} found in LLM output.")
-    return json.loads(match.group())
-
-
-# ── Wikipedia helpers ──────────────────────────────────────────────────────────
-
-WIKI_SEARCH_URL  = "https://en.wikipedia.org/w/api.php"
-WIKI_SUMMARY_URL = "https://en.wikipedia.org/api/rest_v1/page/summary"
-WIKI_CONTENT_URL = "https://en.wikipedia.org/w/api.php"
-
-# Wikipedia requires a descriptive User-Agent to avoid 403s (per API policy).
-WIKI_HEADERS = {
-    "User-Agent": "CausalExplorer/1.0 (https://github.com/causal-explorer; causal-explorer@example.com) httpx/0.27"
-}
-
-
-async def _wikipedia_search(query: str, max_results: int = 5) -> list[str]:
-    """Return up to max_results Wikipedia page titles matching query."""
-    async with httpx.AsyncClient(timeout=15, headers=WIKI_HEADERS) as client:
-        resp = await client.get(WIKI_SEARCH_URL, params={
-            "action":   "query",
-            "list":     "search",
-            "srsearch": query,
-            "srlimit":  max_results,
-            "format":   "json",
-        })
-        resp.raise_for_status()
-        data = resp.json()
-        return [item["title"] for item in data.get("query", {}).get("search", [])]
-
-
-async def _wikipedia_article_text(title: str, max_chars: int = 6000) -> tuple[str, str]:
-    """
-    Fetch the plain-text extract of a Wikipedia article.
-    Returns (text, url).
-    """
-    async with httpx.AsyncClient(timeout=15, headers=WIKI_HEADERS) as client:
-        # First try the REST summary endpoint (clean, concise)
-        try:
-            resp = await client.get(
-                f"{WIKI_SUMMARY_URL}/{httpx.URL(title).path}",
-                follow_redirects=True,
-            )
-            if resp.status_code == 200:
-                d = resp.json()
-                text = d.get("extract", "")
-                url  = d.get("content_urls", {}).get("desktop", {}).get("page", f"https://en.wikipedia.org/wiki/{title.replace(' ', '_')}")
-                if text:
-                    return text[:max_chars], url
-        except Exception:
-            pass
-
-        # Fall back to action=query&prop=extracts
-        resp = await client.get(WIKI_CONTENT_URL, params={
-            "action":        "query",
-            "titles":        title,
-            "prop":          "extracts",
-            "exintro":       True,
-            "explaintext":   True,
-            "redirects":     True,
-            "format":        "json",
-        })
-        resp.raise_for_status()
-        pages = resp.json().get("query", {}).get("pages", {})
-        page  = next(iter(pages.values()), {})
-        text  = page.get("extract", "")
-        url   = f"https://en.wikipedia.org/wiki/{title.replace(' ', '_')}"
-        return text[:max_chars], url
-
-
-async def _fetch_wikipedia_corpus(topic: str, max_articles: int) -> list[tuple[str, str, str]]:
-    """
-    Search Wikipedia for `topic`, fetch up to `max_articles` articles.
-    Returns list of (title, text, url).
-    """
-    titles = await _wikipedia_search(topic, max_results=max_articles + 2)
-    corpus: list[tuple[str, str, str]] = []
-    for title in titles[:max_articles]:
-        try:
-            text, url = await _wikipedia_article_text(title)
-            if text.strip():
-                corpus.append((title, text, url))
-                log.info("wikipedia.fetched", title=title, chars=len(text))
-        except Exception as exc:
-            log.warning("wikipedia.fetch_failed", title=title, error=str(exc))
-    return corpus
-
-
-# ── LLM extraction helpers ─────────────────────────────────────────────────────
+# ── Validation helpers ─────────────────────────────────────────────────────────
 
 _VALID_DOMAINS = {
     "Geopolitics", "Economics", "Technology",
@@ -325,10 +233,9 @@ def _coerce_domain(raw: str) -> str:
         "military": "Military", "defence": "Military", "defense": "Military", "conflict": "Military",
         "cultural": "Cultural", "culture": "Cultural",
     }
-    normalised = raw.strip().lower()
     if raw.strip() in _VALID_DOMAINS:
         return raw.strip()
-    return mapping.get(normalised, "Geopolitics")
+    return mapping.get(raw.strip().lower(), "Geopolitics")
 
 
 def _coerce_relationship_type(raw: str) -> str:
@@ -358,7 +265,6 @@ def _coerce_perspective(raw: str) -> str:
 
 
 def _safe_date(raw: str) -> str:
-    """Return a valid ISO date or a fallback."""
     raw = raw.strip()
     match = re.search(r'\d{4}-\d{2}-\d{2}', raw)
     if match:
@@ -369,77 +275,13 @@ def _safe_date(raw: str) -> str:
     return "2000-01-01"
 
 
-async def _extract_events_from_corpus(
-    corpus: list[tuple[str, str, str]],
-    topic: str,
-) -> list[dict]:
-    """
-    Ask the LLM to extract structured causal EventNodes from the corpus text.
-    Returns a list of raw dicts.
-    """
-    combined = "\n\n---\n\n".join(
-        f"Article: {title}\n\n{text}" for title, text, _ in corpus
-    )[:12000]  # token budget
-
-    prompt = f"""You are a historian and analyst building a causal knowledge graph about: "{topic}".
-
-Read the following Wikipedia articles and extract 4 to 8 distinct causal events that are relevant to the topic.
-
-For each event return a JSON object with EXACTLY these fields:
-- "title": short descriptive title (max 120 chars)
-- "summary": 2-4 sentence explanation of what happened and why it matters (max 500 chars)
-- "event_date": best known date in ISO 8601 format (YYYY-MM-DD). Use YYYY-01-01 if only year is known.
-- "domain": ONE of: Geopolitics, Economics, Technology, Social, Environmental, Military, Cultural
-- "confidence_score": float between 0.4 and 0.95 reflecting how well-established this event is
-
-Return ONLY a valid JSON array of objects, no markdown, no explanation.
-
-Articles:
-{combined}
-
-JSON array:"""
-
-    raw = await _ollama_generate(prompt, timeout=240)
-    events = _parse_json_from_llm(raw, array=True)
-    return events if isinstance(events, list) else []
-
-
-async def _infer_causal_edges(events: list[dict]) -> list[dict]:
-    """
-    Ask the LLM to infer CAUSES relationships between the extracted events.
-    Returns a list of raw edge dicts with from_index / to_index.
-    """
-    numbered = "\n".join(
-        f"{i}. [{e.get('event_date', '?')}] {e.get('title', '?')}: {e.get('summary', '')[:120]}"
-        for i, e in enumerate(events)
-    )
-
-    prompt = f"""You are a causal analyst. Below are {len(events)} historical events.
-
-{numbered}
-
-Identify the most significant causal relationships between these events.
-For each causal link return a JSON object with EXACTLY these fields:
-- "from_index": integer index of the cause event (0-based)
-- "to_index": integer index of the effect event (0-based)
-- "relationship_type": ONE of: DirectlyCaused, EnabledConditionsFor, ContributedTo, Correlated, Contested
-- "strength": float 0.0-1.0 (how strong is the causal link)
-- "perspective": ONE of: Mainstream, Geopolitical, Structural, Economic, Revisionist
-- "explanation": 1-2 sentence explanation of the causal mechanism
-- "is_contested": true or false
-
-Rules:
-- from_index must NOT equal to_index
-- All indexes must be between 0 and {len(events) - 1}
-- Return 3 to {min(8, len(events) * 2)} edges maximum
-- Return ONLY a valid JSON array, no markdown, no explanation.
-
-JSON array:"""
-
-    raw = await _ollama_generate(prompt, timeout=180)
-    edges = _parse_json_from_llm(raw, array=True)
-    return edges if isinstance(edges, list) else []
-
+def _parse_json_from_llm(raw: str, array: bool = True) -> Any:
+    raw = re.sub(r"```(?:json)?", "", raw).strip()
+    pattern = r'\[.*\]' if array else r'\{.*\}'
+    match = re.search(pattern, raw, re.DOTALL)
+    if not match:
+        raise ValueError(f"No JSON {'array' if array else 'object'} found in LLM output.")
+    return json.loads(match.group())
 
 # ── Cache helpers ──────────────────────────────────────────────────────────────
 
@@ -458,87 +300,265 @@ def _cache_get(topic: str) -> dict | None:
 def _cache_set(topic: str, payload: dict) -> None:
     _KG_CACHE[_cache_key(topic)] = (payload, time.time())
 
+# ── Ollama — embeddings only ───────────────────────────────────────────────────
 
-# ── Health ─────────────────────────────────────────────────────────────────────
+@retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
+async def _ollama_embed(text: str) -> list[float]:
+    """Generate a dense embedding vector via local Ollama (nomic-embed-text)."""
+    async with httpx.AsyncClient(base_url=OLLAMA_URL, timeout=60) as client:
+        resp = await client.post("/api/embeddings", json={
+            "model":  EMBED_MODEL,
+            "prompt": text,
+        })
+        resp.raise_for_status()
+        return resp.json()["embedding"]
+
+# ── Grok — graph generation ────────────────────────────────────────────────────
+
+@retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=15))
+async def _grok_generate(prompt: str) -> str:
+    """
+    Call the xAI Grok chat-completions API with the current GENERATION_MODE profile.
+    Returns the assistant message content as a string.
+    """
+    if not GROK_API_KEY:
+        raise RuntimeError(
+            "GROK_API_KEY is not set. Add it to your .env file and restart the service."
+        )
+    profile = _GROK_PROFILE
+    headers = {
+        "Authorization": f"Bearer {GROK_API_KEY}",
+        "Content-Type":  "application/json",
+    }
+    body = {
+        "model":       profile["model"],
+        "max_tokens":  profile["max_tokens"],
+        "temperature": profile["temperature"],
+        "messages": [
+            {"role": "user", "content": prompt},
+        ],
+    }
+    async with httpx.AsyncClient(timeout=60) as client:
+        resp = await client.post(GROK_API_URL, headers=headers, json=body)
+        resp.raise_for_status()
+        return resp.json()["choices"][0]["message"]["content"]
+
+
+def _build_graph_prompt(topic: str) -> str:
+    """
+    Build the single-shot prompt sent to Grok.
+    Minimal mode uses tight char budgets to keep token usage low.
+    Quality mode relaxes them for richer output.
+    """
+    if GENERATION_MODE == "minimal":
+        event_count  = "4 to 6"
+        edge_count   = "3 to 6"
+        summary_len  = "≤150 chars"
+        expl_len     = "≤100 chars"
+    elif GENERATION_MODE == "balanced":
+        event_count  = "5 to 8"
+        edge_count   = "4 to 8"
+        summary_len  = "≤250 chars"
+        expl_len     = "≤200 chars"
+    else:  # quality
+        event_count  = "6 to 10"
+        edge_count   = "5 to 10"
+        summary_len  = "≤400 chars"
+        expl_len     = "≤300 chars"
+
+    return f"""You are a causal analyst building a knowledge graph. Topic: "{topic}"
+
+Return ONLY a raw JSON object (no markdown, no explanation) with exactly two keys:
+
+"events": array of {event_count} objects, each with:
+  "title"            : short descriptive title (≤120 chars)
+  "summary"          : what happened and why it matters ({summary_len})
+  "event_date"       : best known date YYYY-MM-DD (use YYYY-01-01 if only year is known)
+  "domain"           : one of Geopolitics|Economics|Technology|Social|Environmental|Military|Cultural
+  "confidence_score" : float 0.4–0.95 (how well-established)
+  "source_url"       : URL of a reputable source (Wikipedia preferred)
+
+"edges": array of {edge_count} objects, each with:
+  "from_index"        : 0-based index into events array (cause)
+  "to_index"          : 0-based index into events array (effect)
+  "relationship_type" : one of DirectlyCaused|EnabledConditionsFor|ContributedTo|Correlated|Contested
+  "strength"          : float 0.0–1.0
+  "perspective"       : one of Mainstream|Geopolitical|Structural|Economic|Revisionist
+  "explanation"       : causal mechanism ({expl_len})
+  "is_contested"      : true or false
+
+Rules:
+- from_index must NOT equal to_index
+- All indexes must be valid (0 to len(events)-1)
+- Raw JSON only — no ```json fences, no prose before or after"""
+
+
+async def _run_graph_generation(topic: str, _max_articles: int = 3) -> GenerateGraphResponse:
+    """
+    Core pipeline: single Grok API call → parse events + edges → cache → return.
+    _max_articles is accepted for API compatibility but not used (Grok has its own knowledge).
+    """
+    cached = _cache_get(topic)
+    if cached:
+        return GenerateGraphResponse(**cached, from_cache=True)
+
+    prompt = _build_graph_prompt(topic)
+    log.info("grok.generate.start", topic=topic, mode=GENERATION_MODE, model=_GROK_PROFILE["model"])
+
+    try:
+        raw = await _grok_generate(prompt)
+    except Exception as exc:
+        raise HTTPException(502, f"Grok API call failed: {exc}") from exc
+
+    log.info("grok.generate.response_received", chars=len(raw))
+
+    # Parse the top-level JSON object
+    try:
+        data = _parse_json_from_llm(raw, array=False)
+    except Exception as exc:
+        raise HTTPException(502, f"Failed to parse Grok JSON response: {exc}\nRaw: {raw[:300]}") from exc
+
+    raw_events: list[dict] = data.get("events", [])
+    raw_edges:  list[dict] = data.get("edges",  [])
+
+    if not raw_events:
+        raise HTTPException(502, "Grok returned no events for the given topic.")
+
+    # Build validated EventNode list
+    events: list[GeneratedEventNode] = []
+    for e in raw_events:
+        src_url = str(e.get("source_url", "")).strip() or f"https://en.wikipedia.org/wiki/{topic.replace(' ', '_')}"
+        events.append(GeneratedEventNode(
+            id               = str(uuid.uuid4()),
+            title            = str(e.get("title", "Untitled Event"))[:200],
+            summary          = str(e.get("summary", ""))[:2000],
+            event_date       = _safe_date(str(e.get("event_date", "2000-01-01"))),
+            domain           = _coerce_domain(str(e.get("domain", "Geopolitics"))),
+            confidence_score = float(max(0.0, min(0.95, e.get("confidence_score", 0.5)))),
+            freshness_score  = 0.5,
+            source_url       = src_url,
+            source_title     = str(e.get("title", ""))[:200],
+        ))
+
+    # Build validated edge list
+    edges: list[GeneratedEdge] = []
+    for re_dict in raw_edges:
+        try:
+            fi = int(re_dict.get("from_index", -1))
+            ti = int(re_dict.get("to_index",   -1))
+            if fi < 0 or ti < 0 or fi >= len(events) or ti >= len(events) or fi == ti:
+                continue
+            edges.append(GeneratedEdge(
+                from_event_id     = events[fi].id,
+                to_event_id       = events[ti].id,
+                relationship_type = _coerce_relationship_type(str(re_dict.get("relationship_type", "ContributedTo"))),
+                strength          = float(max(0.0, min(1.0, re_dict.get("strength", 0.5)))),
+                perspective       = _coerce_perspective(str(re_dict.get("perspective", "Mainstream"))),
+                explanation       = str(re_dict.get("explanation", "Causal link inferred by Grok."))[:1000],
+                is_contested      = bool(re_dict.get("is_contested", False)),
+            ))
+        except Exception as exc:
+            log.warning("graph.edge_skipped", error=str(exc))
+
+    # Deduplicate source URLs from events
+    seen: set[str] = set()
+    source_urls: list[str] = []
+    for ev in events:
+        if ev.source_url and ev.source_url not in seen:
+            seen.add(ev.source_url)
+            source_urls.append(ev.source_url)
+
+    log.info("grok.generate.done", events=len(events), edges=len(edges), sources=len(source_urls))
+
+    payload = {
+        "topic":       topic,
+        "events":      [e.model_dump() for e in events],
+        "edges":       [ed.model_dump() for ed in edges],
+        "source_urls": source_urls,
+    }
+    _cache_set(topic, payload)
+    return GenerateGraphResponse(**payload, from_cache=False)
+
+# ── Async job runner ───────────────────────────────────────────────────────────
+
+async def _job_worker(job_id: str, topic: str, max_articles: int) -> None:
+    _JOB_STORE[job_id]["status"] = "running"
+    try:
+        result = await _run_graph_generation(topic, max_articles)
+        _JOB_STORE[job_id]["status"] = "done"
+        _JOB_STORE[job_id]["result"] = result
+    except Exception as exc:
+        log.error("graph.job.failed", job_id=job_id, error=str(exc))
+        _JOB_STORE[job_id]["status"] = "error"
+        _JOB_STORE[job_id]["error"]  = str(exc)
+
+# ── Endpoints ──────────────────────────────────────────────────────────────────
 
 @app.get("/health", tags=["ops"])
 async def health() -> dict:
-    return {"status": "ok", "model": OLLAMA_MODEL}
+    return {
+        "status":          "ok",
+        "generation_mode": GENERATION_MODE,
+        "grok_model":      _GROK_PROFILE["model"],
+        "grok_key_set":    bool(GROK_API_KEY),
+        "embed_model":     EMBED_MODEL,
+    }
 
-
-# ── Embeddings ─────────────────────────────────────────────────────────────────
 
 @app.post("/api/embeddings", response_model=EmbeddingResponse, tags=["embeddings"])
 async def get_embedding(body: EmbeddingRequest, request: Request) -> EmbeddingResponse:
-    """Generate a dense vector embedding for the provided text using the Ollama embed model."""
-    cid = _correlation_id(request)
-    log.info("embedding.start", correlation_id=cid, text_length=len(body.text))
+    """Generate a dense vector embedding via local Ollama (nomic-embed-text)."""
     vector = await _ollama_embed(body.text)
     return EmbeddingResponse(embedding=vector)
 
 
-# ── Event extraction ───────────────────────────────────────────────────────────
-
 @app.post("/api/events/extract", response_model=ExtractEventsResponse, tags=["events"])
 async def extract_events(body: ExtractEventsRequest, request: Request) -> ExtractEventsResponse:
-    cid = _correlation_id(request)
-    log.info("extract_events.start", correlation_id=cid, text_length=len(body.text))
-
+    """Extract structured events from free text using Grok."""
     prompt = (
-        "You are a historian and economist. Extract structured causal events from the text below.\n"
-        "Return a JSON array of objects with fields: title, summary, event_date (ISO 8601), domain "
-        "(one of: Economic, Political, Military, Social, Technological, Environmental).\n"
-        "Text:\n" + body.text + "\n\nJSON:"
+        f'Extract causal events from the text below about this context.\n'
+        f'Return ONLY a JSON array of objects with fields: '
+        f'title, summary, event_date (YYYY-MM-DD), '
+        f'domain (Geopolitics|Economics|Technology|Social|Environmental|Military|Cultural).\n'
+        f'No markdown. Raw JSON array only.\n\nText:\n{body.text}\n\nJSON:'
     )
-    raw = await _ollama_generate(prompt)
+    raw    = await _grok_generate(prompt)
     events = _parse_json_from_llm(raw, array=True)
     return ExtractEventsResponse(events=[ExtractedEventItem(**e) for e in events])
 
 
-# ── Causal link generation ─────────────────────────────────────────────────────
-
 @app.post("/api/causal/generate", response_model=CausalLinkResponse, tags=["causal"])
 async def generate_causal_link(body: GenerateCausalLinkRequest, request: Request) -> CausalLinkResponse:
-    cid = _correlation_id(request)
-    log.info("generate_causal_link.start", correlation_id=cid)
-
+    """Analyse the causal relationship between two events using Grok."""
     prompt = (
-        f"Analyse the causal relationship from event {body.from_event_id} to event {body.to_event_id}.\n"
-        "Return JSON: {\"explanation\": \"...\", \"strength\": 0.0-1.0, \"is_contested\": true|false}\n"
-        "JSON:"
+        f'Analyse the causal relationship from event {body.from_event_id} to event {body.to_event_id}.\n'
+        f'Return ONLY a JSON object: {{"explanation": "...", "strength": 0.0-1.0, "is_contested": true|false}}\n'
+        f'No markdown. Raw JSON only.'
     )
-    raw = await _ollama_generate(prompt)
+    raw  = await _grok_generate(prompt)
     data = _parse_json_from_llm(raw, array=False)
     return CausalLinkResponse(**data)
 
 
-# ── Chain expansion ────────────────────────────────────────────────────────────
-
 @app.post("/api/chain/expand", response_model=ExpandChainResponse, tags=["chain"])
 async def expand_chain_node(body: ExpandChainRequest, request: Request) -> ExpandChainResponse:
-    cid = _correlation_id(request)
-    log.info("expand_chain_node.start", correlation_id=cid, node_id=str(body.node_id))
-
+    """Suggest connected causal events for chain expansion using Grok."""
     prompt = (
-        f"From a {body.perspective} perspective, suggest 3-5 causal events connected to node {body.node_id}.\n"
-        "Exclude events with IDs: " + ", ".join(str(i) for i in body.already_loaded_ids) + ".\n"
-        "Return JSON array: [{\"title\": \"...\", \"summary\": \"...\", "
-        "\"relationship_type\": \"CAUSES|CONTRIBUTES_TO|ENABLES|PREVENTS\", "
-        "\"direction\": \"outgoing|incoming\"}]\n"
-        "JSON:"
+        f'From a {body.perspective} perspective, suggest 3-5 causal events connected to node {body.node_id}.\n'
+        f'Exclude IDs: {", ".join(str(i) for i in body.already_loaded_ids)}.\n'
+        f'Return ONLY a JSON array: [{{"title": "...", "summary": "...", '
+        f'"relationship_type": "CAUSES|CONTRIBUTES_TO|ENABLES|PREVENTS", '
+        f'"direction": "outgoing|incoming"}}]\n'
+        f'No markdown. Raw JSON array only.'
     )
-    raw = await _ollama_generate(prompt)
+    raw   = await _grok_generate(prompt)
     nodes = _parse_json_from_llm(raw, array=True)
     return ExpandChainResponse(suggested_nodes=[SuggestedNode(**n) for n in nodes])
 
 
-# ── Semantic search ────────────────────────────────────────────────────────────
-
 @app.post("/api/search/similar", response_model=list[SimilarEventResult], tags=["search"])
 async def search_similar(body: SearchSimilarRequest, request: Request) -> list[SimilarEventResult]:
-    cid = _correlation_id(request)
-    log.info("search_similar.start", correlation_id=cid, query=body.query)
-
+    """Semantic similarity search via Ollama embeddings + Qdrant."""
     embedding = await _ollama_embed(body.query)
     qdrant    = QdrantClient(url=QDRANT_URL)
     hits      = qdrant.search(
@@ -547,7 +567,6 @@ async def search_similar(body: SearchSimilarRequest, request: Request) -> list[S
         limit=body.top_k,
         with_payload=True,
     )
-
     results = []
     for hit in hits:
         p = hit.payload or {}
@@ -565,117 +584,48 @@ async def search_similar(body: SearchSimilarRequest, request: Request) -> list[S
     return results
 
 
-# ── Knowledge-graph generation ─────────────────────────────────────────────────
-
-@app.post("/api/graph/generate", response_model=GenerateGraphResponse, tags=["graph"])
+@app.post(
+    "/api/graph/generate",
+    response_model=GraphJobSubmittedResponse,
+    status_code=202,
+    tags=["graph"],
+)
 async def generate_knowledge_graph(
     body: GenerateGraphRequest,
     request: Request,
-) -> GenerateGraphResponse:
+    background_tasks: BackgroundTasks,
+) -> GraphJobSubmittedResponse:
     """
-    On-demand knowledge-graph generation pipeline:
-    1. Search Wikipedia for the topic.
-    2. Fetch article text (up to max_articles).
-    3. Ask the LLM to extract structured EventNodes.
-    4. Ask the LLM to infer CAUSES edges between the nodes.
-    5. Return the structured graph payload (cached for 1 hour).
+    Submit an async knowledge-graph generation job (Grok-powered).
+    Returns job_id immediately (HTTP 202). Poll GET /api/graph/jobs/{job_id}.
+    Cache hits resolve synchronously.
     """
-    cid = _correlation_id(request)
-    log.info("graph.generate.start", correlation_id=cid, topic=body.topic)
+    log.info("graph.generate.submit", topic=body.topic, mode=GENERATION_MODE)
 
-    # ── Cache check ────────────────────────────────────────────────────────────
     cached = _cache_get(body.topic)
     if cached:
-        log.info("graph.generate.cache_hit", correlation_id=cid, topic=body.topic)
-        return GenerateGraphResponse(**cached, from_cache=True)
+        job_id = str(uuid.uuid4())
+        result = GenerateGraphResponse(**cached, from_cache=True)
+        _JOB_STORE[job_id] = {"status": "done", "result": result, "error": None}
+        log.info("graph.generate.cache_hit", topic=body.topic, job_id=job_id)
+        return GraphJobSubmittedResponse(job_id=job_id, status="done")
 
-    # ── 1. Fetch Wikipedia corpus ──────────────────────────────────────────────
-    try:
-        corpus = await _fetch_wikipedia_corpus(body.topic, body.max_articles)
-    except Exception as exc:
-        log.error("graph.generate.wikipedia_failed", error=str(exc))
-        raise HTTPException(502, f"Wikipedia fetch failed: {exc}") from exc
+    job_id = str(uuid.uuid4())
+    _JOB_STORE[job_id] = {"status": "pending", "result": None, "error": None}
+    background_tasks.add_task(_job_worker, job_id, body.topic, body.max_articles)
+    log.info("graph.generate.job_queued", topic=body.topic, job_id=job_id)
+    return GraphJobSubmittedResponse(job_id=job_id, status="pending")
 
-    if not corpus:
-        raise HTTPException(404, f"No Wikipedia articles found for topic: '{body.topic}'")
 
-    source_urls = [url for _, _, url in corpus]
-    log.info("graph.generate.corpus_ready", articles=len(corpus))
-
-    # ── 2. Extract EventNodes from corpus ─────────────────────────────────────
-    try:
-        raw_events = await _extract_events_from_corpus(corpus, body.topic)
-    except Exception as exc:
-        log.error("graph.generate.extract_failed", error=str(exc))
-        raise HTTPException(502, f"LLM event extraction failed: {exc}") from exc
-
-    if not raw_events:
-        raise HTTPException(502, "LLM returned no events from the corpus.")
-
-    log.info("graph.generate.events_extracted", count=len(raw_events))
-
-    # Assign stable UUIDs and normalise fields
-    events: list[GeneratedEventNode] = []
-    for i, e in enumerate(raw_events):
-        # Pick the corresponding source URL (cycle if fewer articles than events)
-        source_idx = i % len(corpus)
-        src_title, _, src_url = corpus[source_idx]
-
-        events.append(GeneratedEventNode(
-            id               = str(uuid.uuid4()),
-            title            = str(e.get("title", "Untitled Event"))[:200],
-            summary          = str(e.get("summary", ""))[:2000],
-            event_date       = _safe_date(str(e.get("event_date", "2000-01-01"))),
-            domain           = _coerce_domain(str(e.get("domain", "Geopolitics"))),
-            confidence_score = float(max(0.0, min(0.95, e.get("confidence_score", 0.5)))),
-            freshness_score  = 0.5,   # auto-generated nodes start neutral
-            source_url       = src_url,
-            source_title     = src_title,
-        ))
-
-    # ── 3. Infer causal edges ──────────────────────────────────────────────────
-    raw_edges: list[dict] = []
-    if len(events) >= 2:
-        try:
-            raw_edges = await _infer_causal_edges([e.model_dump() for e in events])
-        except Exception as exc:
-            log.warning("graph.generate.edge_inference_failed", error=str(exc))
-            # Edges are optional — continue without them
-
-    log.info("graph.generate.edges_inferred", count=len(raw_edges))
-
-    edges: list[GeneratedEdge] = []
-    for re_dict in raw_edges:
-        try:
-            fi = int(re_dict.get("from_index", -1))
-            ti = int(re_dict.get("to_index",   -1))
-            if fi < 0 or ti < 0 or fi >= len(events) or ti >= len(events) or fi == ti:
-                continue
-            edges.append(GeneratedEdge(
-                from_event_id     = events[fi].id,
-                to_event_id       = events[ti].id,
-                relationship_type = _coerce_relationship_type(str(re_dict.get("relationship_type", "ContributedTo"))),
-                strength          = float(max(0.0, min(1.0, re_dict.get("strength", 0.5)))),
-                perspective       = _coerce_perspective(str(re_dict.get("perspective", "Mainstream"))),
-                explanation       = str(re_dict.get("explanation", "Causal link inferred by AI."))[:1000],
-                is_contested      = bool(re_dict.get("is_contested", False)),
-            ))
-        except Exception as exc:
-            log.warning("graph.generate.edge_skipped", error=str(exc))
-
-    # ── 4. Build response and cache ────────────────────────────────────────────
-    payload = {
-        "topic":       body.topic,
-        "events":      [e.model_dump() for e in events],
-        "edges":       [ed.model_dump() for ed in edges],
-        "source_urls": source_urls,
-    }
-    _cache_set(body.topic, payload)
-
-    log.info("graph.generate.done",
-             correlation_id=cid,
-             events=len(events),
-             edges=len(edges),
-             sources=len(source_urls))
-
-    return GenerateGraphResponse(**payload, from_cache=False)
+@app.get("/api/graph/jobs/{job_id}", response_model=GraphJobStatusResponse, tags=["graph"])
+async def get_graph_job_status(job_id: str) -> GraphJobStatusResponse:
+    """Poll the status of a knowledge-graph generation job."""
+    job = _JOB_STORE.get(job_id)
+    if job is None:
+        raise HTTPException(404, f"Job '{job_id}' not found.")
+    return GraphJobStatusResponse(
+        job_id=job_id,
+        status=job["status"],
+        result=job.get("result"),
+        error=job.get("error"),
+    )
