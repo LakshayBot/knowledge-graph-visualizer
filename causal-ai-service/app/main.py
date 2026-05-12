@@ -44,8 +44,8 @@ GENERATION_MODE = os.getenv("GENERATION_MODE", "minimal").lower()
 
 # Profile table: mode → (model, max_tokens, temperature)
 _GROK_PROFILES: dict[str, dict] = {
-    "minimal":  {"model": "grok-3-mini", "max_tokens": 1500, "temperature": 0.2},
-    "balanced": {"model": "grok-3",      "max_tokens": 3000, "temperature": 0.3},
+    "minimal":  {"model": "grok-3-mini", "max_tokens": 3000, "temperature": 0.2},
+    "balanced": {"model": "grok-3",      "max_tokens": 4000, "temperature": 0.3},
     "quality":  {"model": "grok-3",      "max_tokens": 6000, "temperature": 0.4},
 }
 # Fall back to minimal if an unknown mode is set
@@ -170,6 +170,8 @@ class EmbeddingResponse(BaseModel):
 
 class GenerateGraphRequest(BaseModel):
     topic:        str = Field(..., min_length=3, max_length=300)
+    mode:         str = Field(default="minimal")   # minimal | balanced | quality
+    event_count:  int = Field(default=8, ge=3, le=20)
     max_articles: int = Field(default=3, ge=1, le=5)   # kept for API compat; ignored by Grok path
 
 class GeneratedEventNode(BaseModel):
@@ -281,7 +283,38 @@ def _parse_json_from_llm(raw: str, array: bool = True) -> Any:
     match = re.search(pattern, raw, re.DOTALL)
     if not match:
         raise ValueError(f"No JSON {'array' if array else 'object'} found in LLM output.")
-    return json.loads(match.group())
+    text = match.group()
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        # Grok truncated the response mid-token (max_tokens hit).
+        # Attempt to salvage complete objects by truncating at the last valid
+        # complete JSON object boundary.
+        if array:
+            # Find the last complete object: trim after last '}' then close the array.
+            last_brace = text.rfind('}')
+            if last_brace == -1:
+                raise ValueError("Truncated JSON array with no complete objects.")
+            salvaged = text[:last_brace + 1] + "]"
+            try:
+                result = json.loads(salvaged)
+                log.warning("json.salvaged_truncated_array", original_len=len(text), salvaged_len=len(salvaged))
+                return result
+            except json.JSONDecodeError as inner:
+                raise ValueError(f"Could not salvage truncated JSON array: {inner}") from inner
+        else:
+            # For objects, find last complete key-value pair boundary.
+            # Try to close the object after the last complete value.
+            last_comma = text.rfind(',')
+            if last_comma != -1:
+                salvaged = text[:last_comma] + "}"
+                try:
+                    result = json.loads(salvaged)
+                    log.warning("json.salvaged_truncated_object", original_len=len(text), salvaged_len=len(salvaged))
+                    return result
+                except json.JSONDecodeError:
+                    pass
+            raise ValueError(f"Could not salvage truncated JSON object.")
 
 # ── Cache helpers ──────────────────────────────────────────────────────────────
 
@@ -315,70 +348,70 @@ async def _ollama_embed(text: str) -> list[float]:
 
 # ── Grok — graph generation ────────────────────────────────────────────────────
 
-@retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=15))
-async def _grok_generate(prompt: str) -> str:
+@retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=30))
+async def _grok_generate(prompt: str, profile: dict | None = None) -> str:
     """
-    Call the xAI Grok chat-completions API with the current GENERATION_MODE profile.
-    Returns the assistant message content as a string.
+    Call the xAI Grok chat-completions API.
+    If profile is provided it overrides the global GENERATION_MODE profile,
+    allowing per-request model/token selection.
+
+    Timeout scales with max_tokens: ~0.04 s/token, minimum 90 s.
     """
     if not GROK_API_KEY:
         raise RuntimeError(
             "GROK_API_KEY is not set. Add it to your .env file and restart the service."
         )
-    profile = _GROK_PROFILE
+    p = profile or _GROK_PROFILE
+    api_timeout = max(90, int(p.get("max_tokens", 3000) * 0.04))
     headers = {
         "Authorization": f"Bearer {GROK_API_KEY}",
         "Content-Type":  "application/json",
     }
     body = {
-        "model":       profile["model"],
-        "max_tokens":  profile["max_tokens"],
-        "temperature": profile["temperature"],
+        "model":       p["model"],
+        "max_tokens":  p["max_tokens"],
+        "temperature": p["temperature"],
         "messages": [
             {"role": "user", "content": prompt},
         ],
     }
-    async with httpx.AsyncClient(timeout=60) as client:
+    async with httpx.AsyncClient(timeout=api_timeout) as client:
         resp = await client.post(GROK_API_URL, headers=headers, json=body)
         resp.raise_for_status()
         return resp.json()["choices"][0]["message"]["content"]
 
 
-def _build_graph_prompt(topic: str) -> str:
+def _build_graph_prompt(topic: str, mode: str = "minimal", event_count: int = 8) -> str:
     """
     Build the single-shot prompt sent to Grok.
-    Minimal mode uses tight char budgets to keep token usage low.
-    Quality mode relaxes them for richer output.
+    Uses per-request mode and event_count for tight/rich output budgets.
     """
-    if GENERATION_MODE == "minimal":
-        event_count  = "4 to 6"
-        edge_count   = "3 to 6"
-        summary_len  = "≤150 chars"
-        expl_len     = "≤100 chars"
-    elif GENERATION_MODE == "balanced":
-        event_count  = "5 to 8"
-        edge_count   = "4 to 8"
-        summary_len  = "≤250 chars"
-        expl_len     = "≤200 chars"
+    edge_min = max(3, event_count - 2)
+    edge_max = min(event_count * 2, 30)
+
+    if mode == "minimal":
+        summary_len = "≤150 chars"
+        expl_len    = "≤100 chars"
+    elif mode == "balanced":
+        summary_len = "≤250 chars"
+        expl_len    = "≤200 chars"
     else:  # quality
-        event_count  = "6 to 10"
-        edge_count   = "5 to 10"
-        summary_len  = "≤400 chars"
-        expl_len     = "≤300 chars"
+        summary_len = "≤400 chars"
+        expl_len    = "≤300 chars"
 
     return f"""You are a causal analyst building a knowledge graph. Topic: "{topic}"
 
 Return ONLY a raw JSON object (no markdown, no explanation) with exactly two keys:
 
-"events": array of {event_count} objects, each with:
+"events": array of EXACTLY {event_count} objects, each with:
   "title"            : short descriptive title (≤120 chars)
   "summary"          : what happened and why it matters ({summary_len})
   "event_date"       : best known date YYYY-MM-DD (use YYYY-01-01 if only year is known)
   "domain"           : one of Geopolitics|Economics|Technology|Social|Environmental|Military|Cultural
   "confidence_score" : float 0.4–0.95 (how well-established)
-  "source_url"       : URL of a reputable source (Wikipedia preferred)
+  "source_url"       : URL of a reputable source (Wikipedia, major news outlet, or https://x.com/... post)
 
-"edges": array of {edge_count} objects, each with:
+"edges": array of {edge_min} to {edge_max} objects, each with:
   "from_index"        : 0-based index into events array (cause)
   "to_index"          : 0-based index into events array (effect)
   "relationship_type" : one of DirectlyCaused|EnabledConditionsFor|ContributedTo|Correlated|Contested
@@ -393,20 +426,21 @@ Rules:
 - Raw JSON only — no ```json fences, no prose before or after"""
 
 
-async def _run_graph_generation(topic: str, _max_articles: int = 3) -> GenerateGraphResponse:
+async def _run_graph_generation(topic: str, mode: str = "minimal", event_count: int = 8) -> GenerateGraphResponse:
     """
     Core pipeline: single Grok API call → parse events + edges → cache → return.
-    _max_articles is accepted for API compatibility but not used (Grok has its own knowledge).
+    Uses per-request mode and event_count instead of the server-wide default.
     """
     cached = _cache_get(topic)
     if cached:
         return GenerateGraphResponse(**cached, from_cache=True)
 
-    prompt = _build_graph_prompt(topic)
-    log.info("grok.generate.start", topic=topic, mode=GENERATION_MODE, model=_GROK_PROFILE["model"])
+    profile = _GROK_PROFILES.get(mode, _GROK_PROFILES["minimal"])
+    prompt  = _build_graph_prompt(topic, mode=mode, event_count=event_count)
+    log.info("grok.generate.start", topic=topic, mode=mode, model=profile["model"], event_count=event_count)
 
     try:
-        raw = await _grok_generate(prompt)
+        raw = await _grok_generate(prompt, profile=profile)
     except Exception as exc:
         raise HTTPException(502, f"Grok API call failed: {exc}") from exc
 
@@ -481,10 +515,10 @@ async def _run_graph_generation(topic: str, _max_articles: int = 3) -> GenerateG
 
 # ── Async job runner ───────────────────────────────────────────────────────────
 
-async def _job_worker(job_id: str, topic: str, max_articles: int) -> None:
+async def _job_worker(job_id: str, topic: str, mode: str, event_count: int) -> None:
     _JOB_STORE[job_id]["status"] = "running"
     try:
-        result = await _run_graph_generation(topic, max_articles)
+        result = await _run_graph_generation(topic, mode=mode, event_count=event_count)
         _JOB_STORE[job_id]["status"] = "done"
         _JOB_STORE[job_id]["result"] = result
     except Exception as exc:
@@ -600,7 +634,7 @@ async def generate_knowledge_graph(
     Returns job_id immediately (HTTP 202). Poll GET /api/graph/jobs/{job_id}.
     Cache hits resolve synchronously.
     """
-    log.info("graph.generate.submit", topic=body.topic, mode=GENERATION_MODE)
+    log.info("graph.generate.submit", topic=body.topic, mode=body.mode, event_count=body.event_count)
 
     cached = _cache_get(body.topic)
     if cached:
@@ -612,7 +646,7 @@ async def generate_knowledge_graph(
 
     job_id = str(uuid.uuid4())
     _JOB_STORE[job_id] = {"status": "pending", "result": None, "error": None}
-    background_tasks.add_task(_job_worker, job_id, body.topic, body.max_articles)
+    background_tasks.add_task(_job_worker, job_id, body.topic, body.mode, body.event_count)
     log.info("graph.generate.job_queued", topic=body.topic, job_id=job_id)
     return GraphJobSubmittedResponse(job_id=job_id, status="pending")
 
