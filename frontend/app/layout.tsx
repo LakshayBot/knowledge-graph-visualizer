@@ -1,24 +1,11 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { GeistSans } from "geist/font/sans";
 import "./globals.css";
-
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-inter",
-});
 
 export const metadata: Metadata = {
   title: "CausalExplorer — Understand Why Events Happen",
   description:
-    "AI-powered causal knowledge graph system. Ask a question, get a structured cause-and-effect graph built by Grok AI and stored in Neo4j. Understand why complex world events happen.",
-  keywords: [
-    "causal AI",
-    "knowledge graph",
-    "Grok AI",
-    "Neo4j",
-    "causal reasoning",
-    "event graph",
-  ],
+    "AI-powered causal knowledge graph system. Ask a question, get a structured cause-and-effect graph built by Grok AI. Causal graphs. Not just answers.",
 };
 
 export default function RootLayout({
@@ -27,8 +14,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={inter.variable}>
-      <body className="antialiased">{children}</body>
+    <html lang="en" suppressHydrationWarning className={GeistSans.variable}>
+      <head>
+        {/* Anti-FOUC: apply dark class before paint */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem("theme");if(t==="dark")document.documentElement.classList.add("dark")}catch(e){}})()`,
+          }}
+        />
+      </head>
+      <body style={{ fontFamily: "var(--font-geist-sans), 'Helvetica Neue', Helvetica, Arial, sans-serif" }}>
+        {children}
+      </body>
     </html>
   );
 }

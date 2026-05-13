@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("CausalExplorer.Infrastructure")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+014e5fb74bb4d5d0c24b605963671d55eeeebcc4")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+5258c755069c3ec2c64515c5104d8bfd61f48d8a")]
 [assembly: System.Reflection.AssemblyProductAttribute("CausalExplorer.Infrastructure")]
 [assembly: System.Reflection.AssemblyTitleAttribute("CausalExplorer.Infrastructure")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

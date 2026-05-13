@@ -1,11 +1,219 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
-html {
-  scroll-behavior: smooth;
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+  /* overflow:hidden NOT needed — the flex wrapper on page handles containment */
+}
+
+/* ── Design tokens ─────────────────────────────────────────── */
+:root {
+  --bg:          #f5f2ec;
+  --bg-subtle:   #f0ece4;
+  --surface:     #fff;
+  --border:      rgba(0, 0, 0, 0.08);
+  --border-med:  rgba(0, 0, 0, 0.13);
+  --text-1:      #111;
+  --text-2:      #444;
+  --text-3:      #777;
+  --text-4:      #aaa;
+  --accent:      #111;
+  --accent-fg:   #fff;
+  --chip-bg:     #111;
+  --chip-fg:     #fff;
+  --nav-h:       56px;
+  --banner-h:    34px;
+  --chrome-h:    90px; /* banner + nav combined */
+}
+
+.dark {
+  --bg:          #0e0d0b;
+  --bg-subtle:   #161410;
+  --surface:     #1a1916;
+  --border:      rgba(255, 255, 255, 0.07);
+  --border-med:  rgba(255, 255, 255, 0.12);
+  --text-1:      #f0ede6;
+  --text-2:      #b0aa9e;
+  --text-3:      #776f66;
+  --text-4:      #4a4540;
+  --accent:      #f0ede6;
+  --accent-fg:   #111;
+  --chip-bg:     #f0ede6;
+  --chip-fg:     #111;
 }
 
 body {
-  background-color: #e8e8e8;
+  background-color: var(--bg);
+  color: var(--text-1);
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* ── Scroll snap root ──────────────────────────────────────── */
+#scroll-root {
+  height: 100%;          /* fills the flex:1 parent in page.tsx */
+  overflow-y: scroll;
+  scroll-snap-type: y mandatory;
+  scroll-behavior: smooth;
+  /* Custom scrollbar */
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-med) transparent;
+}
+
+#scroll-root::-webkit-scrollbar {
+  width: 4px;
+}
+#scroll-root::-webkit-scrollbar-track {
+  background: transparent;
+}
+#scroll-root::-webkit-scrollbar-thumb {
+  background: var(--border-med);
+  border-radius: 2px;
+}
+
+/* ── Snap section ──────────────────────────────────────────── */
+.snap-section {
+  scroll-snap-align: start;
+  scroll-snap-stop: always;   /* never skip a section */
+  height: 100%;               /* fill the scroll viewport exactly */
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;           /* content must fit — no internal overflow */
+}
+
+/* ── Max width wrapper (ultrawide) ─────────────────────────── */
+.mw {
+  max-width: 1600px;
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* ── Keyframes ─────────────────────────────────────────────── */
+@keyframes marquee {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes pulse-ring {
+  0%   { transform: scale(1);   opacity: 0.6; }
+  100% { transform: scale(1.8); opacity: 0; }
+}
+
+/* ── Utility classes ───────────────────────────────────────── */
+.eyebrow {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--text-3);
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+.section-title {
+  font-size: clamp(22px, 2.8vw, 38px);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--text-1);
+  line-height: 1;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  background: var(--chip-bg);
+  color: var(--chip-fg);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 3px;
+  line-height: 1.4;
+}
+
+/* ── Bento card ────────────────────────────────────────────── */
+.bento-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 24px 24px 28px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.bento-card:hover {
+  border-color: var(--border-med);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+}
+.dark .bento-card:hover {
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+}
+
+/* ── Button ────────────────────────────────────────────────── */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--accent);
+  color: var(--accent-fg);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  padding: 12px 24px;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  white-space: nowrap;
+}
+.btn-primary:hover { opacity: 0.8; }
+
+.btn-outline {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  color: var(--text-1);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  padding: 11px 22px;
+  text-decoration: none;
+  border: 1px solid var(--border-med);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  white-space: nowrap;
+}
+.btn-outline:hover {
+  border-color: var(--text-1);
+  background: var(--bg-subtle);
+}
+
+/* ── Mobile nav drawer ─────────────────────────────────────── */
+.nav-drawer {
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  padding: 24px;
+  gap: 8px;
+  animation: fadeIn 0.2s ease;
 }

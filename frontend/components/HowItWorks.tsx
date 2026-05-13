@@ -1,121 +1,164 @@
-// ─── How It Works ─────────────────────────────────────────────────────────────
+"use client";
+
+import { motion } from "framer-motion";
+import { useBreakpoint } from "@/hooks/useBreakpoint";
 
 const steps = [
   {
-    number: "01",
+    n: "01",
     title: "Ask a Question",
-    description:
-      "Type any natural-language question — geopolitical, economic, scientific, or social. CausalExplorer strips it down to a causal topic and validates your preferred generation mode and event count.",
-    detail: "e.g. \u201cWhy is the rupee falling against USD?\u201d",
+    desc: "Type any natural-language question — geopolitical, economic, scientific, or social.",
+    detail: '"Why is the rupee falling against USD?"',
     icon: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
-        <circle cx="11" cy="11" r="8" />
-        <path d="M21 21l-4.35-4.35" strokeLinecap="round" />
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
       </svg>
     ),
   },
   {
-    number: "02",
+    n: "02",
     title: "Three-Phase Retrieval",
-    description:
-      "First Neo4j is searched by keyword. If nothing relevant is found, Qdrant runs a semantic similarity search (score ≥ 0.70). Only if both return empty does Grok AI generate a brand-new causal graph.",
-    detail: "Neo4j → Qdrant → Grok AI (auto-fallback)",
+    desc: "Neo4j keyword → Qdrant semantic (≥ 0.70) → Grok AI. Only a true miss triggers generation.",
+    detail: "Neo4j → Qdrant → Grok AI",
     icon: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
-        <path d="M4 6h16M4 12h10M4 18h7" strokeLinecap="round" />
-        <circle cx="18" cy="17" r="3" />
-        <path d="M20.5 19.5l1.5 1.5" strokeLinecap="round" />
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
       </svg>
     ),
   },
   {
-    number: "03",
+    n: "03",
     title: "Grok Builds the Graph",
-    description:
-      "A structured prompt is sent to Grok AI (grok-3-mini or grok-3 depending on mode). It returns a validated JSON graph: event nodes with dates, domains, confidence scores, source URLs, and directed causal edges.",
+    desc: "Validated JSON returned: event nodes with dates, domains, confidence scores, source URLs, and directed causal edges.",
     detail: "minimal · balanced · quality",
     icon: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
-        <circle cx="5" cy="12" r="2.5" />
-        <circle cx="19" cy="5" r="2.5" />
-        <circle cx="19" cy="19" r="2.5" />
-        <path d="M7.4 11.1L16.6 6M7.4 12.9L16.6 18" strokeLinecap="round" />
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
       </svg>
     ),
   },
   {
-    number: "04",
-    title: "Persisted & Cached",
-    description:
-      "New nodes are bulk-written to Neo4j (MERGE — idempotent), embedded by Ollama and stored in Qdrant for future semantic hits. Redis caches the full response keyed by topic, mode, and count for sub-100ms repeats.",
-    detail: "Neo4j + Qdrant + Redis — all in one pipeline",
+    n: "04",
+    title: "Persist & Cache",
+    desc: "New nodes bulk-written to Neo4j, embedded by Ollama, stored in Qdrant. Redis caches by topic + mode + count.",
+    detail: "Neo4j + Qdrant + Redis",
     icon: (
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
-        <ellipse cx="12" cy="5" rx="9" ry="3" />
-        <path d="M3 5v6c0 1.66 4 3 9 3s9-1.34 9-3V5" />
-        <path d="M3 11v6c0 1.66 4 3 9 3s9-1.34 9-3v-6" />
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+        <ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
+        <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
       </svg>
     ),
   },
 ];
 
-export default function HowItWorks() {
-  return (
-    <section id="how-it-works" className="bg-[#e8e8e8] py-6 px-6">
-      <div className="mx-auto" style={{ maxWidth: 1100 }}>
-        {/* Section header */}
-        <div className="bg-white rounded-3xl p-10 mb-4 shadow-sm">
-          <div className="inline-flex items-center gap-2 border border-gray-200 rounded-full px-3 py-1 mb-5">
-            <span className="w-2 h-2 bg-black rounded-none inline-block" />
-            <span className="text-[11px] font-semibold tracking-widest text-black uppercase">
-              How It Works
-            </span>
-          </div>
-          <div className="flex items-end justify-between">
-            <h2
-              className="text-[42px] font-black leading-none tracking-tight text-black"
-              style={{ fontFamily: "'Arial Black', sans-serif" }}
-            >
-              Four steps from
-              <br />
-              question to graph.
-            </h2>
-            <p className="text-[13.5px] text-gray-400 max-w-[280px] text-right leading-relaxed">
-              Every query follows the same deterministic pipeline — fast when
-              data exists, generative only when it doesn&apos;t.
-            </p>
-          </div>
-        </div>
+const containerVariants = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.1 } },
+};
+const cardVariants = {
+  hidden:  { opacity: 0, y: 24 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" as const } },
+};
 
-        {/* Steps grid */}
-        <div className="grid grid-cols-2 gap-4">
-          {steps.map((step) => (
-            <div key={step.number} className="bg-white rounded-3xl p-8 shadow-sm">
-              <div className="flex items-start justify-between mb-6">
+export default function HowItWorks() {
+  const bp = useBreakpoint();
+  const isMobile = bp === "mobile";
+  const isTablet = bp === "tablet";
+
+  const cols = isMobile ? 1 : isTablet ? 2 : 4;
+  const px   = isMobile ? "20px" : isTablet ? "28px" : "40px";
+
+  return (
+    <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0, overflow: "hidden" }}>
+      {/* Header */}
+      <div
+        style={{
+          padding: isMobile ? "20px 20px 16px" : `24px ${px} 20px`,
+          borderBottom: "1px solid var(--border)",
+          display: "flex",
+          flexDirection: isMobile ? "column" : "row",
+          alignItems: isMobile ? "flex-start" : "baseline",
+          justifyContent: "space-between",
+          gap: isMobile ? 8 : 24,
+        }}
+      >
+        <span className="eyebrow">How It Works</span>
+        <h2 className="section-title">Four steps from question to graph.</h2>
+      </div>
+
+      {/* Grid */}
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, margin: "-40px" }}
+        style={{
+          display: "grid",
+          gridTemplateColumns: `repeat(${cols}, 1fr)`,
+          flex: 1,
+        }}
+      >
+        {steps.map((step, i) => {
+          const isLastInRow = cols === 1 ? true
+            : cols === 2 ? i % 2 === 1
+            : i === 3;
+          const isLastRow = cols === 1 ? i === steps.length - 1
+            : cols === 2 ? i >= 2
+            : true;
+
+          return (
+            <motion.div
+              key={step.n}
+              variants={cardVariants}
+              style={{
+                padding: isMobile ? "18px 20px 22px" : isTablet ? "20px 20px 24px" : "24px 24px 28px",
+                borderRight: !isLastInRow ? "1px solid var(--border)" : "none",
+                borderBottom: !isLastRow ? "1px solid var(--border)" : "none",
+                display: "flex",
+                flexDirection: "column",
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
                 <span
-                  className="text-[11px] font-semibold tracking-widest text-gray-300 uppercase"
-                  style={{ fontFamily: "monospace" }}
+                  style={{
+                    fontSize: isMobile ? 40 : 48,
+                    fontWeight: 900,
+                    color: "var(--border-med)",
+                    lineHeight: 1,
+                    letterSpacing: "-0.05em",
+                    userSelect: "none",
+                  }}
                 >
-                  {step.number}
+                  {step.n}
                 </span>
-                <span className="text-gray-400">{step.icon}</span>
+                <span
+                  style={{
+                    color: "var(--text-3)",
+                    background: "var(--bg-subtle)",
+                    border: "1px solid var(--border)",
+                    padding: "7px",
+                    borderRadius: 6,
+                    display: "flex",
+                    alignItems: "center",
+                  }}
+                >
+                  {step.icon}
+                </span>
               </div>
-              <h3 className="text-[20px] font-black tracking-tight text-black mb-3">
+
+              <h3 style={{ fontSize: 15, fontWeight: 800, color: "var(--text-1)", letterSpacing: "-0.025em", marginBottom: 8 }}>
                 {step.title}
               </h3>
-              <p className="text-[13.5px] text-gray-400 leading-relaxed mb-5">
-                {step.description}
+              <p style={{ fontSize: 13, lineHeight: 1.65, color: "var(--text-3)", marginBottom: 16, flex: 1 }}>
+                {step.desc}
               </p>
-              <div className="inline-flex items-center gap-2 bg-gray-50 rounded-xl px-4 py-2">
-                <span className="w-1.5 h-1.5 bg-black rounded-none flex-shrink-0" />
-                <span className="text-[12px] font-medium text-gray-600 font-mono">
-                  {step.detail}
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
+              <code style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.05em", color: "var(--text-4)", textTransform: "uppercase", fontFamily: "monospace" }}>
+                {step.detail}
+              </code>
+            </motion.div>
+          );
+        })}
+      </motion.div>
+    </div>
   );
 }
