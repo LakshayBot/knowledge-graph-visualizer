@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("CausalExplorer.API.Tests")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+5258c755069c3ec2c64515c5104d8bfd61f48d8a")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+2f3aa599139e3b27c638c187925943e8e6d5974f")]
 [assembly: System.Reflection.AssemblyProductAttribute("CausalExplorer.API.Tests")]
 [assembly: System.Reflection.AssemblyTitleAttribute("CausalExplorer.API.Tests")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

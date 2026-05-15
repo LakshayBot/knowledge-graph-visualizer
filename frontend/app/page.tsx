@@ -9,42 +9,22 @@ import Footer from "@/components/Footer";
 
 export default function Home() {
   return (
-    // Chrome sits OUTSIDE the scroll container so it never
-    // contributes to scroll height. Sections use calc(100dvh - var(--chrome-h))
-    // so each one fills exactly the remaining viewport.
-    <div style={{ display: "flex", flexDirection: "column", height: "100dvh", overflow: "hidden" }}>
-      {/* Sticky chrome — pinned above scroll root */}
-      <div style={{ flexShrink: 0, zIndex: 100, position: "relative" }}>
+    <>
+      {/* Chrome — sticky at top of the page */}
+      <div style={{ position: "sticky", top: 0, zIndex: 100 }}>
         <MarqueeBanner />
         <Nav />
       </div>
 
-      {/* Scroll root — fills remaining height */}
-      <div id="scroll-root" style={{ flex: 1, minHeight: 0 }}>
-        <section className="snap-section" id="overview">
-          <Hero />
-        </section>
-
-        <section className="snap-section" id="how-it-works">
-          <HowItWorks />
-        </section>
-
-        <section className="snap-section" id="features">
-          <Features />
-        </section>
-
-        <section className="snap-section" id="api">
-          <ApiPreview />
-        </section>
-
-        <section className="snap-section" id="about">
-          <About />
-        </section>
-
-        <section className="snap-section" id="footer-section">
-          <Footer />
-        </section>
-      </div>
-    </div>
+      {/* Sections — normal document flow, body scroll */}
+      <main id="scroll-root">
+        <section id="overview"      className="snap-section"><Hero /></section>
+        <section id="how-it-works"  className="snap-section"><HowItWorks /></section>
+        <section id="features"      className="snap-section"><Features /></section>
+        <section id="api"           className="snap-section"><ApiPreview /></section>
+        <section id="about"         className="snap-section"><About /></section>
+        <footer id="footer-section"><Footer /></footer>
+      </main>
+    </>
   );
 }

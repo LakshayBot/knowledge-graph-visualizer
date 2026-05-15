@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { GeistSans } from "geist/font/sans";
 import "./globals.css";
 
@@ -16,8 +17,10 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning className={GeistSans.variable}>
       <head>
-        {/* Anti-FOUC: apply dark class before paint */}
-        <script
+        {/* Anti-FOUC: apply dark class before first paint */}
+        <Script
+          id="theme-init"
+          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{
             __html: `(function(){try{var t=localStorage.getItem("theme");if(t==="dark")document.documentElement.classList.add("dark")}catch(e){}})()`,
           }}

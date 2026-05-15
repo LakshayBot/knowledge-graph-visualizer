@@ -213,7 +213,7 @@ export default function ApiPreview() {
             key={s.label}
             initial={{ opacity: 0, y: 12 }}
             whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
+            viewport={{ once: true, amount: 0 }}
             transition={{ delay: i * 0.08, duration: 0.4 }}
             style={{
               padding: isMobile ? "20px 16px" : "26px 36px",

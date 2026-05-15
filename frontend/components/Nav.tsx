@@ -35,31 +35,50 @@ function MoonIcon() {
   );
 }
 
+// Smooth scroll with easeInOutQuart easing
+function smoothScrollTo(target: number, duration = 560) {
+  const start = window.scrollY;
+  const delta = target - start;
+  const startTime = performance.now();
+
+  function ease(t: number) {
+    return t < 0.5 ? 8 * t * t * t * t : 1 - Math.pow(-2 * t + 2, 4) / 2;
+  }
+
+  function step(now: number) {
+    const elapsed = now - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    window.scrollTo(0, start + delta * ease(progress));
+    if (progress < 1) requestAnimationFrame(step);
+  }
+
+  requestAnimationFrame(step);
+}
+
 export default function Nav() {
-  const [dark, setDark]     = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
+  const [mounted, setMounted]       = useState(false);
+  const [dark, setDark]             = useState(false);
+  const [menuOpen, setMenuOpen]     = useState(false);
+  const [scrolled, setScrolled]     = useState(false);
   const narrow = useIsNarrow();
 
+  // Single mount effect — reads localStorage & sets up scroll listener
   useEffect(() => {
+    setMounted(true);
     const stored = localStorage.getItem("theme");
     if (stored === "dark") {
       setDark(true);
       document.documentElement.classList.add("dark");
     }
-    const root = document.getElementById("scroll-root");
-    if (!root) return;
-    const onScroll = () => setScrolled(root.scrollTop > 8);
-    root.addEventListener("scroll", onScroll, { passive: true });
-    return () => root.removeEventListener("scroll", onScroll);
+    const onScroll = () => setScrolled(window.scrollY > 8);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // Close drawer on resize to desktop
   useEffect(() => {
     if (!narrow) setMenuOpen(false);
   }, [narrow]);
 
-  // Prevent body scroll when drawer open
   useEffect(() => {
     if (menuOpen) document.body.style.overflow = "hidden";
     else document.body.style.overflow = "";
@@ -75,13 +94,46 @@ export default function Nav() {
 
   function navTo(href: string) {
     setMenuOpen(false);
-    const root = document.getElementById("scroll-root");
     const id = href.replace("#", "");
-    // Find snap section by id
     const target = document.getElementById(id);
-    if (target && root) {
-      root.scrollTo({ top: target.offsetTop, behavior: "smooth" });
+    if (target) {
+      // Offset for sticky chrome (banner 34px + nav 56px = 90px)
+      const CHROME = 90;
+      const top = target.getBoundingClientRect().top + window.scrollY - CHROME;
+      smoothScrollTo(top, 560);
     }
+  }
+
+  // Render a stable skeleton until hydration is complete to avoid mismatch
+  if (!mounted) {
+    return (
+      <nav
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "0 40px",
+          height: 56,
+          borderBottom: "1px solid var(--border)",
+          background: "var(--bg)",
+        }}
+      >
+        <span style={{ fontSize: 14, fontWeight: 900, letterSpacing: "-0.05em", color: "var(--text-1)", display: "flex", alignItems: "center", gap: 7 }}>
+          <span style={{ width: 20, height: 20, background: "var(--text-1)", borderRadius: "50%", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="var(--bg)" strokeWidth="2.5">
+              <path d="M5 12h14M12 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </span>
+          CausalExplorer
+        </span>
+        {/* Skeleton right side — always desktop layout on server */}
+        <div style={{ display: "flex", gap: 28, alignItems: "center" }}>
+          {links.map((l) => (
+            <span key={l.label} style={{ fontSize: 13, fontWeight: 500, color: "var(--text-3)" }}>{l.label}</span>
+          ))}
+        </div>
+      </nav>
+    );
   }
 
   return (
@@ -198,7 +250,6 @@ export default function Nav() {
             >
               {dark ? <SunIcon /> : <MoonIcon />}
             </button>
-            {/* Hamburger */}
             <button
               onClick={() => setMenuOpen((o) => !o)}
               aria-label={menuOpen ? "Close menu" : "Open menu"}
@@ -222,7 +273,7 @@ export default function Nav() {
             transition={{ duration: 0.18 }}
             style={{
               position: "fixed",
-              top: 90, // banner + nav height
+              top: 90,
               left: 0,
               right: 0,
               bottom: 0,

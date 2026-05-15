@@ -6,9 +6,23 @@
   padding: 0;
 }
 
-html, body {
+html {
+  scroll-behavior: smooth;
   height: 100%;
-  /* overflow:hidden NOT needed — the flex wrapper on page handles containment */
+}
+
+body {
+  min-height: 100%;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-med) transparent;
+  -webkit-overflow-scrolling: touch;
+  background-color: var(--bg);
+  color: var(--text-1);
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 /* ── Design tokens ─────────────────────────────────────────── */
@@ -28,7 +42,7 @@ html, body {
   --chip-fg:     #fff;
   --nav-h:       56px;
   --banner-h:    34px;
-  --chrome-h:    90px; /* banner + nav combined */
+  --chrome-h:    90px;
 }
 
 .dark {
@@ -47,46 +61,13 @@ html, body {
   --chip-fg:     #111;
 }
 
-body {
-  background-color: var(--bg);
-  color: var(--text-1);
-  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  transition: background-color 0.3s ease, color 0.3s ease;
-}
-
-/* ── Scroll snap root ──────────────────────────────────────── */
-#scroll-root {
-  height: 100%;          /* fills the flex:1 parent in page.tsx */
-  overflow-y: scroll;
-  scroll-snap-type: y mandatory;
-  scroll-behavior: smooth;
-  /* Custom scrollbar */
-  scrollbar-width: thin;
-  scrollbar-color: var(--border-med) transparent;
-}
-
-#scroll-root::-webkit-scrollbar {
-  width: 4px;
-}
-#scroll-root::-webkit-scrollbar-track {
-  background: transparent;
-}
-#scroll-root::-webkit-scrollbar-thumb {
-  background: var(--border-med);
-  border-radius: 2px;
-}
-
-/* ── Snap section ──────────────────────────────────────────── */
+/* ── Section — each fills exactly one full viewport ─────────── */
 .snap-section {
-  scroll-snap-align: start;
-  scroll-snap-stop: always;   /* never skip a section */
-  height: 100%;               /* fill the scroll viewport exactly */
-  flex-shrink: 0;
+  height: 100svh;
+  min-height: 500px;   /* safety floor for very small screens */
   display: flex;
   flex-direction: column;
-  overflow: hidden;           /* content must fit — no internal overflow */
+  overflow: hidden;    /* clip content that overflows — no internal scroll */
 }
 
 /* ── Max width wrapper (ultrawide) ─────────────────────────── */

@@ -25,7 +25,7 @@ export default function About() {
   const isNarrow = useIsNarrow();
 
   return (
-    <section id="about" style={{ borderBottom: "1px solid var(--border)", flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+    <div style={{ borderBottom: "1px solid var(--border)", flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
       <div
         style={{
           display: "grid",
@@ -135,6 +135,6 @@ export default function About() {
           ))}
         </div>
       </div>
-    </section>
+    </div>
   );
 }

@@ -20,7 +20,7 @@ export default function Footer() {
   const isNarrow = useIsNarrow();
 
   return (
-    <footer style={{ borderTop: "1px solid var(--border)", flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+    <footer style={{ borderTop: "1px solid var(--border)" }}>
       {/* Main footer row */}
       <div
         style={{
