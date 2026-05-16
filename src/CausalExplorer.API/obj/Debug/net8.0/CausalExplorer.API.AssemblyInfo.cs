@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("CausalExplorer.API")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+2f3aa599139e3b27c638c187925943e8e6d5974f")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+73b7b11e092fc91ff8734a67d89cddcbc3b4da05")]
 [assembly: System.Reflection.AssemblyProductAttribute("CausalExplorer.API")]
 [assembly: System.Reflection.AssemblyTitleAttribute("CausalExplorer.API")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
