@@ -21,7 +21,7 @@ public interface IAIService
     /// <summary>
     /// Suggests new nodes and edges to expand a chain at a given node from a particular perspective.
     /// </summary>
-    Task<ChainExpansionResult> ExpandChainNodeAsync(Guid nodeId, string perspective, CancellationToken ct = default);
+    Task<ChainExpansionResult> ExpandChainNodeAsync(Guid nodeId, string nodeTitle, string nodeSummary, string perspective, CancellationToken ct = default);
 
     /// <summary>
     /// Searches for semantically similar events to the given free-text <paramref name="query"/>.

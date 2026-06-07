@@ -1,5 +1,7 @@
 # Secrets — never commit
 .env
+!.env.local
+!.env.example
 
 # .NET build artifacts
 **/bin/
@@ -8,6 +10,14 @@
 
 # Python
 __pycache__/
+
+# OS
+.DS_Store
+
+# Logs
+*.db-wal
+*.db-shm
+logs/
 *.pyc
 *.pyo
 .venv/

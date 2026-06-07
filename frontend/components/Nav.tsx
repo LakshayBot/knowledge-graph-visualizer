@@ -1,28 +1,32 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { useIsNarrow } from "@/hooks/useBreakpoint";
 import { AnimatePresence, motion } from "framer-motion";
 
-const links = [
-  { label: "How It Works", href: "#how-it-works" },
-  { label: "Features",     href: "#features" },
-  { label: "API",          href: "#api" },
-  { label: "About",        href: "#about" },
+const landingLinks = [
+  { label: "How It Works", href: "#how-it-works", internal: true as const },
+  { label: "Features",     href: "#features",     internal: true },
+  { label: "API",          href: "#api",          internal: true },
+  { label: "About",        href: "#about",        internal: true },
+];
+
+const appLinks = [
+  { label: "Dashboard", href: "/dashboard", internal: false as const },
+  { label: "Explore",   href: "/explore",   internal: false },
+  { label: "History",   href: "/history",   internal: false },
+  { label: "Profile",   href: "/profile",   internal: false },
 ];
 
 function SunIcon() {
   return (
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
       <circle cx="12" cy="12" r="5"/>
-      <line x1="12" y1="1" x2="12" y2="3"/>
-      <line x1="12" y1="21" x2="12" y2="23"/>
-      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
-      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
-      <line x1="1" y1="12" x2="3" y2="12"/>
-      <line x1="21" y1="12" x2="23" y2="12"/>
-      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
-      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+      <line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+      <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
     </svg>
   );
 }
@@ -35,34 +39,35 @@ function MoonIcon() {
   );
 }
 
-// Smooth scroll with easeInOutQuart easing
 function smoothScrollTo(target: number, duration = 560) {
   const start = window.scrollY;
   const delta = target - start;
   const startTime = performance.now();
-
   function ease(t: number) {
     return t < 0.5 ? 8 * t * t * t * t : 1 - Math.pow(-2 * t + 2, 4) / 2;
   }
-
   function step(now: number) {
     const elapsed = now - startTime;
     const progress = Math.min(elapsed / duration, 1);
     window.scrollTo(0, start + delta * ease(progress));
     if (progress < 1) requestAnimationFrame(step);
   }
-
   requestAnimationFrame(step);
 }
 
 export default function Nav() {
-  const [mounted, setMounted]       = useState(false);
-  const [dark, setDark]             = useState(false);
-  const [menuOpen, setMenuOpen]     = useState(false);
-  const [scrolled, setScrolled]     = useState(false);
+  const pathname = usePathname();
+  const router = useRouter();
   const narrow = useIsNarrow();
+  const [mounted, setMounted] = useState(false);
+  const [dark, setDark] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const [authenticated, setAuthenticated] = useState(false);
 
-  // Single mount effect — reads localStorage & sets up scroll listener
+  const isLanding = pathname === "/";
+  const links = isLanding ? landingLinks : appLinks;
+
   useEffect(() => {
     setMounted(true);
     const stored = localStorage.getItem("theme");
@@ -70,14 +75,15 @@ export default function Nav() {
       setDark(true);
       document.documentElement.classList.add("dark");
     }
+    const token = localStorage.getItem("accessToken");
+    if (token) setAuthenticated(true);
+
     const onScroll = () => setScrolled(window.scrollY > 8);
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  useEffect(() => {
-    if (!narrow) setMenuOpen(false);
-  }, [narrow]);
+  useEffect(() => { if (!narrow) setMenuOpen(false); }, [narrow]);
 
   useEffect(() => {
     if (menuOpen) document.body.style.overflow = "hidden";
@@ -94,27 +100,25 @@ export default function Nav() {
 
   function navTo(href: string) {
     setMenuOpen(false);
-    const id = href.replace("#", "");
-    const target = document.getElementById(id);
-    if (target) {
-      // Offset for sticky chrome (banner 34px + nav 56px = 90px)
-      const CHROME = 90;
-      const top = target.getBoundingClientRect().top + window.scrollY - CHROME;
-      smoothScrollTo(top, 560);
+    if (href.startsWith("#")) {
+      const id = href.replace("#", "");
+      const target = document.getElementById(id);
+      if (target) {
+        const CHROME = 90;
+        const top = target.getBoundingClientRect().top + window.scrollY - CHROME;
+        smoothScrollTo(top, 560);
+      }
+    } else {
+      router.push(href);
     }
   }
 
-  // Render a stable skeleton until hydration is complete to avoid mismatch
   if (!mounted) {
     return (
       <nav
         style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          padding: "0 40px",
-          height: 56,
-          borderBottom: "1px solid var(--border)",
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          padding: "0 40px", height: 56, borderBottom: "1px solid var(--border)",
           background: "var(--bg)",
         }}
       >
@@ -126,9 +130,8 @@ export default function Nav() {
           </span>
           CausalExplorer
         </span>
-        {/* Skeleton right side — always desktop layout on server */}
         <div style={{ display: "flex", gap: 28, alignItems: "center" }}>
-          {links.map((l) => (
+          {landingLinks.map((l) => (
             <span key={l.label} style={{ fontSize: 13, fontWeight: 500, color: "var(--text-3)" }}>{l.label}</span>
           ))}
         </div>
@@ -140,43 +143,23 @@ export default function Nav() {
     <>
       <nav
         style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          padding: narrow ? "0 20px" : "0 40px",
-          height: 56,
-          borderBottom: "1px solid var(--border)",
-          background: "var(--bg)",
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          padding: narrow ? "0 20px" : "0 40px", height: 56,
+          borderBottom: "1px solid var(--border)", background: "var(--bg)",
           boxShadow: scrolled ? "0 1px 20px rgba(0,0,0,0.06)" : "none",
           transition: "box-shadow 0.2s ease",
         }}
       >
-        {/* Wordmark */}
         <a
-          href="#"
-          onClick={(e) => { e.preventDefault(); navTo("#overview"); }}
+          href={isLanding ? "#" : "/dashboard"}
+          onClick={(e) => { e.preventDefault(); navTo(isLanding ? "#overview" : "/dashboard"); }}
           style={{
-            fontSize: 14,
-            fontWeight: 900,
-            letterSpacing: "-0.05em",
-            color: "var(--text-1)",
-            textDecoration: "none",
-            display: "flex",
-            alignItems: "center",
-            gap: 7,
+            fontSize: 14, fontWeight: 900, letterSpacing: "-0.05em",
+            color: "var(--text-1)", textDecoration: "none",
+            display: "flex", alignItems: "center", gap: 7,
           }}
         >
-          <span
-            style={{
-              width: 20, height: 20,
-              background: "var(--text-1)",
-              borderRadius: "50%",
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexShrink: 0,
-            }}
-          >
+          <span style={{ width: 20, height: 20, background: "var(--text-1)", borderRadius: "50%", display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
             <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="var(--bg)" strokeWidth="2.5">
               <path d="M5 12h14M12 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
@@ -184,7 +167,6 @@ export default function Nav() {
           CausalExplorer
         </a>
 
-        {/* Desktop links */}
         {!narrow && (
           <div style={{ display: "flex", gap: 28, alignItems: "center" }}>
             {links.map((link) => (
@@ -192,55 +174,66 @@ export default function Nav() {
                 key={link.label}
                 href={link.href}
                 onClick={(e) => { e.preventDefault(); navTo(link.href); }}
-                style={{ fontSize: 13, fontWeight: 500, color: "var(--text-3)", textDecoration: "none", transition: "color 0.15s" }}
+                style={{ fontSize: 13, fontWeight: 500, color: pathname === link.href ? "var(--text-1)" : "var(--text-3)", textDecoration: "none", transition: "color 0.15s" }}
                 onMouseEnter={(e) => (e.currentTarget.style.color = "var(--text-1)")}
-                onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-3)")}
+                onMouseLeave={(e) => (e.currentTarget.style.color = pathname === link.href ? "var(--text-1)" : "var(--text-3)")}
               >
                 {link.label}
               </a>
             ))}
+            {/* Show Dashboard link on landing when authenticated */}
+            {isLanding && authenticated && (
+              <a
+                href="/dashboard"
+                onClick={(e) => { e.preventDefault(); navTo("/dashboard"); }}
+                style={{ fontSize: 13, fontWeight: 700, color: "var(--text-1)", textDecoration: "none" }}
+              >
+                Dashboard
+              </a>
+            )}
             <button
               onClick={toggleDark}
               aria-label="Toggle dark mode"
-              style={{
-                background: "transparent",
-                border: "1px solid var(--border-med)",
-                color: "var(--text-2)",
-                cursor: "pointer",
-                padding: "5px 7px",
-                display: "flex",
-                alignItems: "center",
-                borderRadius: 4,
-                transition: "border-color 0.15s, color 0.15s",
-              }}
+              style={{ background: "transparent", border: "1px solid var(--border-med)", color: "var(--text-2)", cursor: "pointer", padding: "5px 7px", display: "flex", alignItems: "center", borderRadius: 4, transition: "border-color 0.15s, color 0.15s" }}
               onMouseEnter={(e) => { const b = e.currentTarget; b.style.borderColor = "var(--text-1)"; b.style.color = "var(--text-1)"; }}
               onMouseLeave={(e) => { const b = e.currentTarget; b.style.borderColor = "var(--border-med)"; b.style.color = "var(--text-2)"; }}
             >
               {dark ? <SunIcon /> : <MoonIcon />}
             </button>
-            <a
-              href="https://github.com/LakshayBot/knowledge-graph-visualizer"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                background: "var(--text-1)",
-                color: "var(--bg)",
-                fontSize: 11,
-                fontWeight: 700,
-                letterSpacing: "0.03em",
-                padding: "6px 14px",
-                textDecoration: "none",
-                transition: "opacity 0.15s",
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.75")}
-              onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
-            >
-              GitHub ↗
-            </a>
+            {isLanding && (
+              <a
+                href="/login"
+                onClick={(e) => { e.preventDefault(); navTo("/login"); }}
+                style={{
+                  background: "var(--text-1)",
+                  color: "var(--bg)",
+                  fontSize: 11,
+                  fontWeight: 700,
+                  letterSpacing: "0.03em",
+                  padding: "6px 14px",
+                  textDecoration: "none",
+                  transition: "opacity 0.15s",
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.75")}
+                onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
+              >
+                Login
+              </a>
+            )}
+            {isLanding && (
+              <a
+                href="https://github.com/LakshayBot/knowledge-graph-visualizer"
+                target="_blank" rel="noopener noreferrer"
+                style={{ background: "var(--text-1)", color: "var(--bg)", fontSize: 11, fontWeight: 700, letterSpacing: "0.03em", padding: "6px 14px", textDecoration: "none", transition: "opacity 0.15s" }}
+                onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.75")}
+                onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
+              >
+                GitHub ↗
+              </a>
+            )}
           </div>
         )}
 
-        {/* Mobile right controls */}
         {narrow && (
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <button
@@ -263,7 +256,6 @@ export default function Nav() {
         )}
       </nav>
 
-      {/* Mobile drawer */}
       <AnimatePresence>
         {menuOpen && (
           <motion.div
@@ -272,17 +264,10 @@ export default function Nav() {
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.18 }}
             style={{
-              position: "fixed",
-              top: 90,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              background: "var(--bg)",
-              zIndex: 150,
-              display: "flex",
-              flexDirection: "column",
-              padding: "32px 24px",
-              gap: 0,
+              position: "fixed", top: 90, left: 0, right: 0, bottom: 0,
+              background: "var(--bg)", zIndex: 150,
+              display: "flex", flexDirection: "column",
+              padding: "32px 24px", gap: 0,
               borderTop: "1px solid var(--border)",
             }}
           >
@@ -292,11 +277,8 @@ export default function Nav() {
                 href={link.href}
                 onClick={(e) => { e.preventDefault(); navTo(link.href); }}
                 style={{
-                  fontSize: 22,
-                  fontWeight: 800,
-                  letterSpacing: "-0.03em",
-                  color: "var(--text-1)",
-                  textDecoration: "none",
+                  fontSize: 22, fontWeight: 800, letterSpacing: "-0.03em",
+                  color: "var(--text-1)", textDecoration: "none",
                   padding: "16px 0",
                   borderBottom: i < links.length - 1 ? "1px solid var(--border)" : "none",
                   display: "block",
@@ -305,17 +287,45 @@ export default function Nav() {
                 {link.label}
               </a>
             ))}
-            <div style={{ marginTop: 32 }}>
+            {isLanding && !authenticated && (
               <a
-                href="https://github.com/LakshayBot/knowledge-graph-visualizer"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-primary"
-                style={{ width: "100%", justifyContent: "center" }}
+                href="/login"
+                onClick={(e) => { e.preventDefault(); navTo("/login"); }}
+                style={{
+                  fontSize: 22, fontWeight: 800, letterSpacing: "-0.03em",
+                  color: "var(--text-1)", textDecoration: "none",
+                  padding: "16px 0", display: "block",
+                  borderBottom: "1px solid var(--border)",
+                }}
               >
-                View on GitHub ↗
+                Login
               </a>
-            </div>
+            )}
+            {isLanding && authenticated && (
+              <a
+                href="/dashboard"
+                onClick={(e) => { e.preventDefault(); navTo("/dashboard"); }}
+                style={{
+                  fontSize: 22, fontWeight: 800, letterSpacing: "-0.03em",
+                  color: "var(--text-1)", textDecoration: "none",
+                  padding: "16px 0", display: "block",
+                }}
+              >
+                Dashboard
+              </a>
+            )}
+            {isLanding && (
+              <div style={{ marginTop: 32 }}>
+                <a
+                  href="https://github.com/LakshayBot/knowledge-graph-visualizer"
+                  target="_blank" rel="noopener noreferrer"
+                  className="btn-primary"
+                  style={{ width: "100%", justifyContent: "center" }}
+                >
+                  View on GitHub ↗
+                </a>
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>

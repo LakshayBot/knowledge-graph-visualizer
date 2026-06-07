@@ -20,9 +20,15 @@ public sealed record ExpandChainNodeQuery(
 
 /// <summary>Returns 3-5 most relevant cause/effect nodes for a first-render of an event's chain.</summary>
 public sealed record GetInitialChainQuery(
-    Guid EventId,
+    Guid ChainId,
     Perspective? Perspective = null
 ) : IRequest<CausalGraphDto>;
 
 /// <summary>Returns a user's saved chains with metadata.</summary>
 public sealed record GetUserSavedChainsQuery(Guid UserId) : IRequest<IReadOnlyList<SavedChainDto>>;
+
+/// <summary>Returns only the nodes and edges scoped to a specific chain (via chain_nodes junction table).</summary>
+public sealed record GetChainScopedGraphQuery(
+    Guid ChainId,
+    Perspective? Perspective = null
+) : IRequest<CausalGraphDto>;

@@ -17,3 +17,9 @@ public sealed record SaveChainCommand(
     Guid ChainId,
     string? Notes
 ) : IRequest<SavedChainDto>;
+
+/// <summary>Command to remove a saved chain from a user's history.</summary>
+public sealed record RemoveSavedChainCommand(
+    Guid UserId,
+    Guid ChainId
+) : IRequest;

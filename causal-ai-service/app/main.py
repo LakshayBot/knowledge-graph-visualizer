@@ -20,6 +20,7 @@ import time
 import uuid
 from typing import Any
 
+import asyncpg
 import httpx
 import structlog
 from fastapi import BackgroundTasks, FastAPI, HTTPException, Request
@@ -42,6 +43,9 @@ GROK_API_KEY    = os.getenv("GROK_API_KEY",    "")
 GROK_API_URL    = "https://api.x.ai/v1/chat/completions"
 GENERATION_MODE = os.getenv("GENERATION_MODE", "minimal").lower()
 
+# PostgreSQL (for AI prompt/response audit logging)
+POSTGRES_URL    = os.getenv("POSTGRES_URL", "postgresql://causal:postgres@localhost:5432/CausalExplorerDb")
+
 # Profile table: mode → (model, max_tokens, temperature)
 _GROK_PROFILES: dict[str, dict] = {
     "minimal":  {"model": "grok-3-mini", "max_tokens": 3000, "temperature": 0.2},
@@ -58,12 +62,44 @@ VECTOR_DIM  = 768   # nomic-embed-text output dimension
 _KG_CACHE: dict[str, tuple[dict, float]] = {}
 KG_CACHE_TTL_SECONDS = 3600   # 1 hour
 
+# PostgreSQL connection pool (lazy init)
+_DB_POOL: asyncpg.Pool | None = None
+
 _JOB_STORE: dict[str, dict] = {}
 
 structlog.configure(wrapper_class=structlog.make_filtering_bound_logger(
     getattr(logging, LOG_LEVEL.upper(), logging.INFO)
 ))
 log = structlog.get_logger()
+
+# ── PostgreSQL helpers ──────────────────────────────────────────────────────────
+
+async def _ensure_pool() -> asyncpg.Pool:
+    global _DB_POOL
+    if _DB_POOL is None:
+        _DB_POOL = await asyncpg.create_pool(dsn=POSTGRES_URL, min_size=1, max_size=4)
+    return _DB_POOL
+
+async def _log_prompt(
+    endpoint: str,
+    prompt: str,
+    response: str | None,
+    model: str,
+    max_tokens: int,
+    temperature: float,
+    duration_ms: int,
+    error: str | None,
+) -> None:
+    try:
+        pool = await _ensure_pool()
+        async with pool.acquire() as conn:
+            await conn.execute(
+                """INSERT INTO ai_prompt_logs (endpoint, prompt, response, model, max_tokens, temperature, duration_ms, error)
+                   VALUES ($1, $2, $3, $4, $5, $6, $7, $8)""",
+                endpoint, prompt, response, model, max_tokens, temperature, duration_ms, error,
+            )
+    except Exception:
+        log.exception("ai_prompt_log.write_failed", endpoint=endpoint)
 
 # ── FastAPI app ────────────────────────────────────────────────────────────────
 
@@ -132,6 +168,8 @@ class CausalLinkResponse(BaseModel):
 
 class ExpandChainRequest(BaseModel):
     node_id:            uuid.UUID
+    node_title:         str = ""
+    node_summary:       str = ""
     perspective:        str = "Economic"
     already_loaded_ids: list[uuid.UUID] = Field(default_factory=list)
 
@@ -349,36 +387,49 @@ async def _ollama_embed(text: str) -> list[float]:
 # ── Grok — graph generation ────────────────────────────────────────────────────
 
 @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=30))
-async def _grok_generate(prompt: str, profile: dict | None = None) -> str:
+async def _grok_generate(prompt: str, profile: dict | None = None, *, endpoint: str = "unknown") -> str:
     """
     Call the xAI Grok chat-completions API.
     If profile is provided it overrides the global GENERATION_MODE profile,
     allowing per-request model/token selection.
 
     Timeout scales with max_tokens: ~0.04 s/token, minimum 90 s.
+    Logs raw prompt + response to PostgreSQL for audit/debugging.
     """
     if not GROK_API_KEY:
         raise RuntimeError(
             "GROK_API_KEY is not set. Add it to your .env file and restart the service."
         )
     p = profile or _GROK_PROFILE
-    api_timeout = max(90, int(p.get("max_tokens", 3000) * 0.04))
+    model       = p["model"]
+    max_tokens  = p["max_tokens"]
+    temperature = p["temperature"]
+    api_timeout = max(90, int(max_tokens * 0.04))
     headers = {
         "Authorization": f"Bearer {GROK_API_KEY}",
         "Content-Type":  "application/json",
     }
     body = {
-        "model":       p["model"],
-        "max_tokens":  p["max_tokens"],
-        "temperature": p["temperature"],
+        "model":       model,
+        "max_tokens":  max_tokens,
+        "temperature": temperature,
         "messages": [
             {"role": "user", "content": prompt},
         ],
     }
-    async with httpx.AsyncClient(timeout=api_timeout) as client:
-        resp = await client.post(GROK_API_URL, headers=headers, json=body)
-        resp.raise_for_status()
-        return resp.json()["choices"][0]["message"]["content"]
+    t0 = time.monotonic()
+    try:
+        async with httpx.AsyncClient(timeout=api_timeout) as client:
+            resp = await client.post(GROK_API_URL, headers=headers, json=body)
+            resp.raise_for_status()
+            raw = resp.json()["choices"][0]["message"]["content"]
+        duration_ms = int((time.monotonic() - t0) * 1000)
+        await _log_prompt(endpoint, prompt, raw, model, max_tokens, temperature, duration_ms, None)
+        return raw
+    except Exception as exc:
+        duration_ms = int((time.monotonic() - t0) * 1000)
+        await _log_prompt(endpoint, prompt, None, model, max_tokens, temperature, duration_ms, str(exc))
+        raise
 
 
 def _build_graph_prompt(topic: str, mode: str = "minimal", event_count: int = 8) -> str:
@@ -440,7 +491,7 @@ async def _run_graph_generation(topic: str, mode: str = "minimal", event_count: 
     log.info("grok.generate.start", topic=topic, mode=mode, model=profile["model"], event_count=event_count)
 
     try:
-        raw = await _grok_generate(prompt, profile=profile)
+        raw = await _grok_generate(prompt, profile=profile, endpoint="graph_generation")
     except Exception as exc:
         raise HTTPException(502, f"Grok API call failed: {exc}") from exc
 
@@ -556,7 +607,7 @@ async def extract_events(body: ExtractEventsRequest, request: Request) -> Extrac
         f'domain (Geopolitics|Economics|Technology|Social|Environmental|Military|Cultural).\n'
         f'No markdown. Raw JSON array only.\n\nText:\n{body.text}\n\nJSON:'
     )
-    raw    = await _grok_generate(prompt)
+    raw    = await _grok_generate(prompt, endpoint="extract_events")
     events = _parse_json_from_llm(raw, array=True)
     return ExtractEventsResponse(events=[ExtractedEventItem(**e) for e in events])
 
@@ -569,7 +620,7 @@ async def generate_causal_link(body: GenerateCausalLinkRequest, request: Request
         f'Return ONLY a JSON object: {{"explanation": "...", "strength": 0.0-1.0, "is_contested": true|false}}\n'
         f'No markdown. Raw JSON only.'
     )
-    raw  = await _grok_generate(prompt)
+    raw  = await _grok_generate(prompt, endpoint="generate_causal_link")
     data = _parse_json_from_llm(raw, array=False)
     return CausalLinkResponse(**data)
 
@@ -577,15 +628,16 @@ async def generate_causal_link(body: GenerateCausalLinkRequest, request: Request
 @app.post("/api/chain/expand", response_model=ExpandChainResponse, tags=["chain"])
 async def expand_chain_node(body: ExpandChainRequest, request: Request) -> ExpandChainResponse:
     """Suggest connected causal events for chain expansion using Grok."""
+    context = f'"{body.node_title}: {body.node_summary}"' if body.node_title else f'node {body.node_id}'
     prompt = (
-        f'From a {body.perspective} perspective, suggest 3-5 causal events connected to node {body.node_id}.\n'
+        f'From a {body.perspective} perspective, suggest 3-5 causal events connected to event: {context}.\n'
         f'Exclude IDs: {", ".join(str(i) for i in body.already_loaded_ids)}.\n'
         f'Return ONLY a JSON array: [{{"title": "...", "summary": "...", '
         f'"relationship_type": "CAUSES|CONTRIBUTES_TO|ENABLES|PREVENTS", '
         f'"direction": "outgoing|incoming"}}]\n'
         f'No markdown. Raw JSON array only.'
     )
-    raw   = await _grok_generate(prompt)
+    raw   = await _grok_generate(prompt, endpoint="expand_chain")
     nodes = _parse_json_from_llm(raw, array=True)
     return ExpandChainResponse(suggested_nodes=[SuggestedNode(**n) for n in nodes])
 
@@ -663,3 +715,53 @@ async def get_graph_job_status(job_id: str) -> GraphJobStatusResponse:
         result=job.get("result"),
         error=job.get("error"),
     )
+
+
+# ── Prompt Logs (audit / debugging) ─────────────────────────────────────────────
+
+class PromptLogEntry(BaseModel):
+    id: str
+    endpoint: str
+    prompt: str
+    response: str | None
+    model: str | None
+    max_tokens: int | None
+    temperature: float | None
+    duration_ms: int | None
+    error: str | None
+    created_at: str
+
+
+@app.get("/api/prompt-logs", response_model=list[PromptLogEntry], tags=["ops"])
+async def get_prompt_logs(
+    limit: int = 50,
+    endpoint: str | None = None,
+) -> list[PromptLogEntry]:
+    """Return recent AI prompt/response logs for debugging."""
+    pool = await _ensure_pool()
+    async with pool.acquire() as conn:
+        if endpoint:
+            rows = await conn.fetch(
+                """SELECT id::text, endpoint, prompt, response, model, max_tokens, temperature, duration_ms, error, created_at::text
+                   FROM ai_prompt_logs WHERE endpoint = $1
+                   ORDER BY created_at DESC LIMIT $2""",
+                endpoint, limit,
+            )
+        else:
+            rows = await conn.fetch(
+                """SELECT id::text, endpoint, prompt, response, model, max_tokens, temperature, duration_ms, error, created_at::text
+                   FROM ai_prompt_logs
+                   ORDER BY created_at DESC LIMIT $1""",
+                limit,
+            )
+    return [PromptLogEntry(**dict(r)) for r in rows]
+
+
+# ── Lifecycle ───────────────────────────────────────────────────────────────────
+
+@app.on_event("shutdown")
+async def _shutdown_db_pool() -> None:
+    global _DB_POOL
+    if _DB_POOL:
+        await _DB_POOL.close()
+        _DB_POOL = None

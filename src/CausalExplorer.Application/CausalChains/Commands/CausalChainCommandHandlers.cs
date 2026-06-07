@@ -1,5 +1,6 @@
 using CausalExplorer.Application.CausalChains.DTOs;
 using CausalExplorer.Application.Common.Exceptions;
+using CausalExplorer.Application.Common.Interfaces;
 using CausalExplorer.Domain.Entities;
 using CausalExplorer.Domain.Interfaces;
 using MediatR;
@@ -13,16 +14,19 @@ public sealed class CreateCausalChainCommandHandler
     private readonly ICausalChainRepository _chainRepo;
     private readonly IEventNodeRepository _nodeRepo;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IPostgresDataStore _pgStore;
 
     /// <summary>Initialises the handler.</summary>
     public CreateCausalChainCommandHandler(
         ICausalChainRepository chainRepo,
         IEventNodeRepository nodeRepo,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        IPostgresDataStore pgStore)
     {
         _chainRepo  = chainRepo;
         _nodeRepo   = nodeRepo;
         _unitOfWork = unitOfWork;
+        _pgStore    = pgStore;
     }
 
     /// <inheritdoc />
@@ -38,6 +42,9 @@ public sealed class CreateCausalChainCommandHandler
 
         await _chainRepo.AddAsync(chain, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        // Map root node to chain for chain-scoped loading
+        await _pgStore.AddChainNodeMappingsAsync(chain.Id, new[] { request.RootEventId }, cancellationToken);
 
         return new CausalChainSummaryDto(
             chain.Id,
@@ -89,5 +96,29 @@ public sealed class SaveChainCommandHandler : IRequestHandler<SaveChainCommand, 
             chain.NodeCount,
             saved.SavedAt,
             saved.Notes);
+    }
+}
+
+/// <summary>Handles <see cref="RemoveSavedChainCommand"/>.</summary>
+public sealed class RemoveSavedChainCommandHandler : IRequestHandler<RemoveSavedChainCommand>
+{
+    private readonly IUserSavedChainRepository _savedChainRepo;
+    private readonly IUnitOfWork _unitOfWork;
+
+    public RemoveSavedChainCommandHandler(
+        IUserSavedChainRepository savedChainRepo,
+        IUnitOfWork unitOfWork)
+    {
+        _savedChainRepo = savedChainRepo;
+        _unitOfWork     = unitOfWork;
+    }
+
+    public async Task Handle(RemoveSavedChainCommand request, CancellationToken cancellationToken)
+    {
+        var saved = await _savedChainRepo.GetAsync(request.UserId, request.ChainId, cancellationToken);
+        if (saved is null) return;
+
+        _savedChainRepo.Delete(saved);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
     }
 }

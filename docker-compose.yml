@@ -181,6 +181,7 @@ services:
       QDRANT_URL:       http://qdrant:6333
       GROK_API_KEY:     ${GROK_API_KEY}
       GENERATION_MODE:  ${GENERATION_MODE:-minimal}
+      POSTGRES_URL:     postgresql://causal:postgres@causal-postgres:5432/CausalExplorerDb
     ports:
       - "8000:8000"
     networks:

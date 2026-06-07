@@ -1,6 +1,8 @@
 using Asp.Versioning;
+using CausalExplorer.Application.Auth.Commands;
 using CausalExplorer.Application.Auth.DTOs;
 using CausalExplorer.Application.Auth.Queries;
+using CausalExplorer.Application.CausalChains.Commands;
 using CausalExplorer.Application.CausalChains.DTOs;
 using CausalExplorer.Application.CausalChains.Queries;
 using CausalExplorer.Application.Common.Interfaces;
@@ -59,5 +61,48 @@ public sealed class UsersController : ApiControllerBase
         var result = await Sender.Send(
             new GetUserSavedChainsQuery(userId), cancellationToken);
         return Ok(result);
+    }
+
+    /// <summary>
+    /// Updates the current user's profile. All fields are optional; only supplied values are changed.
+    /// To change password, both CurrentPassword and NewPassword must be provided.
+    /// </summary>
+    /// <response code="200">Updated user profile DTO.</response>
+    /// <response code="400">Validation failed.</response>
+    /// <response code="403">Current password is incorrect.</response>
+    [HttpPut("me")]
+    [ProducesResponseType(typeof(UserProfileDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> UpdateCurrentUser(
+        [FromBody] UpdateUserCommand command,
+        CancellationToken cancellationToken = default)
+    {
+        var userId = _currentUser.UserId
+            ?? throw new Application.Common.Exceptions.ForbiddenAccessException(
+                "Authenticated user id could not be determined.");
+
+        var update = command with { UserId = userId };
+        var result = await Sender.Send(update, cancellationToken);
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Removes a saved chain from the current user's history / personal library.
+    /// </summary>
+    /// <param name="chainId">The identifier of the saved chain to remove.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <response code="204">Chain removed from history.</response>
+    [HttpDelete("me/chains/{chainId:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> RemoveSavedChain(
+        Guid chainId,
+        CancellationToken cancellationToken = default)
+    {
+        var userId = _currentUser.UserId
+            ?? throw new Application.Common.Exceptions.ForbiddenAccessException(
+                "Authenticated user id could not be determined.");
+
+        await Sender.Send(new RemoveSavedChainCommand(userId, chainId), cancellationToken);
+        return NoContent();
     }
 }

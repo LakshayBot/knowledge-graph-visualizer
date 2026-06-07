@@ -71,6 +71,7 @@ public static class DependencyInjection
 
         services.AddScoped<RefreshTokenStore>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();
+        services.AddScoped<IPostgresDataStore, PostgresDataStore>();
 
         return services;
     }
@@ -126,32 +127,35 @@ public static class DependencyInjection
         services.AddHttpClient<AIServiceClient>(client =>
         {
             client.BaseAddress = new Uri(baseUrl);
-            client.Timeout     = TimeSpan.FromSeconds(30);
+            client.Timeout     = TimeSpan.FromMinutes(3);
         })
         .AddStandardResilienceHandler(options =>
         {
-            options.Retry.MaxRetryAttempts = 3;
-            options.CircuitBreaker.SamplingDuration = TimeSpan.FromSeconds(30);
+            options.Retry.MaxRetryAttempts = 2;
+            options.AttemptTimeout.Timeout  = TimeSpan.FromMinutes(2);
+            options.TotalRequestTimeout.Timeout = TimeSpan.FromMinutes(3);
+            options.CircuitBreaker.SamplingDuration = TimeSpan.FromMinutes(5);
         });
 
         services.AddHttpClient<EmbeddingServiceClient>(client =>
         {
             client.BaseAddress = new Uri(baseUrl);
-            client.Timeout     = TimeSpan.FromSeconds(30);
+            client.Timeout     = TimeSpan.FromMinutes(2);
         })
         .AddStandardResilienceHandler(options =>
         {
-            options.Retry.MaxRetryAttempts = 3;
+            options.Retry.MaxRetryAttempts = 2;
+            options.TotalRequestTimeout.Timeout = TimeSpan.FromMinutes(1);
         });
 
-        // Knowledge-graph generator — short timeout per HTTP call; client polls via job pattern.
+        // Knowledge-graph generator — long timeout for Grok generation; client polls via job pattern.
         services.AddHttpClient<KnowledgeGraphGeneratorClient>(client =>
         {
             client.BaseAddress = new Uri(baseUrl);
-            client.Timeout     = TimeSpan.FromSeconds(30);
+            client.Timeout     = TimeSpan.FromMinutes(5);
         });
 
-        services.AddScoped<IAIService, AIServiceClient>();
+        services.AddScoped<IAIService>(sp => sp.GetRequiredService<AIServiceClient>());
         // EmbeddingServiceClient is already registered as a typed HttpClient above
         // (which wires the configured HttpClient with BaseAddress).
         // We expose it via the interface by forwarding through the typed-client factory.

@@ -75,6 +75,30 @@ public sealed class CausalChainsController : ApiControllerBase
     }
 
     /// <summary>
+    /// Returns only the nodes and edges scoped to a specific chain (via chain_nodes junction table).
+    /// Prevents cross-chain graph leakage when re-opening saved chains.
+    /// </summary>
+    /// <param name="id">Chain GUID.</param>
+    /// <param name="perspective">Perspective filter (optional).</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <response code="200">Chain-scoped graph DTO.</response>
+    /// <response code="404">Chain not found.</response>
+    [HttpGet("{id:guid}/scoped")]
+    [AllowAnonymous]
+    [EnableRateLimiting(RateLimitPolicies.Anonymous)]
+    [ProducesResponseType(typeof(CausalGraphDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetChainScopedGraph(
+        Guid id,
+        [FromQuery] Perspective? perspective = null,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await Sender.Send(
+            new GetChainScopedGraphQuery(id, perspective), cancellationToken);
+        return Ok(result);
+    }
+
+    /// <summary>
     /// Creates a new named causal chain rooted at a given event node.
     /// Requires an authenticated user.
     /// </summary>

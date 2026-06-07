@@ -19,6 +19,7 @@ public sealed class AIServiceClient : IAIService
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNameCaseInsensitive = true,
+        PropertyNamingPolicy        = JsonNamingPolicy.SnakeCaseLower,
         DefaultIgnoreCondition      = JsonIgnoreCondition.WhenWritingNull
     };
 
@@ -63,16 +64,19 @@ public sealed class AIServiceClient : IAIService
     /// <inheritdoc />
     public async Task<ChainExpansionResult> ExpandChainNodeAsync(
         Guid nodeId,
+        string nodeTitle,
+        string nodeSummary,
         string perspective,
         CancellationToken ct = default)
     {
-        var payload  = new { node_id = nodeId, perspective, already_loaded_ids = Array.Empty<Guid>() };
+        var payload  = new { node_id = nodeId, node_title = nodeTitle, node_summary = nodeSummary, perspective, already_loaded_ids = Array.Empty<Guid>() };
         var response = await PostAsync("/api/chain/expand", payload, ct);
 
         var result = await DeserialiseAsync<ChainExpansionResponse>(response, ct);
 
-        var nodes = result.SuggestedNodes.Select(n =>
-            new ExpansionNode(n.Title, n.Summary, n.RelationshipType, n.Direction)).ToList();
+        var nodes = (result.SuggestedNodes ?? [])
+            .Select(n => new ExpansionNode(n.Title, n.Summary, n.RelationshipType, n.Direction))
+            .ToList();
 
         return new ChainExpansionResult(nodes, perspective);
     }

@@ -22,3 +22,12 @@ public sealed record RefreshTokenCommand(string RefreshToken) : IRequest<AuthRes
 
 /// <summary>Command to revoke an existing refresh token.</summary>
 public sealed record RevokeTokenCommand(string RefreshToken) : IRequest;
+
+/// <summary>Command to update the current user's profile — username, email, and/or password.</summary>
+public sealed record UpdateUserCommand(
+    Guid UserId,
+    string? Username = null,
+    string? Email = null,
+    string? CurrentPassword = null,
+    string? NewPassword = null
+) : IRequest<UserProfileDto>;
