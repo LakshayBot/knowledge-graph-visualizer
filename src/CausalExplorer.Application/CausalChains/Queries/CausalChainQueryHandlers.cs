@@ -157,10 +157,10 @@ public sealed class ExpandChainNodeQueryHandler : IRequestHandler<ExpandChainNod
             ?? throw new NotFoundException(nameof(CausalChain), request.ChainId);
 
         // Look up the node being expanded. If it's an AI-generated node (not persisted),
-        // we won't find it in the DB — fall back to passing the node ID as minimal context.
+        // we won't find it in the DB — fall back to using the chain title (user's original question).
         var dbNode = await _nodeRepo.GetByIdAsync(request.NodeId, cancellationToken);
-        var title   = dbNode?.Title   ?? request.NodeId.ToString();
-        var summary = dbNode?.Summary ?? "Expand this event to find related causes and effects.";
+        var title   = chain.Title;                         // user's original question
+        var summary = dbNode?.Summary ?? chain.Title;      // DB node context or fallback to question
 
         var expansion = await _aiService.ExpandChainNodeAsync(
             request.NodeId, title, summary, request.Perspective, cancellationToken);

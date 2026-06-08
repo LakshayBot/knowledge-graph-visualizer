@@ -655,10 +655,16 @@ async def generate_causal_link(body: GenerateCausalLinkRequest, request: Request
 @app.post("/api/chain/expand", response_model=ExpandChainResponse, tags=["chain"])
 async def expand_chain_node(body: ExpandChainRequest, request: Request) -> ExpandChainResponse:
     """Suggest connected causal events for chain expansion using Grok."""
-    context = f'"{body.node_title}: {body.node_summary}"' if body.node_title else f'node {body.node_id}'
+    # If the title contains a question mark or is longer than 80 chars, treat it as the user's original query
+    is_question = "?" in body.node_title or len(body.node_title) > 80
+    context = (
+        f'ANSWER THIS QUESTION: "{body.node_title}"'
+        if is_question
+        else f'"{body.node_title}: {body.node_summary}"'
+    )
     prompt = (
-        f'You are an expert causal analyst. From a {body.perspective} perspective, suggest 5-7 significant '
-        f'causal events connected to this event: {context}.\n\n'
+        f'You are an expert causal analyst. {context}\n\n'
+        f'From a {body.perspective} perspective, suggest 5-7 significant causal events directly relevant to this.\n'
         f'For each event, consider: what caused it, what effects it had, who was involved, '
         f'and why it matters in the bigger picture.\n\n'
         f'Exclude these already-loaded IDs: {", ".join(str(i) for i in body.already_loaded_ids)}.\n\n'
