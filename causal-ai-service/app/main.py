@@ -5,9 +5,9 @@ FastAPI sidecar that:
   - Uses Ollama (local) ONLY for dense vector embeddings (nomic-embed-text → Qdrant).
 
 Generation modes (GENERATION_MODE env var):
-  minimal  → grok-3-mini, 1500 max_tokens, temp 0.2  [default — lowest token cost]
-  balanced → grok-3,      3000 max_tokens, temp 0.3
-  quality  → grok-3,      6000 max_tokens, temp 0.4
+  minimal  → grok-3-mini, 4000 max_tokens, temp 0.2  [fast, cost-efficient]
+  balanced → grok-3,      6000 max_tokens, temp 0.3  [detailed, well-rounded]
+  quality  → grok-3,      8000 max_tokens, temp 0.4  [comprehensive, in-depth]
 """
 from __future__ import annotations
 
@@ -48,9 +48,9 @@ POSTGRES_URL    = os.getenv("POSTGRES_URL", "postgresql://causal:postgres@localh
 
 # Profile table: mode → (model, max_tokens, temperature)
 _GROK_PROFILES: dict[str, dict] = {
-    "minimal":  {"model": "grok-3-mini", "max_tokens": 3000, "temperature": 0.2},
-    "balanced": {"model": "grok-3",      "max_tokens": 4000, "temperature": 0.3},
-    "quality":  {"model": "grok-3",      "max_tokens": 6000, "temperature": 0.4},
+    "minimal":  {"model": "grok-3-mini", "max_tokens": 4000, "temperature": 0.2},
+    "balanced": {"model": "grok-3",      "max_tokens": 6000, "temperature": 0.3},
+    "quality":  {"model": "grok-3",      "max_tokens": 8000, "temperature": 0.4},
 }
 # Fall back to minimal if an unknown mode is set
 _GROK_PROFILE = _GROK_PROFILES.get(GENERATION_MODE, _GROK_PROFILES["minimal"])
@@ -284,6 +284,7 @@ def _coerce_relationship_type(raw: str) -> str:
         "enables": "EnabledConditionsFor", "enabled": "EnabledConditionsFor",
         "contributes": "ContributedTo", "contributed": "ContributedTo",
         "correlated": "Correlated", "correlation": "Correlated",
+        "correlated_with": "Correlated",
         "contested": "Contested",
     }
     if raw.strip() in _VALID_RELATIONSHIP_TYPES:
@@ -434,47 +435,57 @@ async def _grok_generate(prompt: str, profile: dict | None = None, *, endpoint: 
 
 def _build_graph_prompt(topic: str, mode: str = "minimal", event_count: int = 8) -> str:
     """
-    Build the single-shot prompt sent to Grok.
-    Uses per-request mode and event_count for tight/rich output budgets.
+    Build a comprehensive causal knowledge graph prompt for Grok.
+    Produces rich events with detailed summaries, actors, and temporal context,
+    plus well explained causal edges with opposing viewpoints.
     """
     edge_min = max(3, event_count - 2)
     edge_max = min(event_count * 2, 30)
 
     if mode == "minimal":
-        summary_len = "≤150 chars"
-        expl_len    = "≤100 chars"
+        summary_len = "250-400 chars"
+        expl_len    = "150-250 chars"
     elif mode == "balanced":
-        summary_len = "≤250 chars"
-        expl_len    = "≤200 chars"
+        summary_len = "400-600 chars"
+        expl_len    = "250-400 chars"
     else:  # quality
-        summary_len = "≤400 chars"
-        expl_len    = "≤300 chars"
+        summary_len = "600-800 chars"
+        expl_len    = "400-600 chars"
 
-    return f"""You are a causal analyst building a knowledge graph. Topic: "{topic}"
+    return f"""You are an expert causal analyst and historian. Your job is to build a structured causal knowledge graph that helps users deeply understand why events happen and how they interconnect.
 
-Return ONLY a raw JSON object (no markdown, no explanation) with exactly two keys:
+Topic: "{topic}"
 
-"events": array of EXACTLY {event_count} objects, each with:
-  "title"            : short descriptive title (≤120 chars)
-  "summary"          : what happened and why it matters ({summary_len})
-  "event_date"       : best known date YYYY-MM-DD (use YYYY-01-01 if only year is known)
+Think carefully about the key events, their causes and effects, the actors involved, and the broader significance. Then return ONLY a raw JSON object (no markdown, no prose, no ```json fences) with exactly two keys:
+
+"events": array of EXACTLY {event_count} objects, each with these fields:
+  "title"            : Concise descriptive title (≤120 chars), use widely recognized event names
+  "summary"          : What happened, why it happened at that time, who was involved, and why it matters ({summary_len}). Include specific names, places, numbers, and mechanisms. Avoid vague statements.
+  "event_date"       : Best known date YYYY-MM-DD (use YYYY-01-01 if only year is known, YYYY-MM-01 if only month is known)
   "domain"           : one of Geopolitics|Economics|Technology|Social|Environmental|Military|Cultural
-  "confidence_score" : float 0.4–0.95 (how well-established)
-  "source_url"       : URL of a reputable source (Wikipedia, major news outlet, or https://x.com/... post)
+  "confidence_score" : float 0.4-0.95 indicating how well-established this event is in historical/scholarly consensus (use 0.9+ for widely documented events, 0.6-0.8 for interpretations, 0.4-0.6 for speculative connections)
+  "key_actors"       : comma-separated list of key people, organizations, or countries involved (e.g. "Federal Reserve, Jerome Powell, US Treasury")
+  "source_url"       : A SPECIFIC, real URL to a reputable source (Wikipedia article, major news outlet, academic paper, government report). Do NOT use placeholder URLs like example.com. Use actual Wikipedia URLs like https://en.wikipedia.org/wiki/... or real news articles.
 
-"edges": array of {edge_min} to {edge_max} objects, each with:
-  "from_index"        : 0-based index into events array (cause)
-  "to_index"          : 0-based index into events array (effect)
+"edges": array of {edge_min} to {edge_max} objects, each with these fields:
+  "from_index"        : 0-based index into events array (the cause / upstream event)
+  "to_index"          : 0-based index into events array (the effect / downstream event)
   "relationship_type" : one of DirectlyCaused|EnabledConditionsFor|ContributedTo|Correlated|Contested
-  "strength"          : float 0.0–1.0
+  "strength"          : float 0.0-1.0 (1.0 = direct unambiguous causation, 0.5 = contributes significantly, 0.2 = weak correlation)
   "perspective"       : one of Mainstream|Geopolitical|Structural|Economic|Revisionist
-  "explanation"       : causal mechanism ({expl_len})
-  "is_contested"      : true or false
+  "explanation"       : Detailed causal mechanism: HOW and WHY the cause led to the effect ({expl_len}). Include specific mechanisms, transmission channels, and key turning points. Avoid generic phrases like "led to" without explaining HOW.
+  "is_contested"      : true or false — is there significant scholarly or expert disagreement about this causal link?
+  "opposing_view"     : If is_contested is true, briefly describe the opposing argument in one sentence
 
-Rules:
+Critical rules:
 - from_index must NOT equal to_index
 - All indexes must be valid (0 to len(events)-1)
-- Raw JSON only — no ```json fences, no prose before or after"""
+- Every event should have at least one incoming or outgoing edge
+- Events should form a coherent causal narrative, not be randomly related
+- Prioritize direct causal chains over loose correlations
+- Include at least 2-3 edges with is_contested: true to show disputed relationships
+- Use SPECIFIC real source URLs, never placeholder or example URLs
+- Raw JSON only with no markdown fences, no explanatory text"""
 
 
 async def _run_graph_generation(topic: str, mode: str = "minimal", event_count: int = 8) -> GenerateGraphResponse:
@@ -513,10 +524,15 @@ async def _run_graph_generation(topic: str, mode: str = "minimal", event_count: 
     events: list[GeneratedEventNode] = []
     for e in raw_events:
         src_url = str(e.get("source_url", "")).strip() or f"https://en.wikipedia.org/wiki/{topic.replace(' ', '_')}"
+        # Enrich summary with key actors if available
+        actors = str(e.get("key_actors", "")).strip()
+        summary = str(e.get("summary", ""))[:4000]
+        if actors:
+            summary += f" Key actors: {actors}"
         events.append(GeneratedEventNode(
             id               = str(uuid.uuid4()),
             title            = str(e.get("title", "Untitled Event"))[:200],
-            summary          = str(e.get("summary", ""))[:2000],
+            summary          = summary,
             event_date       = _safe_date(str(e.get("event_date", "2000-01-01"))),
             domain           = _coerce_domain(str(e.get("domain", "Geopolitics"))),
             confidence_score = float(max(0.0, min(0.95, e.get("confidence_score", 0.5)))),
@@ -539,7 +555,10 @@ async def _run_graph_generation(topic: str, mode: str = "minimal", event_count: 
                 relationship_type = _coerce_relationship_type(str(re_dict.get("relationship_type", "ContributedTo"))),
                 strength          = float(max(0.0, min(1.0, re_dict.get("strength", 0.5)))),
                 perspective       = _coerce_perspective(str(re_dict.get("perspective", "Mainstream"))),
-                explanation       = str(re_dict.get("explanation", "Causal link inferred by Grok."))[:1000],
+                explanation       = (str(re_dict.get("explanation", "Causal link inferred by Grok."))[:2000]
+                                 + (f" Opposing: {str(re_dict.get('opposing_view', ''))}"
+                                    if re_dict.get("is_contested") and re_dict.get("opposing_view")
+                                    else "")),
                 is_contested      = bool(re_dict.get("is_contested", False)),
             ))
         except Exception as exc:
@@ -601,10 +620,13 @@ async def get_embedding(body: EmbeddingRequest, request: Request) -> EmbeddingRe
 async def extract_events(body: ExtractEventsRequest, request: Request) -> ExtractEventsResponse:
     """Extract structured events from free text using Grok."""
     prompt = (
-        f'Extract causal events from the text below about this context.\n'
-        f'Return ONLY a JSON array of objects with fields: '
-        f'title, summary, event_date (YYYY-MM-DD), '
-        f'domain (Geopolitics|Economics|Technology|Social|Environmental|Military|Cultural).\n'
+        f'You are an expert causal analyst. Extract all significant causal events from the text below.\n\n'
+        f'For each event, identify: what happened, when it happened, who was involved, and why it matters.\n\n'
+        f'Return ONLY a JSON array of objects with fields:\n'
+        f'  title       : concise event name (≤150 chars)\n'
+        f'  summary     : detailed description (200-500 chars) covering what happened, context, and significance\n'
+        f'  event_date  : YYYY-MM-DD (use YYYY-01-01 if only year known)\n'
+        f'  domain      : one of Geopolitics|Economics|Technology|Social|Environmental|Military|Cultural\n\n'
         f'No markdown. Raw JSON array only.\n\nText:\n{body.text}\n\nJSON:'
     )
     raw    = await _grok_generate(prompt, endpoint="extract_events")
@@ -616,8 +638,13 @@ async def extract_events(body: ExtractEventsRequest, request: Request) -> Extrac
 async def generate_causal_link(body: GenerateCausalLinkRequest, request: Request) -> CausalLinkResponse:
     """Analyse the causal relationship between two events using Grok."""
     prompt = (
-        f'Analyse the causal relationship from event {body.from_event_id} to event {body.to_event_id}.\n'
-        f'Return ONLY a JSON object: {{"explanation": "...", "strength": 0.0-1.0, "is_contested": true|false}}\n'
+        f'You are an expert causal analyst. Analyse the causal relationship from event '
+        f'{body.from_event_id} to event {body.to_event_id}.\n\n'
+        f'Consider: what specific mechanisms connect these events? Is the causation direct or indirect? '
+        f'What evidence supports or challenges this connection? Are there alternative explanations?\n\n'
+        f'Return ONLY a JSON object:\n'
+        f'  {{"explanation": "detailed causal mechanism (200-500 chars)", '
+        f'"strength": 0.0-1.0, "is_contested": true|false}}\n\n'
         f'No markdown. Raw JSON only.'
     )
     raw  = await _grok_generate(prompt, endpoint="generate_causal_link")
@@ -630,11 +657,16 @@ async def expand_chain_node(body: ExpandChainRequest, request: Request) -> Expan
     """Suggest connected causal events for chain expansion using Grok."""
     context = f'"{body.node_title}: {body.node_summary}"' if body.node_title else f'node {body.node_id}'
     prompt = (
-        f'From a {body.perspective} perspective, suggest 3-5 causal events connected to event: {context}.\n'
-        f'Exclude IDs: {", ".join(str(i) for i in body.already_loaded_ids)}.\n'
-        f'Return ONLY a JSON array: [{{"title": "...", "summary": "...", '
-        f'"relationship_type": "CAUSES|CONTRIBUTES_TO|ENABLES|PREVENTS", '
-        f'"direction": "outgoing|incoming"}}]\n'
+        f'You are an expert causal analyst. From a {body.perspective} perspective, suggest 5-7 significant '
+        f'causal events connected to this event: {context}.\n\n'
+        f'For each event, consider: what caused it, what effects it had, who was involved, '
+        f'and why it matters in the bigger picture.\n\n'
+        f'Exclude these already-loaded IDs: {", ".join(str(i) for i in body.already_loaded_ids)}.\n\n'
+        f'Return ONLY a JSON array of objects, each with:\n'
+        f'  "title"             : concise descriptive title\n'
+        f'  "summary"           : detailed explanation (200-400 chars) covering what happened, how it connects, and its significance\n'
+        f'  "relationship_type" : one of CAUSES|CONTRIBUTES_TO|ENABLES|PREVENTS|CORRELATED_WITH\n'
+        f'  "direction"         : either "outgoing" (this event causes/suggests the new event) or "incoming" (the new event causes/leads to this event)\n\n'
         f'No markdown. Raw JSON array only.'
     )
     raw   = await _grok_generate(prompt, endpoint="expand_chain")
