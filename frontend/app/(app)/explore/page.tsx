@@ -156,52 +156,33 @@ function ExploreContent() {
       setChainId(cid);
       autoSave(cid); // async, non-blocking
 
-      // Phase 4 — get initial graph from Neo4j edges (real DB data, not AI)
+      // Phase 4 — get initial graph from Neo4j, then enrich with AI expand
       const initRes = await fetch(`${API}/causalchains/${cid}/initial?perspective=Mainstream`, {
         headers: headers(),
       });
 
       if (initRes.ok) {
         const graphData = await initRes.json();
-        const initNodes = graphData.nodes ?? [];
-        const initEdges = graphData.edges ?? [];
-        if (initEdges.length > 0) {
-          setNodes(initNodes);
-          setEdges(initEdges);
-        } else {
-          // No Neo4j edges — fallback to AI expand, but keep the root node
-          setNodes(initNodes);
-          setEdges(initEdges);
-          const expandRes = await fetch(`${API}/causalchains/${cid}/expand/${rootEventId}?perspective=Mainstream`, {
-            method: "POST",
-            headers: headers(),
+        setNodes(graphData.nodes ?? []);
+        setEdges(graphData.edges ?? []);
+      }
+
+      // Always expand via AI — even if Neo4j has edges, get fresh Grok context
+      const expandRes = await fetch(`${API}/causalchains/${cid}/expand/${rootEventId}?perspective=Mainstream`, {
+        method: "POST",
+        headers: headers(),
+      });
+      if (expandRes.ok) {
+        const expData = await expandRes.json();
+        if (expData.nodes && expData.edges) {
+          setNodes((prev) => {
+            const seen = new Set(prev.map((n) => n.id));
+            return [...prev, ...(expData.nodes as GraphNode[]).filter((n) => !seen.has(n.id))];
           });
-          if (expandRes.ok) {
-            const expData = await expandRes.json();
-            if (expData.nodes && expData.edges) {
-              setNodes((prev) => {
-                const seen = new Set(prev.map((n) => n.id));
-                return [...prev, ...(expData.nodes as GraphNode[]).filter((n) => !seen.has(n.id))];
-              });
-              setEdges((prev) => {
-                const seen = new Set(prev.map((e) => e.id));
-                return [...prev, ...(expData.edges as GraphEdge[]).filter((e) => !seen.has(e.id))];
-              });
-            }
-          }
-        }
-      } else {
-        // GetInitialChain failed entirely — fallback to AI expand only
-        setNodes([]);
-        setEdges([]);
-        const expandRes = await fetch(`${API}/causalchains/${cid}/expand/${rootEventId}?perspective=Mainstream`, {
-          method: "POST",
-          headers: headers(),
-        });
-        if (expandRes.ok) {
-          const graphData = await expandRes.json();
-          setNodes(graphData.nodes ?? []);
-          setEdges(graphData.edges ?? []);
+          setEdges((prev) => {
+            const seen = new Set(prev.map((e) => e.id));
+            return [...prev, ...(expData.edges as GraphEdge[]).filter((e) => !seen.has(e.id))];
+          });
         }
       }
     } catch (e) {
