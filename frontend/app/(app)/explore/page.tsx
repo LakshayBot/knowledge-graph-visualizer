@@ -99,43 +99,10 @@ function ExploreContent() {
     setSaved(false);
 
     try {
-      // Phase 1 — full-text search for matching event nodes
-      const searchRes = await fetch(`${API}/eventnodes/search?q=${encodeURIComponent(query.trim())}&page=1&pageSize=3`, {
-        headers: headers(),
-      });
+      // Generate a fresh root node ID — the backend creates the event node automatically
+      const rootEventId = crypto.randomUUID();
 
-      let rootEventId: string | null = null;
-
-      if (searchRes.ok) {
-        const searchData = await searchRes.json();
-        if (searchData.items && searchData.items.length > 0) {
-          rootEventId = searchData.items[0].id;
-        }
-      }
-
-      // Phase 2 — semantic search fallback
-      if (!rootEventId) {
-        const semRes = await fetch(`${API}/eventnodes/semantic-search?q=${encodeURIComponent(query.trim())}&topK=3`, {
-          headers: headers(),
-        });
-        if (semRes.ok) {
-          const semData = await semRes.json();
-          if (semData && semData.length > 0) {
-            rootEventId = semData[0].id;
-          }
-        }
-      }
-
-      if (!rootEventId) {
-        setNodes([]);
-        setEdges([]);
-        setError("No matching event nodes found. Try rephrasing your question with specific event names.");
-        return;
-      }
-
-      setRootNodeId(rootEventId);
-
-      // Phase 3 — create a chain rooted at the best match
+      // Phase 1 — create a chain rooted at a fresh node
       const chainRes = await fetch(`${API}/causalchains`, {
         method: "POST",
         headers: headers(),
@@ -154,9 +121,10 @@ function ExploreContent() {
       const chainData = await chainRes.json();
       const cid = chainData.id as string;
       setChainId(cid);
-      autoSave(cid); // async, non-blocking
+      setRootNodeId(rootEventId);
+      autoSave(cid);
 
-      // Phase 4 — load chain-scoped graph (only this chain's nodes, no cross-chain leakage)
+      // Phase 2 — load chain-scoped graph
       const initRes = await fetch(`${API}/causalchains/${cid}/scoped?perspective=Mainstream`, {
         headers: headers(),
       });

@@ -1,6 +1,7 @@
 using CausalExplorer.Application.CausalChains.DTOs;
 using CausalExplorer.Application.Common.Exceptions;
 using CausalExplorer.Application.Common.Interfaces;
+using CausalExplorer.Domain.Common;
 using CausalExplorer.Domain.Entities;
 using CausalExplorer.Domain.Interfaces;
 using MediatR;
@@ -34,9 +35,15 @@ public sealed class CreateCausalChainCommandHandler
         CreateCausalChainCommand request,
         CancellationToken cancellationToken)
     {
-        var rootExists = await _nodeRepo.ExistsAsync(request.RootEventId, cancellationToken);
-        if (!rootExists)
-            throw new NotFoundException(nameof(EventNode), request.RootEventId);
+        // Auto-create the root event node if it doesn't exist yet
+        if (!await _nodeRepo.ExistsAsync(request.RootEventId, cancellationToken))
+        {
+            var eventNode = EventNode.Create(
+                request.Title, $"Root event for '{request.Title}'", DateTime.UtcNow, request.Domain, 0.5m, 0.5m);
+            // Use reflection to set the specific ID (consistent with existing patterns)
+            typeof(BaseEntity).GetProperty("Id")?.SetValue(eventNode, request.RootEventId);
+            await _nodeRepo.AddAsync(eventNode, cancellationToken);
+        }
 
         var chain = CausalChain.Create(request.RootEventId, request.Title, request.Domain);
 
