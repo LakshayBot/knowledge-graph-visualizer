@@ -477,13 +477,19 @@ public sealed class GetChainScopedGraphQueryHandler
 {
     private readonly ICausalChainRepository _chainRepo;
     private readonly IEventNodeRepository _nodeRepo;
+    private readonly ICausalEdgeRepository _edgeRepo;
+    private readonly IPostgresDataStore _pgStore;
 
     public GetChainScopedGraphQueryHandler(
         ICausalChainRepository chainRepo,
-        IEventNodeRepository nodeRepo)
+        IEventNodeRepository nodeRepo,
+        ICausalEdgeRepository edgeRepo,
+        IPostgresDataStore pgStore)
     {
         _chainRepo = chainRepo;
         _nodeRepo  = nodeRepo;
+        _edgeRepo  = edgeRepo;
+        _pgStore   = pgStore;
     }
 
     public async Task<CausalGraphDto> Handle(
@@ -497,20 +503,42 @@ public sealed class GetChainScopedGraphQueryHandler
             chain.Id, chain.Title, chain.Domain.ToString(),
             chain.NodeCount, chain.ViewCount, chain.LastUpdatedAt);
 
-        // If no snapshot exists yet, return at least the root node
-        if (string.IsNullOrWhiteSpace(chain.GraphSnapshot))
+        // Load chain-scoped node IDs from junction table
+        var chainNodeIds = await _pgStore.GetChainNodeIdsAsync(chain.Id, cancellationToken);
+
+        // Rebuild snapshot if null or incomplete (root missing)
+        var rootIdStr = chain.RootEventId.ToString();
+        var needsRebuild = string.IsNullOrWhiteSpace(chain.GraphSnapshot)
+            || !chain.GraphSnapshot!.Contains(rootIdStr);
+
+        if (needsRebuild && chainNodeIds.Count > 0)
         {
-            var root = await _nodeRepo.GetByIdAsync(chain.RootEventId, cancellationToken);
-            if (root is null)
-                return new CausalGraphDto([], [], metadata);
+            var allNodes = new List<EventNode>();
+            foreach (var nid in chainNodeIds)
+            {
+                var node = await _nodeRepo.GetByIdAsync(nid, cancellationToken);
+                if (node is not null) allNodes.Add(node);
+            }
 
-            var rootNode = new GraphNodeDto(
-                root.Id, root.Title, root.Summary, root.Domain.ToString(),
-                root.ConfidenceScore, root.GetConfidenceLevel().Kind.ToString(),
-                X: 0f, Y: 0f, IsExpanded: true, HasMoreNodes: true);
+            var nodeIdSet = new HashSet<Guid>(allNodes.Select(n => n.Id));
+            var allEdges = new List<Domain.Entities.CausalEdge>();
+            foreach (var nid in chainNodeIds)
+            {
+                var edgeList = await _edgeRepo.GetByEventIdAsync(nid, null, cancellationToken);
+                foreach (var e in edgeList)
+                {
+                    if (nodeIdSet.Contains(e.FromEventId) && nodeIdSet.Contains(e.ToEventId)
+                        && !allEdges.Any(ex => ex.Id == e.Id))
+                        allEdges.Add(e);
+                }
+            }
 
-            return new CausalGraphDto([rootNode], [], metadata);
+            UpdateGraphSnapshotFromNodes(chain, allNodes, allEdges);
+            _chainRepo.Update(chain);
         }
+
+        if (string.IsNullOrWhiteSpace(chain.GraphSnapshot))
+            return new CausalGraphDto([], [], metadata);
 
         using var doc = JsonDocument.Parse(chain.GraphSnapshot);
         var rootEl = doc.RootElement;
@@ -556,5 +584,46 @@ public sealed class GetChainScopedGraphQueryHandler
         }
 
         return new CausalGraphDto(nodes, edges, metadata);
+    }
+
+    private static void UpdateGraphSnapshotFromNodes(
+        CausalChain chain,
+        IReadOnlyList<EventNode> allNodes,
+        IReadOnlyList<Domain.Entities.CausalEdge> allEdges)
+    {
+        using var ms = new System.IO.MemoryStream();
+        using var w = new Utf8JsonWriter(ms, new JsonWriterOptions { Indented = false });
+        w.WriteStartObject();
+        w.WriteStartArray("nodes");
+        foreach (var n in allNodes)
+        {
+            w.WriteStartObject();
+            w.WriteString("id", n.Id.ToString());
+            w.WriteString("title", n.Title);
+            w.WriteString("summary", n.Summary ?? "");
+            w.WriteString("eventDate", n.EventDate.ToString("O"));
+            w.WriteString("domain", n.Domain.ToString());
+            w.WriteNumber("confidenceScore", n.ConfidenceScore);
+            w.WriteEndObject();
+        }
+        w.WriteEndArray();
+        w.WriteStartArray("edges");
+        foreach (var e in allEdges)
+        {
+            w.WriteStartObject();
+            w.WriteString("id", e.Id.ToString());
+            w.WriteString("fromId", e.FromEventId.ToString());
+            w.WriteString("toId", e.ToEventId.ToString());
+            w.WriteNumber("strength", e.Strength);
+            w.WriteString("explanation", e.Explanation ?? "");
+            w.WriteString("perspective", e.Perspective.ToString());
+            w.WriteBoolean("isContested", e.IsContested);
+            w.WriteString("relationshipType", e.RelationshipType.ToString());
+            w.WriteEndObject();
+        }
+        w.WriteEndArray();
+        w.WriteEndObject();
+        w.Flush();
+        chain.SetGraphSnapshot(System.Text.Encoding.UTF8.GetString(ms.ToArray()));
     }
 }

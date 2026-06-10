@@ -86,7 +86,7 @@ internal sealed class PostgresDataStore : IPostgresDataStore
     public async Task<IReadOnlyList<Guid>> GetChainNodeIdsAsync(Guid chainId, CancellationToken ct = default)
     {
         var result = await _context.Database
-            .SqlQueryRaw<Guid>("SELECT node_id AS \"Value\" FROM chain_nodes WHERE chain_id = {0}", chainId)
+            .SqlQueryRaw<Guid>("SELECT node_id FROM chain_nodes WHERE chain_id = {0}", chainId)
             .ToListAsync(ct);
         return result;
     }
