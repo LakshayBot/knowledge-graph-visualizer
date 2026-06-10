@@ -506,10 +506,16 @@ public sealed class GetChainScopedGraphQueryHandler
         // Load chain-scoped node IDs from junction table
         var chainNodeIds = await _pgStore.GetChainNodeIdsAsync(chain.Id, cancellationToken);
 
-        // Rebuild snapshot if null or incomplete (root missing)
-        var rootIdStr = chain.RootEventId.ToString();
-        var needsRebuild = string.IsNullOrWhiteSpace(chain.GraphSnapshot)
-            || !chain.GraphSnapshot!.Contains(rootIdStr);
+        // Rebuild snapshot if null or root node missing from the nodes array
+        var needsRebuild = string.IsNullOrWhiteSpace(chain.GraphSnapshot);
+        if (!needsRebuild && chainNodeIds.Count > 0)
+        {
+            using var checkDoc = JsonDocument.Parse(chain.GraphSnapshot!);
+            needsRebuild = !checkDoc.RootElement.TryGetProperty("nodes", out var nArr)
+                || !nArr.EnumerateArray().Any(n =>
+                    n.TryGetProperty("id", out var idEl) &&
+                    idEl.GetString() == chain.RootEventId.ToString());
+        }
 
         if (needsRebuild && chainNodeIds.Count > 0)
         {
