@@ -216,18 +216,33 @@ public sealed class ExpandChainNodeQueryHandler : IRequestHandler<ExpandChainNod
             chain.IncrementNodeCount();
 
         // ── Build and save complete graph snapshot to PostgreSQL ────
-        UpdateGraphSnapshot(chain, persistedNodes, persistedEdges);
+        // Include the root node + all existing chain nodes, not just new ones
+        var allNodeIds = await _pgStore.GetChainNodeIdsAsync(chain.Id, cancellationToken);
+        var allNodes = new List<EventNode>();
+        foreach (var nid in allNodeIds)
+        {
+            var node = await _nodeRepo.GetByIdAsync(nid, cancellationToken);
+            if (node is not null) allNodes.Add(node);
+        }
+        UpdateGraphSnapshot(chain, allNodes, persistedEdges);
         _chainRepo.Update(chain);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-        // ── Map to response DTOs with persisted IDs ────────────────
-        var newNodes = persistedNodes.Select((n, i) => new GraphNodeDto(
+        // ── Map to response DTOs — include root and persisted nodes ──
+        // First add the root if it's not already in the list
+        var rootNode = dbNode ?? await _nodeRepo.GetByIdAsync(chain.RootEventId, cancellationToken);
+        if (rootNode is not null && !persistedNodes.Any(n => n.Id == rootNode.Id))
+        {
+            allNodes.Insert(0, rootNode);
+        }
+
+        var responseNodes = allNodes.Select((n, i) => new GraphNodeDto(
             n.Id, n.Title, n.Summary,
-            chain.Domain.ToString(), n.ConfidenceScore, "Debated",
-            X: (i + 1) * 200f, Y: 0f, IsExpanded: false, HasMoreNodes: true))
+            n.Domain.ToString(), n.ConfidenceScore, n.GetConfidenceLevel().Kind.ToString(),
+            X: (i + 1) * 200f, Y: 0f, IsExpanded: i == 0, HasMoreNodes: true))
             .ToList();
 
-        var newEdges = persistedEdges.Select(e => new GraphEdgeDto(
+        var responseEdges = persistedEdges.Select(e => new GraphEdgeDto(
             e.Id, e.FromEventId, e.ToEventId,
             e.Strength,
             e.Strength switch { > 0.65m => "Solid", > 0.35m => "Dashed", _ => "Dotted" },
@@ -239,7 +254,7 @@ public sealed class ExpandChainNodeQueryHandler : IRequestHandler<ExpandChainNod
             chain.Id, chain.Title, chain.Domain.ToString(),
             chain.NodeCount, chain.ViewCount, chain.LastUpdatedAt);
 
-        return new CausalGraphDto(newNodes, newEdges, metadata);
+        return new CausalGraphDto(responseNodes, responseEdges, metadata);
     }
 
     private static CausalRelationshipType MapRelationshipType(string? type) => type?.ToUpperInvariant() switch
@@ -254,27 +269,58 @@ public sealed class ExpandChainNodeQueryHandler : IRequestHandler<ExpandChainNod
 
     private static void UpdateGraphSnapshot(
         CausalChain chain,
-        IReadOnlyList<EventNode> newNodes,
+        IReadOnlyList<EventNode> allNodes,
         IReadOnlyList<Domain.Entities.CausalEdge> newEdges)
     {
-        // Read existing snapshot, merge new data, save back
-        var doc = string.IsNullOrWhiteSpace(chain.GraphSnapshot)
+        // Load existing edges from the current snapshot, merge with new edges
+        using var existingDoc = string.IsNullOrWhiteSpace(chain.GraphSnapshot)
             ? JsonDocument.Parse("{\"nodes\":[],\"edges\":[]}")
-            : JsonDocument.Parse(chain.GraphSnapshot);
+            : JsonDocument.Parse(chain.GraphSnapshot!);
 
+        var existingEdges = new List<(string id, string fromId, string toId, double strength, string explanation, string perspective, bool isContested, string relType)>();
+        if (existingDoc.RootElement.TryGetProperty("edges", out var ee))
+        {
+            foreach (var e in ee.EnumerateArray())
+            {
+                existingEdges.Add((
+                    e.GetProperty("id").GetString()!,
+                    e.GetProperty("fromId").GetString()!,
+                    e.GetProperty("toId").GetString()!,
+                    e.GetProperty("strength").GetDouble(),
+                    e.TryGetProperty("explanation", out var x) ? x.GetString() ?? "" : "",
+                    e.TryGetProperty("perspective", out var ep) ? ep.GetString() ?? "" : "",
+                    e.TryGetProperty("isContested", out var ic) && ic.GetBoolean(),
+                    e.TryGetProperty("relationshipType", out var rt) ? rt.GetString() ?? "" : ""
+                ));
+            }
+        }
+
+        // Deduplicate — new edges override existing ones with same ID
+        var seen = new HashSet<string>(existingEdges.Select(e => e.id));
+        var mergedEdges = new List<(string id, string from, string to, double str, string expl, string persp, bool cont, string rt)>();
+        mergedEdges.AddRange(existingEdges);
+
+        foreach (var e in newEdges)
+        {
+            if (!seen.Contains(e.Id.ToString()))
+            {
+                mergedEdges.Add((
+                    e.Id.ToString(), e.FromEventId.ToString(), e.ToEventId.ToString(),
+                    (double)e.Strength, e.Explanation ?? "", e.Perspective.ToString(),
+                    e.IsContested, e.RelationshipType.ToString()
+                ));
+                seen.Add(e.Id.ToString());
+            }
+        }
+
+        // Build fresh snapshot from all nodes + merged edges
         using var ms = new System.IO.MemoryStream();
         using var writer = new Utf8JsonWriter(ms, new JsonWriterOptions { Indented = false });
 
         writer.WriteStartObject();
 
-        // Nodes
         writer.WriteStartArray("nodes");
-        if (doc.RootElement.TryGetProperty("nodes", out var existingNodes))
-        {
-            foreach (var n in existingNodes.EnumerateArray())
-                n.WriteTo(writer);
-        }
-        foreach (var n in newNodes)
+        foreach (var n in allNodes)
         {
             writer.WriteStartObject();
             writer.WriteString("id", n.Id.ToString());
@@ -287,24 +333,18 @@ public sealed class ExpandChainNodeQueryHandler : IRequestHandler<ExpandChainNod
         }
         writer.WriteEndArray();
 
-        // Edges
         writer.WriteStartArray("edges");
-        if (doc.RootElement.TryGetProperty("edges", out var existingEdges))
-        {
-            foreach (var e in existingEdges.EnumerateArray())
-                e.WriteTo(writer);
-        }
-        foreach (var e in newEdges)
+        foreach (var (id, from, to, str, expl, persp, cont, rt) in mergedEdges)
         {
             writer.WriteStartObject();
-            writer.WriteString("id", e.Id.ToString());
-            writer.WriteString("fromId", e.FromEventId.ToString());
-            writer.WriteString("toId", e.ToEventId.ToString());
-            writer.WriteNumber("strength", e.Strength);
-            writer.WriteString("explanation", e.Explanation ?? "");
-            writer.WriteString("perspective", e.Perspective.ToString());
-            writer.WriteBoolean("isContested", e.IsContested);
-            writer.WriteString("relationshipType", e.RelationshipType.ToString());
+            writer.WriteString("id", id);
+            writer.WriteString("fromId", from);
+            writer.WriteString("toId", to);
+            writer.WriteNumber("strength", str);
+            writer.WriteString("explanation", expl);
+            writer.WriteString("perspective", persp);
+            writer.WriteBoolean("isContested", cont);
+            writer.WriteString("relationshipType", rt);
             writer.WriteEndObject();
         }
         writer.WriteEndArray();
@@ -436,10 +476,14 @@ public sealed class GetChainScopedGraphQueryHandler
     : IRequestHandler<GetChainScopedGraphQuery, CausalGraphDto>
 {
     private readonly ICausalChainRepository _chainRepo;
+    private readonly IEventNodeRepository _nodeRepo;
 
-    public GetChainScopedGraphQueryHandler(ICausalChainRepository chainRepo)
+    public GetChainScopedGraphQueryHandler(
+        ICausalChainRepository chainRepo,
+        IEventNodeRepository nodeRepo)
     {
         _chainRepo = chainRepo;
+        _nodeRepo  = nodeRepo;
     }
 
     public async Task<CausalGraphDto> Handle(
@@ -453,15 +497,26 @@ public sealed class GetChainScopedGraphQueryHandler
             chain.Id, chain.Title, chain.Domain.ToString(),
             chain.NodeCount, chain.ViewCount, chain.LastUpdatedAt);
 
-        // If no snapshot exists, return just metadata
+        // If no snapshot exists yet, return at least the root node
         if (string.IsNullOrWhiteSpace(chain.GraphSnapshot))
-            return new CausalGraphDto([], [], metadata);
+        {
+            var root = await _nodeRepo.GetByIdAsync(chain.RootEventId, cancellationToken);
+            if (root is null)
+                return new CausalGraphDto([], [], metadata);
+
+            var rootNode = new GraphNodeDto(
+                root.Id, root.Title, root.Summary, root.Domain.ToString(),
+                root.ConfidenceScore, root.GetConfidenceLevel().Kind.ToString(),
+                X: 0f, Y: 0f, IsExpanded: true, HasMoreNodes: true);
+
+            return new CausalGraphDto([rootNode], [], metadata);
+        }
 
         using var doc = JsonDocument.Parse(chain.GraphSnapshot);
-        var root = doc.RootElement;
+        var rootEl = doc.RootElement;
 
         var nodes = new List<GraphNodeDto>();
-        if (root.TryGetProperty("nodes", out var nodesArr))
+        if (rootEl.TryGetProperty("nodes", out var nodesArr))
         {
             int i = 0;
             foreach (var n in nodesArr.EnumerateArray())
@@ -483,7 +538,7 @@ public sealed class GetChainScopedGraphQueryHandler
         }
 
         var edges = new List<GraphEdgeDto>();
-        if (root.TryGetProperty("edges", out var edgesArr))
+        if (rootEl.TryGetProperty("edges", out var edgesArr))
         {
             foreach (var e in edgesArr.EnumerateArray())
             {
