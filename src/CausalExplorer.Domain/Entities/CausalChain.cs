@@ -30,6 +30,9 @@ public sealed class CausalChain : BaseEntity
     /// <summary>Gets the cumulative number of times this chain has been viewed.</summary>
     public int ViewCount { get; private set; }
 
+    /// <summary>Gets the complete graph snapshot (all nodes + edges) stored as JSONB for chain-scoped loading.</summary>
+    public string? GraphSnapshot { get; private set; }
+
     // ── Factory method ────────────────────────────────────────────────────────
 
     /// <summary>
@@ -114,6 +117,16 @@ public sealed class CausalChain : BaseEntity
             throw new ArgumentException("Title must not be null or whitespace.", nameof(title));
 
         Title         = title;
+        LastUpdatedAt = DateTime.UtcNow;
+        Touch();
+    }
+
+    /// <summary>
+    /// Stores a complete graph snapshot for chain-scoped loading, avoiding cross-chain Neo4j leakage.
+    /// </summary>
+    public void SetGraphSnapshot(string? snapshot)
+    {
+        GraphSnapshot = snapshot;
         LastUpdatedAt = DateTime.UtcNow;
         Touch();
     }

@@ -1,3 +1,4 @@
+using System.Text.Json;
 using CausalExplorer.Application.CausalChains.DTOs;
 using CausalExplorer.Application.Common.Exceptions;
 using CausalExplorer.Application.Common.Interfaces;
@@ -213,6 +214,9 @@ public sealed class ExpandChainNodeQueryHandler : IRequestHandler<ExpandChainNod
         // ── Update chain metadata ──────────────────────────────────
         foreach (var _ in persistedNodes)
             chain.IncrementNodeCount();
+
+        // ── Build and save complete graph snapshot to PostgreSQL ────
+        UpdateGraphSnapshot(chain, persistedNodes, persistedEdges);
         _chainRepo.Update(chain);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
@@ -247,6 +251,69 @@ public sealed class ExpandChainNodeQueryHandler : IRequestHandler<ExpandChainNod
         "CORRELATED"     => CausalRelationshipType.Correlated,
         _                => CausalRelationshipType.ContributedTo
     };
+
+    private static void UpdateGraphSnapshot(
+        CausalChain chain,
+        IReadOnlyList<EventNode> newNodes,
+        IReadOnlyList<Domain.Entities.CausalEdge> newEdges)
+    {
+        // Read existing snapshot, merge new data, save back
+        var doc = string.IsNullOrWhiteSpace(chain.GraphSnapshot)
+            ? JsonDocument.Parse("{\"nodes\":[],\"edges\":[]}")
+            : JsonDocument.Parse(chain.GraphSnapshot);
+
+        using var ms = new System.IO.MemoryStream();
+        using var writer = new Utf8JsonWriter(ms, new JsonWriterOptions { Indented = false });
+
+        writer.WriteStartObject();
+
+        // Nodes
+        writer.WriteStartArray("nodes");
+        if (doc.RootElement.TryGetProperty("nodes", out var existingNodes))
+        {
+            foreach (var n in existingNodes.EnumerateArray())
+                n.WriteTo(writer);
+        }
+        foreach (var n in newNodes)
+        {
+            writer.WriteStartObject();
+            writer.WriteString("id", n.Id.ToString());
+            writer.WriteString("title", n.Title);
+            writer.WriteString("summary", n.Summary ?? "");
+            writer.WriteString("eventDate", n.EventDate.ToString("O"));
+            writer.WriteString("domain", n.Domain.ToString());
+            writer.WriteNumber("confidenceScore", n.ConfidenceScore);
+            writer.WriteEndObject();
+        }
+        writer.WriteEndArray();
+
+        // Edges
+        writer.WriteStartArray("edges");
+        if (doc.RootElement.TryGetProperty("edges", out var existingEdges))
+        {
+            foreach (var e in existingEdges.EnumerateArray())
+                e.WriteTo(writer);
+        }
+        foreach (var e in newEdges)
+        {
+            writer.WriteStartObject();
+            writer.WriteString("id", e.Id.ToString());
+            writer.WriteString("fromId", e.FromEventId.ToString());
+            writer.WriteString("toId", e.ToEventId.ToString());
+            writer.WriteNumber("strength", e.Strength);
+            writer.WriteString("explanation", e.Explanation ?? "");
+            writer.WriteString("perspective", e.Perspective.ToString());
+            writer.WriteBoolean("isContested", e.IsContested);
+            writer.WriteString("relationshipType", e.RelationshipType.ToString());
+            writer.WriteEndObject();
+        }
+        writer.WriteEndArray();
+
+        writer.WriteEndObject();
+        writer.Flush();
+
+        chain.SetGraphSnapshot(System.Text.Encoding.UTF8.GetString(ms.ToArray()));
+    }
 }
 
 /// <summary>Handles <see cref="GetInitialChainQuery"/>.</summary>
@@ -364,25 +431,15 @@ public sealed class GetUserSavedChainsQueryHandler
     }
 }
 
-/// <summary>Handles <see cref="GetChainScopedGraphQuery"/> — loads only nodes/edges belonging to a specific chain.</summary>
+/// <summary>Handles <see cref="GetChainScopedGraphQuery"/> — reads the complete graph from PostgreSQL snapshot, bypassing Neo4j entirely.</summary>
 public sealed class GetChainScopedGraphQueryHandler
     : IRequestHandler<GetChainScopedGraphQuery, CausalGraphDto>
 {
     private readonly ICausalChainRepository _chainRepo;
-    private readonly IEventNodeRepository _nodeRepo;
-    private readonly ICausalEdgeRepository _edgeRepo;
-    private readonly IPostgresDataStore _pgStore;
 
-    public GetChainScopedGraphQueryHandler(
-        ICausalChainRepository chainRepo,
-        IEventNodeRepository nodeRepo,
-        ICausalEdgeRepository edgeRepo,
-        IPostgresDataStore pgStore)
+    public GetChainScopedGraphQueryHandler(ICausalChainRepository chainRepo)
     {
         _chainRepo = chainRepo;
-        _nodeRepo  = nodeRepo;
-        _edgeRepo  = edgeRepo;
-        _pgStore   = pgStore;
     }
 
     public async Task<CausalGraphDto> Handle(
@@ -392,81 +449,57 @@ public sealed class GetChainScopedGraphQueryHandler
         var chain = await _chainRepo.GetByIdAsync(request.ChainId, cancellationToken)
             ?? throw new NotFoundException(nameof(CausalChain), request.ChainId);
 
-        // Get chain-scoped node IDs from junction table
-        var chainNodeIds = await _pgStore.GetChainNodeIdsAsync(chain.Id, cancellationToken);
-
-        if (chainNodeIds.Count == 0)
-        {
-            // Fallback: just return the root node
-            var root = await _nodeRepo.GetByIdAsync(chain.RootEventId, cancellationToken);
-            if (root is null)
-                return new CausalGraphDto([], [], new ChainMetadataDto(
-                    chain.Id, chain.Title, chain.Domain.ToString(),
-                    chain.NodeCount, chain.ViewCount, chain.LastUpdatedAt));
-
-            var rootNode = new GraphNodeDto(
-                root.Id, root.Title, root.Summary, root.Domain.ToString(),
-                root.ConfidenceScore, root.GetConfidenceLevel().Kind.ToString(),
-                X: 0f, Y: 0f, IsExpanded: true, HasMoreNodes: true);
-
-            return new CausalGraphDto([rootNode], [], new ChainMetadataDto(
-                chain.Id, chain.Title, chain.Domain.ToString(),
-                chain.NodeCount, chain.ViewCount, chain.LastUpdatedAt));
-        }
-
-        // Load all chain-scoped nodes from Neo4j
-        var nodes = new Dictionary<Guid, EventNode>();
-        foreach (var nodeId in chainNodeIds)
-        {
-            var node = await _nodeRepo.GetByIdAsync(nodeId, cancellationToken);
-            if (node is not null)
-                nodes[nodeId] = node;
-        }
-
-        // Load edges between chain-scoped nodes
-        var nodeIdSet = new HashSet<Guid>(nodes.Keys);
-        var edges = new List<Domain.Entities.CausalEdge>();
-        foreach (var nodeId in nodes.Keys)
-        {
-            var nodeEdges = await _edgeRepo.GetByEventIdAsync(nodeId, request.Perspective, cancellationToken);
-            foreach (var edge in nodeEdges)
-            {
-                // Only include edges where BOTH endpoints are in this chain
-                if (nodeIdSet.Contains(edge.FromEventId) && nodeIdSet.Contains(edge.ToEventId))
-                {
-                    if (!edges.Any(e => e.Id == edge.Id))
-                        edges.Add(edge);
-                }
-            }
-        }
-
-        // Build graph DTOs
-        var graphNodes = new List<GraphNodeDto>();
-        int i = 0;
-        foreach (var node in nodes.Values)
-        {
-            var angle = i * (2 * Math.PI / Math.Max(nodes.Count, 1));
-            var radius = i == 0 ? 0f : 300f;
-            graphNodes.Add(new GraphNodeDto(
-                node.Id, node.Title, node.Summary, node.Domain.ToString(),
-                node.ConfidenceScore, node.GetConfidenceLevel().Kind.ToString(),
-                X: (float)(radius * Math.Cos(angle)),
-                Y: (float)(radius * Math.Sin(angle)),
-                IsExpanded: true, HasMoreNodes: true));
-            i++;
-        }
-
-        var graphEdges = edges.Select(e => new GraphEdgeDto(
-            e.Id, e.FromEventId, e.ToEventId,
-            e.Strength,
-            e.Strength switch { > 0.65m => "Solid", > 0.35m => "Dashed", _ => "Dotted" },
-            e.RelationshipType.ToString(), e.Explanation, e.IsContested,
-            e.Perspective.ToString())).ToList();
-
         var metadata = new ChainMetadataDto(
             chain.Id, chain.Title, chain.Domain.ToString(),
             chain.NodeCount, chain.ViewCount, chain.LastUpdatedAt);
 
-        return new CausalGraphDto(graphNodes, graphEdges, metadata);
+        // If no snapshot exists, return just metadata
+        if (string.IsNullOrWhiteSpace(chain.GraphSnapshot))
+            return new CausalGraphDto([], [], metadata);
+
+        using var doc = JsonDocument.Parse(chain.GraphSnapshot);
+        var root = doc.RootElement;
+
+        var nodes = new List<GraphNodeDto>();
+        if (root.TryGetProperty("nodes", out var nodesArr))
+        {
+            int i = 0;
+            foreach (var n in nodesArr.EnumerateArray())
+            {
+                var angle = i * (2 * Math.PI / Math.Max(nodesArr.GetArrayLength(), 1));
+                var radius = i == 0 ? 0f : 300f;
+                nodes.Add(new GraphNodeDto(
+                    Guid.Parse(n.GetProperty("id").GetString()!),
+                    n.GetProperty("title").GetString() ?? "",
+                    n.TryGetProperty("summary", out var s) ? s.GetString() ?? "" : "",
+                    n.TryGetProperty("domain", out var d) ? d.GetString() ?? "" : "",
+                    n.TryGetProperty("confidenceScore", out var cs) ? (decimal)cs.GetDouble() : 0.5m,
+                    "Debated",
+                    X: (float)(radius * Math.Cos(angle)),
+                    Y: (float)(radius * Math.Sin(angle)),
+                    IsExpanded: true, HasMoreNodes: true));
+                i++;
+            }
+        }
+
+        var edges = new List<GraphEdgeDto>();
+        if (root.TryGetProperty("edges", out var edgesArr))
+        {
+            foreach (var e in edgesArr.EnumerateArray())
+            {
+                edges.Add(new GraphEdgeDto(
+                    Guid.Parse(e.GetProperty("id").GetString()!),
+                    Guid.Parse(e.GetProperty("fromId").GetString()!),
+                    Guid.Parse(e.GetProperty("toId").GetString()!),
+                    (decimal)e.GetProperty("strength").GetDouble(),
+                    e.TryGetProperty("strength", out var st) && st.GetDouble() > 0.65 ? "Solid" : "Dashed",
+                    e.TryGetProperty("relationshipType", out var rt) ? rt.GetString() ?? "RELATES_TO" : "RELATES_TO",
+                    e.TryGetProperty("explanation", out var ex) ? ex.GetString() ?? "" : "",
+                    e.TryGetProperty("isContested", out var ic) && ic.GetBoolean(),
+                    e.TryGetProperty("perspective", out var ep) ? ep.GetString() ?? "" : ""));
+            }
+        }
+
+        return new CausalGraphDto(nodes, edges, metadata);
     }
 }

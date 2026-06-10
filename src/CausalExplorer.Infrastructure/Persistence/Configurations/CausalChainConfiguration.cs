@@ -35,6 +35,7 @@ internal sealed class CausalChainConfiguration : IEntityTypeConfiguration<Causal
         builder.Property(e => e.CreatedAt).HasColumnName("created_at").IsRequired();
         builder.Property(e => e.UpdatedAt).HasColumnName("updated_at").IsRequired();
         builder.Property(e => e.LastUpdatedAt).HasColumnName("last_updated_at").IsRequired();
+        builder.Property(e => e.GraphSnapshot).HasColumnName("graph_snapshot").HasColumnType("jsonb");
 
         builder.HasIndex(e => e.Domain).HasDatabaseName("ix_causal_chains_domain");
         builder.HasIndex(e => e.ViewCount).HasDatabaseName("ix_causal_chains_view_count");

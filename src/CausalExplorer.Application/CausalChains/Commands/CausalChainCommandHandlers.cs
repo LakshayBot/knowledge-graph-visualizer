@@ -46,6 +46,11 @@ public sealed class CreateCausalChainCommandHandler
         // Map root node to chain for chain-scoped loading
         await _pgStore.AddChainNodeMappingsAsync(chain.Id, new[] { request.RootEventId }, cancellationToken);
 
+        // Initialize empty graph snapshot
+        chain.SetGraphSnapshot("{\"nodes\":[],\"edges\":[]}");
+        _chainRepo.Update(chain);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
         return new CausalChainSummaryDto(
             chain.Id,
             chain.RootEventId,
