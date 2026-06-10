@@ -156,8 +156,8 @@ function ExploreContent() {
       setChainId(cid);
       autoSave(cid); // async, non-blocking
 
-      // Phase 4 — get initial graph from Neo4j, then enrich with AI expand
-      const initRes = await fetch(`${API}/causalchains/${cid}/initial?perspective=Mainstream`, {
+      // Phase 4 — load chain-scoped graph (only this chain's nodes, no cross-chain leakage)
+      const initRes = await fetch(`${API}/causalchains/${cid}/scoped?perspective=Mainstream`, {
         headers: headers(),
       });
 
