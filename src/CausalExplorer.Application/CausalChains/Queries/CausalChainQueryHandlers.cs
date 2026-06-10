@@ -479,17 +479,20 @@ public sealed class GetChainScopedGraphQueryHandler
     private readonly IEventNodeRepository _nodeRepo;
     private readonly ICausalEdgeRepository _edgeRepo;
     private readonly IPostgresDataStore _pgStore;
+    private readonly IUnitOfWork _unitOfWork;
 
     public GetChainScopedGraphQueryHandler(
         ICausalChainRepository chainRepo,
         IEventNodeRepository nodeRepo,
         ICausalEdgeRepository edgeRepo,
-        IPostgresDataStore pgStore)
+        IPostgresDataStore pgStore,
+        IUnitOfWork unitOfWork)
     {
-        _chainRepo = chainRepo;
-        _nodeRepo  = nodeRepo;
-        _edgeRepo  = edgeRepo;
-        _pgStore   = pgStore;
+        _chainRepo  = chainRepo;
+        _nodeRepo   = nodeRepo;
+        _edgeRepo   = edgeRepo;
+        _pgStore    = pgStore;
+        _unitOfWork = unitOfWork;
     }
 
     public async Task<CausalGraphDto> Handle(
@@ -541,6 +544,7 @@ public sealed class GetChainScopedGraphQueryHandler
 
             UpdateGraphSnapshotFromNodes(chain, allNodes, allEdges);
             _chainRepo.Update(chain);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
         }
 
         if (string.IsNullOrWhiteSpace(chain.GraphSnapshot))
