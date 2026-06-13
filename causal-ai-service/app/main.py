@@ -55,6 +55,12 @@ _GROK_PROFILES: dict[str, dict] = {
 # Fall back to minimal if an unknown mode is set
 _GROK_PROFILE = _GROK_PROFILES.get(GENERATION_MODE, _GROK_PROFILES["minimal"])
 
+# xAI pricing per 1M tokens (input / output)
+_GROK_PRICING: dict[str, dict[str, float]] = {
+    "grok-3-mini": {"input": 0.30, "output": 1.50},
+    "grok-3":      {"input": 3.00, "output": 15.00},
+}
+
 COLLECTION  = "causal_events"
 VECTOR_DIM  = 768   # nomic-embed-text output dimension
 
@@ -89,14 +95,18 @@ async def _log_prompt(
     temperature: float,
     duration_ms: int,
     error: str | None,
+    input_tokens: int | None = None,
+    output_tokens: int | None = None,
+    cost_usd: float | None = None,
 ) -> None:
     try:
         pool = await _ensure_pool()
         async with pool.acquire() as conn:
             await conn.execute(
-                """INSERT INTO ai_prompt_logs (endpoint, prompt, response, model, max_tokens, temperature, duration_ms, error)
-                   VALUES ($1, $2, $3, $4, $5, $6, $7, $8)""",
+                """INSERT INTO ai_prompt_logs (endpoint, prompt, response, model, max_tokens, temperature, duration_ms, error, input_tokens, output_tokens, cost_usd)
+                   VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)""",
                 endpoint, prompt, response, model, max_tokens, temperature, duration_ms, error,
+                input_tokens, output_tokens, cost_usd,
             )
     except Exception:
         log.exception("ai_prompt_log.write_failed", endpoint=endpoint)
@@ -423,9 +433,21 @@ async def _grok_generate(prompt: str, profile: dict | None = None, *, endpoint: 
         async with httpx.AsyncClient(timeout=api_timeout) as client:
             resp = await client.post(GROK_API_URL, headers=headers, json=body)
             resp.raise_for_status()
-            raw = resp.json()["choices"][0]["message"]["content"]
+            data = resp.json()
+            raw = data["choices"][0]["message"]["content"]
+
+            # Parse usage for cost tracking
+            usage = data.get("usage", {})
+            input_tokens  = usage.get("prompt_tokens")
+            output_tokens = usage.get("completion_tokens")
+            pricing = _GROK_PRICING.get(model, _GROK_PRICING.get("grok-3-mini", {"input": 0.30, "output": 1.50}))
+            cost = None
+            if input_tokens is not None and output_tokens is not None:
+                cost = (input_tokens / 1_000_000 * pricing["input"]) + (output_tokens / 1_000_000 * pricing["output"])
+
         duration_ms = int((time.monotonic() - t0) * 1000)
-        await _log_prompt(endpoint, prompt, raw, model, max_tokens, temperature, duration_ms, None)
+        await _log_prompt(endpoint, prompt, raw, model, max_tokens, temperature, duration_ms, None,
+                         input_tokens, output_tokens, round(cost, 6) if cost is not None else None)
         return raw
     except Exception as exc:
         duration_ms = int((time.monotonic() - t0) * 1000)
@@ -767,6 +789,9 @@ class PromptLogEntry(BaseModel):
     temperature: float | None
     duration_ms: int | None
     error: str | None
+    input_tokens: int | None = None
+    output_tokens: int | None = None
+    cost_usd: float | None = None
     created_at: str
 
 
@@ -780,14 +805,14 @@ async def get_prompt_logs(
     async with pool.acquire() as conn:
         if endpoint:
             rows = await conn.fetch(
-                """SELECT id::text, endpoint, prompt, response, model, max_tokens, temperature, duration_ms, error, created_at::text
+                """SELECT id::text, endpoint, prompt, response, model, max_tokens, temperature, duration_ms, error, input_tokens, output_tokens, cost_usd, created_at::text
                    FROM ai_prompt_logs WHERE endpoint = $1
                    ORDER BY created_at DESC LIMIT $2""",
                 endpoint, limit,
             )
         else:
             rows = await conn.fetch(
-                """SELECT id::text, endpoint, prompt, response, model, max_tokens, temperature, duration_ms, error, created_at::text
+                """SELECT id::text, endpoint, prompt, response, model, max_tokens, temperature, duration_ms, error, input_tokens, output_tokens, cost_usd, created_at::text
                    FROM ai_prompt_logs
                    ORDER BY created_at DESC LIMIT $1""",
                 limit,
