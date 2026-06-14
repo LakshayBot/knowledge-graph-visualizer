@@ -1,11 +1,9 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import type { LatencyData, CostTrend } from "./data";
+import type { LatencyData } from "./data";
 
 interface Props {
   latency: LatencyData;
-  costs: CostTrend[];
 }
 
 function formatCurrency(val: number): string {
@@ -17,116 +15,202 @@ function formatCurrency(val: number): string {
   }).format(val);
 }
 
-export default function LatencyCard({ latency, costs }: Props) {
-  const totalCost = costs.reduce((s, c) => s + c.current, 0);
+const DOT_COLORS: Record<string, string> = {
+  "#14b8a6": "#14b8a6",
+  "#22c55e": "#22c55e",
+  "#eab308": "#eab308",
+  "#ef4444": "#ef4444",
+};
 
+const BAR_SEGMENTS = [
+  { color: "#00694a", flex: 30 },       // green/teal
+  { color: "#65dcab", flex: 25 },       // teal-dim
+  { color: "#c74e00", flex: 25 },       // orange (primary container)
+  { color: "#fce3da", flex: 20 },       // light grey
+];
+
+export default function LatencyCard({ latency }: Props) {
   return (
-    <Card className="border-border/60 shadow-xs" style={{ borderRadius: 12 }}>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">
-          System Latency & Cost
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        {/* Top half: total cost + green pill */}
-        <div className="mb-5 flex items-baseline gap-3">
-          <span className="text-3xl font-extrabold tracking-tight" style={{ color: "var(--text-1)", letterSpacing: "-0.04em" }}>
-            {formatCurrency(totalCost)}
-          </span>
-          <span
-            className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold"
-            style={{
-              color: "#22c55e",
-              background: "rgba(34,197,94,0.1)",
-            }}
-          >
-            <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#22c55e", display: "inline-block" }} />
-            +{latency.uptimePercent}%
-          </span>
-          <span className="text-xs" style={{ color: "var(--text-3)" }}>
-            uptime
-          </span>
+    <div
+      style={{
+        background: "var(--lumina-surface, #ffffff)",
+        borderRadius: "0.75rem",
+        border: "1px solid rgba(0,0,0,0.04)",
+        boxShadow: "0 4px 24px rgba(0,0,0,0.02)",
+        padding: "24px",
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "space-between",
+        height: "100%",
+        minHeight: 260,
+        transition: "box-shadow 0.3s ease, border-color 0.3s ease",
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.boxShadow = "0 8px 32px rgba(0,0,0,0.04)";
+        e.currentTarget.style.borderColor = "rgba(0,0,0,0.08)";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.boxShadow = "0 4px 24px rgba(0,0,0,0.02)";
+        e.currentTarget.style.borderColor = "rgba(0,0,0,0.04)";
+      }}
+    >
+      {/* Header with dropdown */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: 32,
+        }}
+      >
+        <h3
+          style={{
+            fontFamily: "Manrope, sans-serif",
+            fontSize: 18,
+            fontWeight: 600,
+            lineHeight: "24px",
+            color: "#251913",
+            margin: 0,
+          }}
+        >
+          System Latency
+        </h3>
+        <div
+          style={{
+            background: "#ffe9e1",
+            padding: "6px 12px",
+            borderRadius: 6,
+            display: "flex",
+            alignItems: "center",
+            gap: 4,
+            cursor: "pointer",
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: 12,
+            fontWeight: 500,
+            letterSpacing: "0.05em",
+            color: "#251913",
+            transition: "background 0.2s",
+          }}
+          onMouseEnter={(e) =>
+            (e.currentTarget.style.background = "#fce3da")
+          }
+          onMouseLeave={(e) =>
+            (e.currentTarget.style.background = "#ffe9e1")
+          }
+        >
+          This Month
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
         </div>
+      </div>
 
-        {/* Bottom half: continuous segmented horizontal bar */}
-        <div>
-          <div
-            style={{
-              display: "flex",
-              height: 28,
-              borderRadius: 8,
-              overflow: "hidden",
-              gap: 2,
-            }}
-          >
-            {latency.percentiles.map((p) => {
-              const maxVal = Math.max(...latency.percentiles.map((x) => x.valueMs));
-              const widthPct = (p.valueMs / maxVal) * 100;
-              return (
-                <div
-                  key={p.label}
-                  style={{
-                    flex: widthPct,
-                    height: "100%",
-                    borderRadius: 6,
-                    background: p.color,
-                    opacity: 0.75,
-                    position: "relative",
-                    minWidth: 40,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <span
-                    style={{
-                      fontSize: 10,
-                      fontWeight: 700,
-                      color: "#fff",
-                      textShadow: "0 1px 2px rgba(0,0,0,0.3)",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {p.valueMs}ms
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-          {/* Labels below the bar */}
-          <div
-            style={{
-              display: "flex",
-              marginTop: 6,
-            }}
-          >
-            {latency.percentiles.map((p) => {
-              const maxVal = Math.max(...latency.percentiles.map((x) => x.valueMs));
-              const widthPct = (p.valueMs / maxVal) * 100;
-              return (
-                <div
-                  key={p.label}
-                  style={{
-                    flex: widthPct,
-                    minWidth: 40,
-                    textAlign: "center",
-                  }}
-                >
-                  <span
-                    style={{
-                      fontSize: 10,
-                      fontWeight: 600,
-                      color: "var(--text-3)",
-                    }}
-                  >
-                    {p.label}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
+      {/* Large cost + uptime badge */}
+      <div style={{ marginBottom: 48, display: "flex", alignItems: "baseline", gap: 16 }}>
+        <div
+          style={{
+            fontFamily: "Manrope, sans-serif",
+            fontSize: 48,
+            fontWeight: 700,
+            lineHeight: "56px",
+            letterSpacing: "-0.02em",
+            color: "#251913",
+          }}
+        >
+          {formatCurrency(latency.totalCost)}
         </div>
-      </CardContent>
-    </Card>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 4,
+            color: "#00694a",
+            background: "rgba(0,105,74,0.08)",
+            padding: "4px 10px",
+            borderRadius: 9999,
+            fontSize: 14,
+            fontWeight: 600,
+            fontFamily: "'Hanken Grotesk', sans-serif",
+          }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <line x1="7" y1="17" x2="17" y2="7" />
+            <polyline points="7 7 17 7 17 17" />
+          </svg>
+          {latency.uptimePercent}%
+        </div>
+      </div>
+
+      {/* 4-column percentile grid */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(4, 1fr)",
+          gap: 16,
+          marginBottom: 24,
+        }}
+      >
+        {latency.percentiles.slice(0, 4).map((p) => (
+          <div key={p.label}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                marginBottom: 4,
+                color: "#251913",
+                fontWeight: 700,
+                fontSize: 18,
+                fontFamily: "'Hanken Grotesk', sans-serif",
+              }}
+            >
+              <span
+                style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: "50%",
+                  background: p.color || "#14b8a6",
+                  display: "inline-block",
+                  flexShrink: 0,
+                }}
+              />
+              {p.valueMs}ms
+            </div>
+            <div
+              style={{
+                fontSize: 12,
+                color: "#594238",
+                fontFamily: "'Hanken Grotesk', sans-serif",
+              }}
+            >
+              {p.label} Latency
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Multi-color segmented progress bar */}
+      <div
+        style={{
+          height: 48,
+          width: "100%",
+          borderRadius: 8,
+          display: "flex",
+          overflow: "hidden",
+        }}
+      >
+        {BAR_SEGMENTS.map((seg, i) => (
+          <div
+            key={i}
+            style={{
+              flex: seg.flex,
+              height: "100%",
+              background: seg.color,
+              transition: "flex 0.4s ease",
+            }}
+          />
+        ))}
+      </div>
+    </div>
   );
 }

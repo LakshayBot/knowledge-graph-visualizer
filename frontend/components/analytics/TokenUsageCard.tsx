@@ -10,7 +10,6 @@ import {
   ResponsiveContainer,
   Tooltip,
 } from "recharts";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { TokenUsageDay } from "./data";
 
 interface Props {
@@ -24,172 +23,352 @@ function CustomTooltip({ active, payload, label }: any) {
   return (
     <div
       style={{
-        background: "#111",
-        color: "#f5f2ec",
+        background: "#3c2d27",
+        color: "#ffede7",
         border: "none",
         borderRadius: 8,
         padding: "10px 14px",
-        boxShadow: "0 8px 30px rgba(0,0,0,0.3)",
+        boxShadow: "0 8px 30px rgba(0,0,0,0.25)",
         fontSize: 12,
+        fontFamily: "'JetBrains Mono', monospace",
       }}
     >
-      <p style={{ margin: 0, fontWeight: 600, marginBottom: 4, color: "#f5f2ec" }}>{label}</p>
+      <p style={{ margin: 0, fontWeight: 600, marginBottom: 6, color: "#ffede7" }}>
+        {label}
+      </p>
       {payload.map((p: any) => (
-        <p key={p.name} style={{ margin: 0, color: p.color, fontWeight: 600 }}>
-          {p.name === "total" ? "Total" : p.name === "input" ? "Input" : "Output"}: {(p.value ?? 0).toLocaleString()}
+        <p key={p.name} style={{ margin: 0, color: p.color, fontWeight: 600, fontSize: 11 }}>
+          {p.name === "total"
+            ? "Total"
+            : p.name === "input"
+              ? "Input"
+              : "Output"}
+          : {(p.value ?? 0).toLocaleString()}
         </p>
       ))}
     </div>
   );
 }
 
-const TABS: { key: ViewMode; label: string }[] = [
-  { key: "tokens", label: "Tokens" },
-  { key: "cost", label: "Cost" },
-  { key: "efficiency", label: "Efficiency" },
-];
-
 export default function TokenUsageCard({ data }: Props) {
   const [mode, setMode] = useState<ViewMode>("tokens");
 
-  const total = data.reduce((s, d) => s + d.total, 0);
+  // Compute nice Y-axis ticks
+  const allVals = data.flatMap((d) => [d.input, d.output, d.total]);
+  const maxVal = Math.max(...allVals, 1);
+  const yMax = Math.ceil(maxVal / 1_500_000) * 1_500_000;
+  const tickStep = yMax / 4;
+
+  const totalTokens = data.reduce((s, d) => s + d.total, 0);
 
   return (
-    <Card className="border-border/60 shadow-xs" style={{ borderRadius: 12 }}>
-      <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-sm font-medium text-muted-foreground">
+    <div
+      style={{
+        background: "var(--lumina-surface, #ffffff)",
+        borderRadius: "0.75rem",
+        border: "1px solid rgba(0,0,0,0.04)",
+        boxShadow: "0 4px 24px rgba(0,0,0,0.02)",
+        padding: "24px",
+        display: "flex",
+        flexDirection: "column",
+        height: "100%",
+        transition: "box-shadow 0.3s ease, border-color 0.3s ease",
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.boxShadow = "0 8px 32px rgba(0,0,0,0.04)";
+        e.currentTarget.style.borderColor = "rgba(0,0,0,0.08)";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.boxShadow = "0 4px 24px rgba(0,0,0,0.02)";
+        e.currentTarget.style.borderColor = "rgba(0,0,0,0.04)";
+      }}
+    >
+      {/* Header */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          marginBottom: 24,
+        }}
+      >
+        <div>
+          <h3
+            style={{
+              fontFamily: "Manrope, sans-serif",
+              fontSize: 18,
+              fontWeight: 600,
+              lineHeight: "24px",
+              color: "#251913",
+              margin: 0,
+            }}
+          >
             Token Usage
-          </CardTitle>
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1.5">
-              <span style={{ width: 8, height: 8, borderRadius: 2, background: "#fb923c", display: "inline-block" }} />
-              <span style={{ fontSize: 10, color: "var(--text-3)" }}>Input</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span style={{ width: 8, height: 8, borderRadius: 2, background: "#fdba74", display: "inline-block" }} />
-              <span style={{ fontSize: 10, color: "var(--text-3)" }}>Output</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span style={{ width: 8, height: 8, borderRadius: 2, background: "#ea580c", display: "inline-block" }} />
-              <span style={{ fontSize: 10, color: "var(--text-3)" }}>Total</span>
-            </div>
+          </h3>
+          <p
+            style={{
+              fontFamily: "'Hanken Grotesk', sans-serif",
+              fontSize: 14,
+              fontWeight: 400,
+              lineHeight: "20px",
+              color: "#594238",
+              margin: "2px 0 0",
+            }}
+          >
+            Tokens processed per hour
+          </p>
+        </div>
+        {/* Legend dots */}
+        <div style={{ display: "flex", alignItems: "center", gap: 16, fontSize: 14 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span
+              style={{
+                width: 10,
+                height: 10,
+                borderRadius: "50%",
+                background: "#9f3d00",
+                display: "inline-block",
+              }}
+            />
+            <span style={{ color: "#594238", fontFamily: "'Hanken Grotesk', sans-serif" }}>
+              Total
+            </span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span
+              style={{
+                width: 10,
+                height: 10,
+                borderRadius: "50%",
+                background: "#ffb596",
+                display: "inline-block",
+              }}
+            />
+            <span style={{ color: "#594238", fontFamily: "'Hanken Grotesk', sans-serif" }}>
+              Prompt
+            </span>
           </div>
         </div>
-        <div className="mt-0">
-          <span className="text-2xl font-bold tracking-tight">
-            {total.toLocaleString()}
-          </span>
-          <span className="ml-2 text-xs text-muted-foreground">tokens / week</span>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div style={{ height: 180, marginBottom: 12 }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={data} margin={{ top: 4, right: 4, left: -16, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-              <XAxis
-                dataKey="date"
-                axisLine={false}
-                tickLine={false}
-                tick={{ fontSize: 11, fill: "var(--text-3)", fontWeight: 500 }}
-              />
-              <YAxis
-                axisLine={false}
-                tickLine={false}
-                tick={{ fontSize: 11, fill: "var(--text-3)", fontWeight: 500 }}
-                tickFormatter={(v: number) => `${(v / 1000000).toFixed(1)}M`}
-              />
-              <Tooltip content={<CustomTooltip />} />
-              {mode === "tokens" && (
-                <>
-                  <Line
-                    type="linear"
-                    dataKey="input"
-                    stroke="#fb923c"
-                    strokeWidth={2}
-                    dot={false}
-                    activeDot={{ r: 3, fill: "#fb923c" }}
-                    connectNulls
-                  />
-                  <Line
-                    type="linear"
-                    dataKey="output"
-                    stroke="#fdba74"
-                    strokeWidth={2}
-                    dot={false}
-                    activeDot={{ r: 3, fill: "#fdba74" }}
-                    connectNulls
-                  />
-                  <Line
-                    type="linear"
-                    dataKey="total"
-                    stroke="#ea580c"
-                    strokeWidth={2.5}
-                    dot={false}
-                    activeDot={{ r: 3, fill: "#ea580c" }}
-                    connectNulls
-                  />
-                </>
-              )}
-              {mode === "cost" && (
-                <Line
-                  type="linear"
-                  dataKey="total"
-                  stroke="#ea580c"
-                  strokeWidth={2}
-                  dot={false}
-                  activeDot={{ r: 3 }}
-                />
-              )}
-              {mode === "efficiency" && (
-                <Line
-                  type="linear"
-                  dataKey="output"
-                  stroke="#22c55e"
-                  strokeWidth={2}
-                  dot={false}
-                  activeDot={{ r: 3 }}
-                />
-              )}
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
+      </div>
 
-        {/* Toggle switches */}
+      {/* Chart */}
+      <div style={{ flex: 1, minHeight: 224, position: "relative", marginBottom: 24 }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={data} margin={{ top: 4, right: 4, left: -12, bottom: 0 }}>
+            <CartesianGrid
+              strokeDasharray="3 3"
+              stroke="rgba(224,192,179,0.25)"
+              vertical={false}
+            />
+            <XAxis
+              dataKey="date"
+              axisLine={false}
+              tickLine={false}
+              tick={{
+                fontSize: 10,
+                fill: "#594238",
+                fontWeight: 500,
+                fontFamily: "'JetBrains Mono', monospace",
+              }}
+              dy={8}
+            />
+            <YAxis
+              axisLine={false}
+              tickLine={false}
+              domain={[0, yMax]}
+              ticks={[0, tickStep, tickStep * 2, tickStep * 3, tickStep * 4]}
+              tick={{
+                fontSize: 10,
+                fill: "#594238",
+                fontWeight: 500,
+                fontFamily: "'JetBrains Mono', monospace",
+              }}
+              tickFormatter={(v: number) =>
+                v >= 1_000_000
+                  ? `${(v / 1_000_000).toFixed(1)}M`
+                  : v >= 1000
+                    ? `${(v / 1000).toFixed(0)}k`
+                    : v.toString()
+              }
+            />
+            <Tooltip content={<CustomTooltip />} />
+
+            {/* Dashed line for Prompt (input) */}
+            <Line
+              type="monotone"
+              dataKey="input"
+              stroke="#ffb596"
+              strokeWidth={1.5}
+              strokeDasharray="4 4"
+              dot={false}
+              activeDot={false}
+              connectNulls
+            />
+            {/* Solid line for Total */}
+            <Line
+              type="monotone"
+              dataKey="total"
+              stroke="#9f3d00"
+              strokeWidth={2}
+              dot={false}
+              activeDot={{ r: 3, fill: "#9f3d00" }}
+              connectNulls
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* Toggle switches */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          gap: 32,
+          paddingTop: 16,
+          borderTop: "1px solid rgba(224,192,179,0.3)",
+        }}
+      >
+        {/* Tokens */}
         <div
           style={{
             display: "flex",
-            gap: 4,
-            padding: "2px",
-            borderRadius: 8,
-            background: "var(--bg-subtle)",
+            alignItems: "center",
+            gap: 12,
+            cursor: "pointer",
           }}
+          onClick={() => setMode("tokens")}
         >
-          {TABS.map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setMode(tab.key)}
+          <span
+            style={{
+              fontSize: 14,
+              fontWeight: 500,
+              fontFamily: "'Hanken Grotesk', sans-serif",
+              color: mode === "tokens" ? "#251913" : "#594238",
+              transition: "color 0.2s",
+            }}
+          >
+            Tokens
+          </span>
+          <div
+            style={{
+              width: 40,
+              height: 20,
+              borderRadius: 9999,
+              background: mode === "tokens" ? "#9f3d00" : "#fce3da",
+              position: "relative",
+              transition: "background 0.2s",
+            }}
+          >
+            <div
               style={{
-                flex: 1,
-                padding: "6px 0",
-                fontSize: 11,
-                fontWeight: 600,
-                fontFamily: "inherit",
-                border: "none",
-                borderRadius: 6,
-                cursor: "pointer",
-                background: mode === tab.key ? "var(--surface)" : "transparent",
-                color: mode === tab.key ? "var(--text-1)" : "var(--text-3)",
-                boxShadow: mode === tab.key ? "0 1px 3px rgba(0,0,0,0.06)" : "none",
-                transition: "all 0.2s",
+                width: 16,
+                height: 16,
+                borderRadius: "50%",
+                background: "#fff",
+                position: "absolute",
+                top: 2,
+                right: mode === "tokens" ? 2 : 22,
+                boxShadow: "0 1px 3px rgba(0,0,0,0.15)",
+                transition: "right 0.2s ease",
               }}
-            >
-              {tab.label}
-            </button>
-          ))}
+            />
+          </div>
         </div>
-      </CardContent>
-    </Card>
+
+        {/* Cost ($) */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            cursor: "pointer",
+          }}
+          onClick={() => setMode("cost")}
+        >
+          <span
+            style={{
+              fontSize: 14,
+              fontWeight: 500,
+              fontFamily: "'Hanken Grotesk', sans-serif",
+              color: mode === "cost" ? "#251913" : "#594238",
+              transition: "color 0.2s",
+            }}
+          >
+            Cost ($)
+          </span>
+          <div
+            style={{
+              width: 40,
+              height: 20,
+              borderRadius: 9999,
+              background: mode === "cost" ? "#9f3d00" : "#fce3da",
+              position: "relative",
+              transition: "background 0.2s",
+            }}
+          >
+            <div
+              style={{
+                width: 16,
+                height: 16,
+                borderRadius: "50%",
+                background: "#fff",
+                position: "absolute",
+                top: 2,
+                right: mode === "cost" ? 2 : 22,
+                boxShadow: "0 1px 3px rgba(0,0,0,0.15)",
+                transition: "right 0.2s ease",
+              }}
+            />
+          </div>
+        </div>
+
+        {/* Efficiency */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            cursor: "pointer",
+          }}
+          onClick={() => setMode("efficiency")}
+        >
+          <span
+            style={{
+              fontSize: 14,
+              fontWeight: 500,
+              fontFamily: "'Hanken Grotesk', sans-serif",
+              color: mode === "efficiency" ? "#251913" : "#594238",
+              transition: "color 0.2s",
+            }}
+          >
+            Efficiency
+          </span>
+          <div
+            style={{
+              width: 40,
+              height: 20,
+              borderRadius: 9999,
+              background: mode === "efficiency" ? "#9f3d00" : "#fce3da",
+              position: "relative",
+              transition: "background 0.2s",
+            }}
+          >
+            <div
+              style={{
+                width: 16,
+                height: 16,
+                borderRadius: "50%",
+                background: "#fff",
+                position: "absolute",
+                top: 2,
+                right: mode === "efficiency" ? 2 : 22,
+                boxShadow: "0 1px 3px rgba(0,0,0,0.15)",
+                transition: "right 0.2s ease",
+              }}
+            />
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
