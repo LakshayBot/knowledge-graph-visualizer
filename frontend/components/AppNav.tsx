@@ -5,12 +5,6 @@ import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
 
-import {
-  NavigationMenu,
-  NavigationMenuItem,
-  NavigationMenuLink,
-  NavigationMenuList,
-} from "@/components/ui/navigation-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -21,9 +15,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { cn } from "@/lib/utils";
 
-/* ── Tiny SVG icons (inline, no lucide import needed) ── */
+/* ── Inline SVG icons ──────────────────────────────── */
 function SunIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -73,35 +66,74 @@ export default function AppNav() {
     localStorage.setItem("theme", next ? "dark" : "light");
   }
 
-  function handleNav(href: string) {
-    setMobileOpen(false);
-    router.push(href);
+  function isActive(href: string) {
+    if (href === "/dashboard") return pathname === "/dashboard";
+    return pathname.startsWith(href);
   }
 
   const initials = user?.username
     ? user.username.slice(0, 2).toUpperCase()
     : "?";
 
-  function isActive(href: string) {
-    if (href === "/dashboard") return pathname === "/dashboard";
-    return pathname.startsWith(href);
-  }
+  const navLinkStyle: React.CSSProperties = {
+    fontSize: 13,
+    fontWeight: 500,
+    textDecoration: "none",
+    padding: "8px 16px",
+    borderRadius: 6,
+    transition: "background 0.15s, color 0.15s",
+    cursor: "pointer",
+    background: "transparent",
+    border: "none",
+    fontFamily: "inherit",
+    lineHeight: 1,
+  };
 
+  // ── SSR placeholder ──
   if (!mounted) {
     return (
-      <header className="sticky top-0 z-50 w-full border-b border-border bg-background">
-        <div className="flex h-14 items-center justify-between px-4 md:px-6">
-          <div className="flex items-center gap-2">
-            <span className="flex size-7 items-center justify-center rounded-full bg-foreground text-background">
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+      <header
+        style={{
+          position: "sticky",
+          top: 0,
+          zIndex: 50,
+          width: "100%",
+          borderBottom: "1px solid var(--border)",
+          background: "var(--bg)",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            height: 56,
+            padding: "0 24px",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span
+              style={{
+                width: 28,
+                height: 28,
+                background: "var(--text-1)",
+                borderRadius: "50%",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--bg)" strokeWidth="2.5">
                 <path d="M5 12h14M12 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </span>
-            <span className="text-base font-bold tracking-tight text-foreground">CausalExplorer</span>
+            <span style={{ fontSize: 16, fontWeight: 700, letterSpacing: "-0.03em", color: "var(--text-1)" }}>
+              CausalExplorer
+            </span>
           </div>
-          <div className="flex items-center gap-1">
+          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
             {NAV_ITEMS.map((item) => (
-              <span key={item.href} className="px-3 py-1.5 text-sm font-medium text-muted-foreground">
+              <span key={item.href} style={{ ...navLinkStyle, color: "var(--text-3)" }}>
                 {item.label}
               </span>
             ))}
@@ -112,74 +144,163 @@ export default function AppNav() {
   }
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="flex h-14 items-center justify-between px-4 md:px-6">
-        {/* ── Left: Logo + Desktop Nav ── */}
-        <div className="flex items-center gap-6">
+    <header
+      style={{
+        position: "sticky",
+        top: 0,
+        zIndex: 50,
+        width: "100%",
+        borderBottom: "1px solid var(--border)",
+        background: "var(--bg)",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          height: 56,
+          padding: "0 24px",
+        }}
+      >
+        {/* ── Left side: Logo + Desktop Nav ── */}
+        <div style={{ display: "flex", alignItems: "center", gap: 28 }}>
+          {/* Logo */}
           <Link
             href="/dashboard"
-            className="flex items-center gap-2 text-base font-bold tracking-tight text-foreground"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              textDecoration: "none",
+              color: "var(--text-1)",
+              fontSize: 16,
+              fontWeight: 700,
+              letterSpacing: "-0.03em",
+            }}
           >
-            <span className="flex size-7 items-center justify-center rounded-full bg-foreground text-background">
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <span
+              style={{
+                width: 28,
+                height: 28,
+                background: "var(--text-1)",
+                borderRadius: "50%",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+              }}
+            >
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--bg)" strokeWidth="2.5">
                 <path d="M5 12h14M12 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </span>
             <span className="hidden sm:inline">CausalExplorer</span>
           </Link>
 
-          {/* Desktop navigation */}
-          <NavigationMenu className="hidden md:flex">
-            <NavigationMenuList>
-              {NAV_ITEMS.map((item) => (
-                <NavigationMenuItem key={item.href}>
-                  <NavigationMenuLink
-                    href={item.href}
-                    active={isActive(item.href)}
-                    className={cn(
-                      "px-3 py-1.5 text-sm font-medium rounded-md transition-colors",
-                      isActive(item.href)
-                        ? "text-foreground bg-accent"
-                        : "text-muted-foreground hover:text-foreground hover:bg-accent/50",
-                    )}
-                  >
-                    {item.label}
-                  </NavigationMenuLink>
-                </NavigationMenuItem>
-              ))}
-            </NavigationMenuList>
-          </NavigationMenu>
+          {/* Desktop nav links */}
+          <nav style={{ display: "flex", alignItems: "center", gap: 2 }}>
+            {NAV_ITEMS.map((item) => {
+              const active = isActive(item.href);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  style={{
+                    ...navLinkStyle,
+                    color: active ? "var(--text-1)" : "var(--text-3)",
+                    background: active ? "var(--bg-subtle)" : "transparent",
+                    fontWeight: active ? 600 : 500,
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!active) e.currentTarget.style.background = "var(--bg-subtle)";
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!active) e.currentTarget.style.background = "transparent";
+                  }}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
+          </nav>
         </div>
 
-        {/* ── Right: Theme toggle + Avatar + Mobile trigger ── */}
-        <div className="flex items-center gap-1">
+        {/* ── Right side: Theme toggle + Avatar + Mobile menu ── */}
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           {/* Dark mode toggle */}
           <button
             onClick={toggleDark}
             aria-label="Toggle dark mode"
-            className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+            style={{
+              width: 32,
+              height: 32,
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              background: "transparent",
+              border: "none",
+              color: "var(--text-3)",
+              cursor: "pointer",
+              borderRadius: 6,
+              transition: "background 0.15s, color 0.15s",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "var(--bg-subtle)";
+              e.currentTarget.style.color = "var(--text-1)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "transparent";
+              e.currentTarget.style.color = "var(--text-3)";
+            }}
           >
             {dark ? <SunIcon /> : <MoonIcon />}
           </button>
 
-          {/* Avatar with dropdown */}
+          {/* Avatar dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger
               render={
-                <button className="inline-flex size-8 items-center justify-center rounded-full focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background" />
+                <button
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: "50%",
+                    border: "none",
+                    padding: 0,
+                    cursor: "pointer",
+                    background: "transparent",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                />
               }
             >
               <Avatar className="size-8">
-                <AvatarFallback className="text-xs font-semibold">{initials}</AvatarFallback>
+                <AvatarFallback
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 700,
+                    background: "var(--text-1)",
+                    color: "var(--bg)",
+                  }}
+                >
+                  {initials}
+                </AvatarFallback>
               </Avatar>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
               {isAuthenticated ? (
                 <>
                   <DropdownMenuLabel className="font-normal">
-                    <div className="flex flex-col gap-1">
-                      <p className="text-sm font-medium leading-none">{user?.username}</p>
-                      <p className="text-xs leading-none text-muted-foreground">{user?.email}</p>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                      <p className="text-sm font-medium leading-none" style={{ margin: 0, color: "var(--text-1)" }}>
+                        {user?.username}
+                      </p>
+                      <p className="text-xs leading-none" style={{ margin: 0, color: "var(--text-3)" }}>
+                        {user?.email}
+                      </p>
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
@@ -207,13 +328,25 @@ export default function AppNav() {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* Mobile nav trigger (Sheet) */}
+          {/* Mobile hamburger (hidden on md+) */}
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger
               render={
                 <button
-                  className="inline-flex size-8 items-center justify-center rounded-md md:hidden text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                  className="md:hidden"
                   aria-label="Open menu"
+                  style={{
+                    width: 32,
+                    height: 32,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    background: "transparent",
+                    border: "none",
+                    color: "var(--text-3)",
+                    cursor: "pointer",
+                    borderRadius: 6,
+                  }}
                 />
               }
             >
@@ -224,21 +357,30 @@ export default function AppNav() {
               </svg>
             </SheetTrigger>
             <SheetContent side="right" className="w-[240px] p-6">
-              <nav className="mt-8 flex flex-col gap-1">
-                {NAV_ITEMS.map((item) => (
-                  <button
-                    key={item.href}
-                    onClick={() => handleNav(item.href)}
-                    className={cn(
-                      "text-left px-3 py-2.5 text-sm font-medium rounded-md transition-colors",
-                      isActive(item.href)
-                        ? "text-foreground bg-accent"
-                        : "text-muted-foreground hover:text-foreground hover:bg-accent/50",
-                    )}
-                  >
-                    {item.label}
-                  </button>
-                ))}
+              <nav style={{ marginTop: 32, display: "flex", flexDirection: "column", gap: 4 }}>
+                {NAV_ITEMS.map((item) => {
+                  const active = isActive(item.href);
+                  return (
+                    <button
+                      key={item.href}
+                      onClick={() => { setMobileOpen(false); router.push(item.href); }}
+                      style={{
+                        textAlign: "left",
+                        padding: "10px 12px",
+                        fontSize: 14,
+                        fontWeight: active ? 600 : 500,
+                        color: active ? "var(--text-1)" : "var(--text-3)",
+                        background: active ? "var(--bg-subtle)" : "transparent",
+                        border: "none",
+                        cursor: "pointer",
+                        borderRadius: 6,
+                        fontFamily: "inherit",
+                      }}
+                    >
+                      {item.label}
+                    </button>
+                  );
+                })}
               </nav>
             </SheetContent>
           </Sheet>
