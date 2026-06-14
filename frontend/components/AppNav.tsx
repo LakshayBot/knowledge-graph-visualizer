@@ -111,7 +111,7 @@ export default function AppNav() {
             padding: "0 24px",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 8 }}>
             <span
               style={{
                 width: 28,
@@ -131,13 +131,14 @@ export default function AppNav() {
               CausalExplorer
             </span>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+          <nav style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 2 }}>
             {NAV_ITEMS.map((item) => (
               <span key={item.href} style={{ ...navLinkStyle, color: "var(--text-3)" }}>
                 {item.label}
               </span>
             ))}
-          </div>
+          </nav>
+          <div style={{ flex: 1 }} />
         </div>
       </header>
     );
