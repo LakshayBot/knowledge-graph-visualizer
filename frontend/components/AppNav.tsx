@@ -164,7 +164,7 @@ export default function AppNav() {
         }}
       >
         {/* ── Left: Logo ── */}
-        <div style={{ flex: "0 0 auto" }}>
+        <div style={{ flex: 1, display: "flex", alignItems: "center" }}>
           <Link
             href="/dashboard"
             style={{
@@ -234,7 +234,7 @@ export default function AppNav() {
         </nav>
 
         {/* ── Right: Theme toggle + Avatar + Mobile menu ── */}
-        <div style={{ flex: "0 0 auto", display: "flex", alignItems: "center", gap: 6 }}>
+        <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 6 }}>
           {/* Dark mode toggle */}
           <button
             onClick={toggleDark}
