@@ -133,31 +133,17 @@ function ExploreContent() {
     <div style={{ height: "calc(100svh - 90px)", display: "flex", flexDirection: "column", background: "#f9f9f9", overflow: "hidden" }}>
       {/* Headbar */}
       <header style={{ height: 56, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 24px", background: "#fff", borderBottom: "1px solid #e4e4e7", flexShrink: 0 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 28 }}>
-          <span style={{ fontSize: 16, fontWeight: 700, color: "#000", letterSpacing: "-0.02em" }}>GraphEngine</span>
-          <div style={{ display: "flex", gap: 24 }}>
-            {["Overview", "Network", "Schema"].map((t, i) => (
-              <span key={t} style={{ fontSize: 13, fontWeight: 500, color: i === 1 ? "#000" : "#71717a", padding: "8px 0", cursor: "pointer", borderBottom: i === 1 ? "2px solid #000" : "2px solid transparent", transition: "color 0.15s" }}>
-                {t}
-              </span>
-            ))}
-          </div>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <div style={{ position: "relative" }}>
-            <input type="text" placeholder="Search nodes..." style={{
-              width: 240, height: 36, padding: "0 14px 0 32px", background: "#f3f3f3", border: "1px solid #e4e4e7", borderRadius: 6,
-              fontSize: 12, fontWeight: 500, fontFamily: "'JetBrains Mono', monospace", color: "#1a1c1c", outline: "none"
-            }} />
-            <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#71717a", fontSize: 14 }}>&#x1F50D;</span>
-            <span style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", fontSize: 10, fontWeight: 600, color: "#71717a", background: "#f9f9f9", border: "1px solid #e4e4e7", borderRadius: 4, padding: "1px 6px", fontFamily: "monospace" }}>&#x2318;K</span>
-          </div>
-          <button style={{ background: "#000", color: "#fff", border: "none", padding: "8px 16px", borderRadius: 6, fontSize: 12, fontWeight: 600, fontFamily: "inherit", cursor: "pointer" }}>Share</button>
-          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-            <button style={{ background: "transparent", border: "none", color: "#71717a", cursor: "pointer", padding: 6, borderRadius: 4, display: "flex" }}>&#x1F514;</button>
-            <button style={{ background: "transparent", border: "none", color: "#71717a", cursor: "pointer", padding: 6, borderRadius: 4, display: "flex" }}>&#x2699;</button>
-          </div>
-          <div style={{ width: 32, height: 32, borderRadius: "50%", background: "#e2e2e2", border: "1px solid #e4e4e7", overflow: "hidden", flexShrink: 0 }} />
+        <span style={{ fontSize: 16, fontWeight: 700, color: "#000", letterSpacing: "-0.02em" }}>GraphEngine</span>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          {/* User avatar with initials */}
+          <a href="/profile" style={{
+            width: 32, height: 32, borderRadius: "50%", background: "#000", color: "#fff",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontWeight: 600, fontSize: 12, textDecoration: "none", cursor: "pointer",
+            border: "1px solid #000", flexShrink: 0,
+          }}>
+            <span style={{ lineHeight: 1 }}>A</span>
+          </a>
         </div>
       </header>
 
@@ -227,15 +213,17 @@ function ExploreContent() {
           </div>
 
           {/* Command bar */}
-          <div style={{ padding: "12px 24px 16px", display: "flex", justifyContent: "center" }}>
-            <div style={{ background: "#fff", border: "1px solid #e4e4e7", borderRadius: 12, padding: "6px 6px 6px 14px", display: "flex", alignItems: "center", gap: 8, width: "100%", maxWidth: 680, boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}>
-              <span style={{ color: "#000", fontSize: 14, fontFamily: "monospace", fontWeight: 700 }}>&gt;_</span>
+          <div style={{ padding: "10px 24px 12px", display: "flex", justifyContent: "center" }}>
+            <div style={{ background: "#fff", border: "1px solid #e4e4e7", borderRadius: 12, padding: "5px 5px 5px 14px", display: "flex", alignItems: "center", gap: 8, width: "100%", maxWidth: 640, boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#71717a" strokeWidth="2" strokeLinecap="round">
+                <polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/>
+              </svg>
               <input type="text" value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                placeholder="Query graph (e.g. 'Show paths between causes...')" disabled={loading}
+                placeholder="Query graph (e.g. 'What caused the Euro to weaken?')" disabled={loading}
                 style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: 13, fontFamily: "'JetBrains Mono', monospace", fontWeight: 500, color: "#1a1c1c" }} />
               <button onClick={handleSearch} disabled={loading || !query.trim()}
-                style={{ background: loading || !query.trim() ? "#e4e4e7" : "#000", color: loading || !query.trim() ? "#71717a" : "#fff", border: "none", padding: "8px 16px", borderRadius: 8, fontSize: 12, fontWeight: 600, fontFamily: "inherit", cursor: loading ? "not-allowed" : "pointer", display: "flex", alignItems: "center", gap: 4 }}>
-                {loading ? "Running..." : <>Run <span style={{ fontSize: 10, opacity: 0.4 }}>&#x23CE;</span></>}
+                style={{ background: loading || !query.trim() ? "#e4e4e7" : "#000", color: loading || !query.trim() ? "#71717a" : "#fff", border: "none", padding: "7px 14px", borderRadius: 8, fontSize: 11, fontWeight: 600, fontFamily: "inherit", cursor: loading ? "not-allowed" : "pointer" }}>
+                {loading ? "Running..." : "Run"}
               </button>
             </div>
           </div>
