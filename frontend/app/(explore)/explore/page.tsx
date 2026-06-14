@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import AuthGuard from "@/components/auth/AuthGuard";
 import { useBreakpoint } from "@/hooks/useBreakpoint";
 import GraphCanvas from "@/components/explore/GraphCanvas";
@@ -24,7 +24,6 @@ export default function ExplorePage() {
 
 function ExploreContent() {
   const searchParams = useSearchParams();
-  const router = useRouter();
   const bp = useBreakpoint();
   const isNarrow = bp === "mobile" || bp === "tablet";
 
