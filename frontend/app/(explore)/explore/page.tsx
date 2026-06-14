@@ -6,6 +6,7 @@ import AuthGuard from "@/components/auth/AuthGuard";
 import { useBreakpoint } from "@/hooks/useBreakpoint";
 import GraphCanvas from "@/components/explore/GraphCanvas";
 import NodeDetailPanel from "@/components/explore/NodeDetailPanel";
+import ModeSelector from "@/components/explore/ModeSelector";
 import type { GraphNode, GraphEdge } from "@/types/graph";
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5001/api/v1";
@@ -46,6 +47,7 @@ function ExploreContent() {
   const isNarrow = bp === "mobile" || bp === "tablet";
 
   const [query, setQuery] = useState("");
+  const [mode, setMode] = useState<"minimal"|"balanced"|"quality">("balanced");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [nodes, setNodes] = useState<GraphNode[]>([]);
@@ -212,7 +214,10 @@ function ExploreContent() {
           </div>
 
           {/* Command bar */}
-          <div style={{ padding:"10px 24px 14px", display:"flex", justifyContent:"center" }}>
+          <div style={{ padding:"10px 24px 14px", display:"flex", justifyContent:"center", flexDirection:"column", alignItems:"center", gap:8 }}>
+            <div style={{ width:"100%", maxWidth:640 }}>
+              <ModeSelector value={mode} onChange={setMode} disabled={loading} />
+            </div>
             <div style={{ background:"#fff", border:BR, borderRadius:12, padding:"6px 6px 6px 16px", display:"flex", alignItems:"center", gap:8, width:"100%", maxWidth:640, boxShadow:"0 1px 3px rgba(0,0,0,0.04)" }}>
               <span style={{ color:"#000", display:"flex" }}><TerminalIcon /></span>
               <input type="text" value={query} onChange={(e)=>setQuery(e.target.value)} onKeyDown={(e)=>e.key==="Enter"&&handleSearch()}
