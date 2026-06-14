@@ -57,7 +57,7 @@ function HistoryContent() {
       style={{
         padding: `40px ${px} 80px`,
         background: "var(--bg)",
-        minHeight: "calc(100svh - 56px)",
+        minHeight: "100%",
       }}
     >
       <div style={{ maxWidth: 960, margin: "0 auto" }}>

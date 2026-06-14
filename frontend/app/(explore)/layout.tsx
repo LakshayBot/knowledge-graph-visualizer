@@ -4,10 +4,19 @@ import AppNav from "@/components/AppNav";
 export default function ExploreLayout({ children }: { children: React.ReactNode }) {
   return (
     <AuthProvider>
-      <AppNav />
-      <main style={{ minHeight: 0, flex: 1, display: "flex", flexDirection: "column" }}>
-        {children}
-      </main>
+      <div
+        style={{
+          height: "100svh",
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
+        }}
+      >
+        <AppNav />
+        <main style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
+          {children}
+        </main>
+      </div>
     </AuthProvider>
   );
 }
