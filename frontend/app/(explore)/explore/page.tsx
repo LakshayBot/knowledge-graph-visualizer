@@ -125,60 +125,139 @@ function ExploreContent() {
 
   /* ── Desktop layout (canvas + inspector, no sidebar) ── */
   const BR = "1px solid var(--border)";
+  const hasEmptyCanvas = nodes.length === 0 && !loading;
 
   return (
-    <div style={{ flex:1, display:"flex", overflow:"hidden" }}>
+    <div style={{ flex: 1, display: "flex", overflow: "hidden", position: "relative" }}>
       {/* Canvas area */}
-      <main style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden" }}>
-        <div style={{ flex:1, position:"relative", overflow:"hidden" }}>
-          <GraphBackground>
-            <GraphCanvas nodes={nodes} edges={edges} rootId={rootNodeId} onNodeClick={handleNodeClick} loading={loading} />
-          </GraphBackground>
+      <main style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
+          {hasEmptyCanvas ? (
+            <div
+              style={{
+                width: "100%",
+                height: "100%",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 10,
+                background: "var(--bg-subtle)",
+              }}
+            >
+              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--text-4)" strokeWidth="1.5" strokeLinecap="round">
+                <circle cx="11" cy="11" r="8" />
+                <path d="m21 21-4.35-4.35" />
+              </svg>
+              <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text-3)", textAlign: "center", maxWidth: 260, margin: 0 }}>
+                Type a question to generate a causal graph
+              </p>
+              <p style={{ fontSize: 11, color: "var(--text-4)", textAlign: "center", margin: 0 }}>
+                Grok AI will analyze causes and effects
+              </p>
+            </div>
+          ) : (
+            <GraphBackground>
+              <GraphCanvas nodes={nodes} edges={edges} rootId={rootNodeId} onNodeClick={handleNodeClick} loading={loading} />
+            </GraphBackground>
+          )}
           {/* Zoom controls */}
-          <div style={{ position:"absolute", bottom:20, right:24, zIndex:20 }}>
-            <div style={{ background:"var(--surface)", border:BR, borderRadius:8, display:"flex", flexDirection:"column", overflow:"hidden", boxShadow:"0 1px 3px rgba(0,0,0,0.06)" }}>
-              {[{icon:<ZoomInIcon />, last:false}, {icon:<ZoomOutIcon />, last:false}, {icon:<FitIcon />, last:true}].map(({icon, last}, i) => (
-                <button key={i} style={{ padding:"8px 10px", border:"none", borderBottom:last?"none":BR, background:"var(--surface)", color:"var(--text-3)", cursor:"pointer", display:"flex", fontFamily:"inherit", transition:"background 0.15s, color 0.15s" }}
-                  onMouseEnter={(e)=>{e.currentTarget.style.background="var(--bg-subtle)";e.currentTarget.style.color="var(--text-1)"}}
-                  onMouseLeave={(e)=>{e.currentTarget.style.background="var(--surface)";e.currentTarget.style.color="var(--text-3)"}}>{icon}</button>
+          <div style={{ position: "absolute", bottom: 20, right: 24, zIndex: 20 }}>
+            <div style={{ background: "var(--surface)", border: BR, borderRadius: 8, display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
+              {[{ icon: <ZoomInIcon />, last: false }, { icon: <ZoomOutIcon />, last: false }, { icon: <FitIcon />, last: true }].map(({ icon, last }, i) => (
+                <button key={i} style={{ padding: "8px 10px", border: "none", borderBottom: last ? "none" : BR, background: "var(--surface)", color: "var(--text-3)", cursor: "pointer", display: "flex", fontFamily: "inherit", transition: "background 0.15s, color 0.15s" }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = "var(--bg-subtle)"; e.currentTarget.style.color = "var(--text-1)"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = "var(--surface)"; e.currentTarget.style.color = "var(--text-3)"; }}>{icon}</button>
               ))}
             </div>
           </div>
         </div>
 
-        {/* Command bar */}
-        <div style={{ padding:"10px 24px 14px", display:"flex", justifyContent:"center", flexDirection:"column", alignItems:"center", gap:8 }}>
-          <div style={{ width:"100%", maxWidth:640 }}>
-            <ModeSelector value={mode} onChange={setMode} disabled={loading} />
-          </div>
-          <div style={{ background:"var(--surface)", border:BR, borderRadius:12, padding:"6px 6px 6px 16px", display:"flex", alignItems:"center", gap:8, width:"100%", maxWidth:640, boxShadow:"0 1px 3px rgba(0,0,0,0.04)" }}>
-            <span style={{ display:"flex" }}><TerminalIcon /></span>
-            <input type="text" value={query} onChange={(e)=>setQuery(e.target.value)} onKeyDown={(e)=>e.key==="Enter"&&handleSearch()}
-              placeholder='Query graph (e.g. "Show paths between Subsystem A and Admin")...' disabled={loading}
-              style={{ flex:1, background:"transparent", border:"none", outline:"none", fontSize:13, fontFamily:"'JetBrains Mono',monospace", fontWeight:500, color:"var(--text-1)" }} />
-            <button onClick={handleSearch} disabled={loading||!query.trim()}
-              style={{ background:loading?"var(--bg-subtle)":"var(--bg-subtle)", color:loading?"var(--text-4)":"var(--text-1)", border:"1px solid var(--border)", padding:"7px 12px", borderRadius:8, fontSize:11, fontWeight:600, fontFamily:"inherit", cursor:loading?"not-allowed":"pointer", display:"flex", alignItems:"center", gap:4 }}>
-              Run <span style={{ fontSize:10 }}>&#x23CE;</span>
-            </button>
-          </div>
-        </div>
+        {/* spacer — keeps layout height for absolute-positioned command bar below */}
+        <div style={{ height: 130, flexShrink: 0 }} />
       </main>
 
       {/* Right Inspector */}
-      <aside style={{ width:320, borderLeft:BR, background:"var(--surface)", display:"flex", flexDirection:"column", flexShrink:0 }}>
-        <div style={{ height:48, display:"flex", alignItems:"center", padding:"0 16px", borderBottom:BR, background:"var(--surface)" }}>
-          <h2 style={{ fontSize:15, fontWeight:600, color:"var(--text-1)", margin:0, letterSpacing:"-0.01em" }}>Inspector</h2>
+      <aside style={{ width: 320, borderLeft: BR, background: "var(--surface)", display: "flex", flexDirection: "column", flexShrink: 0 }}>
+        <div style={{ height: 48, display: "flex", alignItems: "center", padding: "0 16px", borderBottom: BR, background: "var(--surface)" }}>
+          <h2 style={{ fontSize: 15, fontWeight: 600, color: "var(--text-1)", margin: 0, letterSpacing: "-0.01em" }}>Inspector</h2>
         </div>
         {selectedNode
-          ? <NodeDetailPanel node={selectedNode} edges={edges} saved={saved} onExpand={chainId?handleExpand:undefined} expanding={expanding} />
+          ? <NodeDetailPanel node={selectedNode} edges={edges} saved={saved} onExpand={chainId ? handleExpand : undefined} expanding={expanding} />
           : (
-            <div style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:40, color:"var(--text-3)" }}>
-              <span style={{ fontSize:36, opacity:0.2, marginBottom:12 }}>&#x261B;</span>
-              <p style={{ fontSize:13, fontWeight:500, textAlign:"center", maxWidth:200, margin:0 }}>Select a node or edge on the canvas to view its properties.</p>
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 40, color: "var(--text-3)" }}>
+              <span style={{ fontSize: 36, opacity: 0.2, marginBottom: 12 }}>&#x261B;</span>
+              <p style={{ fontSize: 13, fontWeight: 500, textAlign: "center", maxWidth: 200, margin: 0 }}>Select a node or edge on the canvas to view its properties.</p>
             </div>
           )
         }
       </aside>
+
+      {/* ── Command bar — spans full viewport width, centered on true viewport centerline ── */}
+      <div
+        style={{
+          position: "absolute",
+          bottom: 0,
+          left: 0,
+          right: 0,
+          padding: "10px 24px 14px",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: 8,
+          pointerEvents: "none",
+        }}
+      >
+        <div style={{ width: "100%", maxWidth: 640, pointerEvents: "auto" }}>
+          <ModeSelector value={mode} onChange={setMode} disabled={loading} />
+        </div>
+        <div
+          style={{
+            width: "100%",
+            maxWidth: 640,
+            pointerEvents: "auto",
+            background: "var(--surface)",
+            border: BR,
+            borderRadius: 12,
+            padding: "6px 6px 6px 16px",
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+          }}
+        >
+          <span style={{ display: "flex" }}><TerminalIcon /></span>
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+            placeholder='Query graph (e.g. "Show paths between Subsystem A and Admin")...'
+            disabled={loading}
+            style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: 13, fontFamily: "'JetBrains Mono',monospace", fontWeight: 500, color: "var(--text-1)" }}
+          />
+          <button
+            onClick={handleSearch}
+            disabled={loading || !query.trim()}
+            style={{
+              background: loading ? "var(--bg-subtle)" : "var(--bg-subtle)",
+              color: loading ? "var(--text-4)" : "var(--text-1)",
+              border: "1px solid var(--border)",
+              padding: "7px 12px",
+              borderRadius: 8,
+              fontSize: 11,
+              fontWeight: 600,
+              fontFamily: "inherit",
+              cursor: loading ? "not-allowed" : "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: 4,
+            }}
+          >
+            Run <span style={{ fontSize: 10 }}>&#x23CE;</span>
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
