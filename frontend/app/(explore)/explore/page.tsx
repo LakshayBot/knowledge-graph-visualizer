@@ -12,30 +12,11 @@ import type { GraphNode, GraphEdge } from "@/types/graph";
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5001/api/v1";
 
-/* ── Tiny SVG icons ──────────────────────────────────── */
-function DashboardIcon() { return (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>); }
-function ExploreIcon() { return (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12"/></svg>); }
-function HistoryIcon() { return (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>); }
-function SettingsIcon() { return (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>); }
-function SupportIcon() { return (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>); }
-function BellIcon() { return (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>); }
-function SearchIcon() { return (<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>); }
+/* ── Tiny inline icons ──────────────────────────────── */
 function TerminalIcon() { return (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>); }
-function PlusIcon() { return (<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>); }
 function ZoomInIcon() { return (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/><path d="m21 21-4.35-4.35"/></svg>); }
 function ZoomOutIcon() { return (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="8" y1="11" x2="14" y2="11"/><path d="m21 21-4.35-4.35"/></svg>); }
 function FitIcon() { return (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M8 3H5a2 2 0 00-2 2v3M18 3h3a2 2 0 012 2v3M21 16v3a2 2 0 01-2 2h-3M3 16v3a2 2 0 002 2h3"/></svg>); }
-
-const NAV_ITEMS = [
-  { label: "Dashboard", href: "/dashboard", Icon: DashboardIcon },
-  { label: "Explore",   href: "/explore",   Icon: ExploreIcon },
-  { label: "History",   href: "/history",   Icon: HistoryIcon },
-];
-
-const BOTTOM_ITEMS = [
-  { label: "Settings", Icon: SettingsIcon },
-  { label: "Support",  Icon: SupportIcon },
-];
 
 export default function ExplorePage() {
   return (<AuthGuard><ExploreContent /></AuthGuard>);
@@ -117,136 +98,87 @@ function ExploreContent() {
 
   type G = { id: string };
 
+  /* ── Narrow / mobile layout ──────────────────────────── */
   if (isNarrow) {
     return (
-      <div style={{ height:"calc(100svh - 90px)", display:"flex", flexDirection:"column", background:"#f9f9f9" }}>
-        <div style={{ padding:"12px 16px", background:"#fff", borderBottom:"1px solid #e4e4e7" }}>
-          <div style={{ display:"flex", gap:0, background:"#fff", border:"1px solid #e4e4e7", borderRadius:12, padding:"4px 4px 4px 14px", alignItems:"center" }}>
-            <span style={{ color:"#000", fontSize:16, fontWeight:700, fontFamily:"monospace" }}>&gt;_</span>
+      <div style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden" }}>
+        <div style={{ padding:"12px 16px", background:"var(--surface)", borderBottom:"1px solid var(--border)" }}>
+          <div style={{ display:"flex", gap:0, background:"var(--surface)", border:"1px solid var(--border)", borderRadius:12, padding:"4px 4px 4px 14px", alignItems:"center" }}>
+            <span style={{ fontSize:16, fontWeight:700, fontFamily:"monospace" }}>&gt;_</span>
             <input type="text" value={query} onChange={(e)=>setQuery(e.target.value)} onKeyDown={(e)=>e.key==="Enter"&&handleSearch()} placeholder="Query graph..." disabled={loading}
-              style={{ flex:1, background:"transparent", border:"none", outline:"none", fontSize:13, fontFamily:"'JetBrains Mono',monospace", fontWeight:500, color:"#1a1c1c", padding:"8px 4px" }} />
+              style={{ flex:1, background:"transparent", border:"none", outline:"none", fontSize:13, fontFamily:"'JetBrains Mono',monospace", fontWeight:500, color:"var(--text-1)", padding:"8px 4px" }} />
             <button onClick={handleSearch} disabled={loading||!query.trim()}
-              style={{ background:loading?"#e4e4e7":"#000", color:loading?"#71717a":"#fff", border:"none", padding:"8px 14px", borderRadius:8, fontSize:12, fontWeight:600, fontFamily:"inherit", cursor:loading?"not-allowed":"pointer" }}>Run</button>
+              style={{ background:loading?"var(--bg-subtle)":"var(--text-1)", color:loading?"var(--text-4)":"var(--bg)", border:"none", padding:"8px 14px", borderRadius:8, fontSize:12, fontWeight:600, fontFamily:"inherit", cursor:loading?"not-allowed":"pointer" }}>Run</button>
           </div>
         </div>
-        <div style={{ flex:1, minHeight:0, position:"relative" }}><GraphBackground><GraphCanvas nodes={nodes} edges={edges} rootId={rootNodeId} onNodeClick={handleNodeClick} loading={loading} /></GraphBackground></div>
-        {selectedNode && <div style={{ maxHeight:"45vh", overflowY:"auto", borderTop:"1px solid #e4e4e7" }}><NodeDetailPanel node={selectedNode} edges={edges} saved={saved} onExpand={chainId?handleExpand:undefined} expanding={expanding} /></div>}
+        <div style={{ flex:1, minHeight:0, position:"relative" }}>
+          <GraphBackground><GraphCanvas nodes={nodes} edges={edges} rootId={rootNodeId} onNodeClick={handleNodeClick} loading={loading} /></GraphBackground>
+        </div>
+        {selectedNode && (
+          <div style={{ maxHeight:"45vh", overflowY:"auto", borderTop:"1px solid var(--border)" }}>
+            <NodeDetailPanel node={selectedNode} edges={edges} saved={saved} onExpand={chainId?handleExpand:undefined} expanding={expanding} />
+          </div>
+        )}
       </div>
     );
   }
 
-  const BR = "1px solid #e4e4e7";
+  /* ── Desktop layout (canvas + inspector, no sidebar) ── */
+  const BR = "1px solid var(--border)";
 
   return (
-    <div style={{ height:"100svh", display:"flex", flexDirection:"column", background:"#f9f9f9", overflow:"hidden" }}>
-      {/* ── TopNavBar ───────────────────────────────── */}
-      <header style={{ height:56, display:"flex", alignItems:"center", justifyContent:"space-between", padding:"0 24px", background:"#fff", borderBottom:BR, flexShrink:0 }}>
-        <div style={{ display:"flex", alignItems:"center", gap:28 }}>
-          <span style={{ fontSize:16, fontWeight:700, color:"#000", letterSpacing:"-0.02em" }}>GraphEngine</span>
-          <div style={{ display:"flex", gap:24 }}>
-            {["Analytics","Network","Schema"].map((t,i) => (
-              <span key={t} style={{ fontSize:13, fontWeight:500, color:i===1?"#000":"#71717a", padding:"8px 0", cursor:"pointer", borderBottom:i===1?"2px solid #000":"2px solid transparent" }}>{t}</span>
-            ))}
+    <div style={{ flex:1, display:"flex", overflow:"hidden" }}>
+      {/* Canvas area */}
+      <main style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden" }}>
+        <div style={{ flex:1, position:"relative", overflow:"hidden" }}>
+          <GraphBackground>
+            <GraphCanvas nodes={nodes} edges={edges} rootId={rootNodeId} onNodeClick={handleNodeClick} loading={loading} />
+          </GraphBackground>
+          {/* Zoom controls */}
+          <div style={{ position:"absolute", bottom:20, right:24, zIndex:20 }}>
+            <div style={{ background:"var(--surface)", border:BR, borderRadius:8, display:"flex", flexDirection:"column", overflow:"hidden", boxShadow:"0 1px 3px rgba(0,0,0,0.06)" }}>
+              {[{icon:<ZoomInIcon />, last:false}, {icon:<ZoomOutIcon />, last:false}, {icon:<FitIcon />, last:true}].map(({icon, last}, i) => (
+                <button key={i} style={{ padding:"8px 10px", border:"none", borderBottom:last?"none":BR, background:"var(--surface)", color:"var(--text-3)", cursor:"pointer", display:"flex", fontFamily:"inherit", transition:"background 0.15s, color 0.15s" }}
+                  onMouseEnter={(e)=>{e.currentTarget.style.background="var(--bg-subtle)";e.currentTarget.style.color="var(--text-1)"}}
+                  onMouseLeave={(e)=>{e.currentTarget.style.background="var(--surface)";e.currentTarget.style.color="var(--text-3)"}}>{icon}</button>
+              ))}
+            </div>
           </div>
         </div>
-        <div style={{ display:"flex", alignItems:"center", gap:16 }}>
-          <div style={{ position:"relative" }}>
-            <div style={{ position:"absolute", left:10, top:"50%", transform:"translateY(-50%)", color:"#71717a", display:"flex" }}><SearchIcon /></div>
-            <input type="text" placeholder="Search nodes..." style={{ width:240, height:36, padding:"0 52px 0 32px", background:"#f3f3f3", border:"1px solid #e4e4e7", borderRadius:6, fontSize:12, fontWeight:500, fontFamily:"'JetBrains Mono',monospace", color:"#1a1c1c", outline:"none" }} />
-            <span style={{ position:"absolute", right:10, top:"50%", transform:"translateY(-50%)", fontSize:10, fontWeight:600, color:"#71717a", background:"#f9f9f9", border:"1px solid #e4e4e7", borderRadius:4, padding:"1px 6px", fontFamily:"monospace" }}>&#x2318;K</span>
+
+        {/* Command bar */}
+        <div style={{ padding:"10px 24px 14px", display:"flex", justifyContent:"center", flexDirection:"column", alignItems:"center", gap:8 }}>
+          <div style={{ width:"100%", maxWidth:640 }}>
+            <ModeSelector value={mode} onChange={setMode} disabled={loading} />
           </div>
-          <button style={{ background:"#000", color:"#fff", border:"none", padding:"8px 16px", borderRadius:6, fontSize:12, fontWeight:600, fontFamily:"inherit", cursor:"pointer" }}>Share</button>
-          <button style={{ background:"transparent", border:"none", color:"#71717a", cursor:"pointer", padding:6, borderRadius:4, display:"flex" }}><BellIcon /></button>
-          <button style={{ background:"transparent", border:"none", color:"#71717a", cursor:"pointer", padding:6, borderRadius:4, display:"flex" }}><SettingsIcon /></button>
-          <div style={{ width:32, height:32, borderRadius:"50%", background:"#000", color:"#fff", display:"flex", alignItems:"center", justifyContent:"center", fontWeight:600, fontSize:12, border:"1px solid #000", flexShrink:0, cursor:"pointer" }}>A</div>
+          <div style={{ background:"var(--surface)", border:BR, borderRadius:12, padding:"6px 6px 6px 16px", display:"flex", alignItems:"center", gap:8, width:"100%", maxWidth:640, boxShadow:"0 1px 3px rgba(0,0,0,0.04)" }}>
+            <span style={{ display:"flex" }}><TerminalIcon /></span>
+            <input type="text" value={query} onChange={(e)=>setQuery(e.target.value)} onKeyDown={(e)=>e.key==="Enter"&&handleSearch()}
+              placeholder='Query graph (e.g. "Show paths between Subsystem A and Admin")...' disabled={loading}
+              style={{ flex:1, background:"transparent", border:"none", outline:"none", fontSize:13, fontFamily:"'JetBrains Mono',monospace", fontWeight:500, color:"var(--text-1)" }} />
+            <button onClick={handleSearch} disabled={loading||!query.trim()}
+              style={{ background:loading?"var(--bg-subtle)":"var(--bg-subtle)", color:loading?"var(--text-4)":"var(--text-1)", border:"1px solid var(--border)", padding:"7px 12px", borderRadius:8, fontSize:11, fontWeight:600, fontFamily:"inherit", cursor:loading?"not-allowed":"pointer", display:"flex", alignItems:"center", gap:4 }}>
+              Run <span style={{ fontSize:10 }}>&#x23CE;</span>
+            </button>
+          </div>
         </div>
-      </header>
+      </main>
 
-      {/* ── Main workspace ───────────────────────────── */}
-      <div style={{ flex:1, display:"flex", overflow:"hidden", minHeight:0 }}>
-        {/* SideNavBar */}
-        <aside style={{ width:256, display:"flex", flexDirection:"column", borderRight:BR, background:"#fff", padding:"16px 12px", flexShrink:0 }}>
-          <div style={{ marginBottom:24, marginTop:8 }}>
-            <div style={{ width:32, height:32, borderRadius:4, background:"#000", color:"#fff", display:"flex", alignItems:"center", justifyContent:"center", fontWeight:700, fontSize:16, marginBottom:14, letterSpacing:"-0.02em" }}>G</div>
-            <h1 style={{ fontSize:20, fontWeight:700, color:"#000", margin:0, letterSpacing:"-0.01em", lineHeight:1 }}>GraphEngine</h1>
-            <p style={{ fontSize:11, fontWeight:500, color:"#71717a", letterSpacing:"0.04em", textTransform:"uppercase", margin:"4px 0 0 0" }}>Enterprise v2.4</p>
-          </div>
-          <button style={{ width:"100%", background:"#f3f3f3", border:"1px solid #e4e4e7", color:"#1a1c1c", padding:"10px 0", borderRadius:6, fontSize:12, fontWeight:600, fontFamily:"inherit", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:6, marginBottom:20 }}>
-            <PlusIcon /> New Project
-          </button>
-          <nav style={{ flex:1, display:"flex", flexDirection:"column", gap:2 }}>
-            {NAV_ITEMS.map(({label, href, Icon}) => {
-              const active = label === "Explore";
-              return (
-                <a key={label} href={href} onClick={(e)=>{e.preventDefault();router.push(href);}}
-                  style={{ display:"flex", alignItems:"center", gap:10, padding:"8px 12px", borderRadius:8, background:active?"#e3e1ec":"transparent", color:active?"#63646c":"#4c4546", fontWeight:active?600:500, fontSize:13, textDecoration:"none", transition:"background 0.15s" }}
-                  onMouseEnter={(e)=>{if(!active)e.currentTarget.style.background="#f3f3f3"}}
-                  onMouseLeave={(e)=>{if(!active)e.currentTarget.style.background="transparent"}}
-                ><span style={{ display:"flex", color:active?"#63646c":"#4c4546" }}><Icon /></span>{label}</a>
-              );
-            })}
-          </nav>
-          <div style={{ borderTop:BR, paddingTop:12, display:"flex", flexDirection:"column", gap:2 }}>
-            {BOTTOM_ITEMS.map(({label, Icon}) => (
-              <a key={label} href="#" style={{ display:"flex", alignItems:"center", gap:10, padding:"8px 12px", borderRadius:8, color:"#4c4546", fontSize:13, fontWeight:500, textDecoration:"none", transition:"background 0.15s" }}
-                onMouseEnter={(e)=>(e.currentTarget.style.background="#f3f3f3")} onMouseLeave={(e)=>(e.currentTarget.style.background="transparent")}
-              ><span style={{ display:"flex" }}><Icon /></span>{label}</a>
-            ))}
-          </div>
-        </aside>
-
-        {/* Center canvas */}
-        <main style={{ flex:1, position:"relative", overflow:"hidden", display:"flex", flexDirection:"column" }}>
-          <div style={{ flex:1, position:"relative", overflow:"hidden" }}>
-            <GraphBackground>
-              <GraphCanvas nodes={nodes} edges={edges} rootId={rootNodeId} onNodeClick={handleNodeClick} loading={loading} />
-            </GraphBackground>
-            {/* Zoom controls */}
-            <div style={{ position:"absolute", bottom:20, right:24, zIndex:20 }}>
-              <div style={{ background:"#fff", border:BR, borderRadius:8, display:"flex", flexDirection:"column", overflow:"hidden", boxShadow:"0 1px 3px rgba(0,0,0,0.06)" }}>
-                {[{icon:<ZoomInIcon />, last:false}, {icon:<ZoomOutIcon />, last:false}, {icon:<FitIcon />, last:true}].map(({icon, last}, i) => (
-                  <button key={i} style={{ padding:"8px 10px", border:"none", borderBottom:last?"none":BR, background:"#fff", color:"#4c4546", cursor:"pointer", display:"flex", fontFamily:"inherit", transition:"background 0.15s, color 0.15s" }}
-                    onMouseEnter={(e)=>{e.currentTarget.style.background="#f3f3f3";e.currentTarget.style.color="#000"}}
-                    onMouseLeave={(e)=>{e.currentTarget.style.background="#fff";e.currentTarget.style.color="#4c4546"}}>{icon}</button>
-                ))}
-              </div>
+      {/* Right Inspector */}
+      <aside style={{ width:320, borderLeft:BR, background:"var(--surface)", display:"flex", flexDirection:"column", flexShrink:0 }}>
+        <div style={{ height:48, display:"flex", alignItems:"center", padding:"0 16px", borderBottom:BR, background:"var(--surface)" }}>
+          <h2 style={{ fontSize:15, fontWeight:600, color:"var(--text-1)", margin:0, letterSpacing:"-0.01em" }}>Inspector</h2>
+        </div>
+        {selectedNode
+          ? <NodeDetailPanel node={selectedNode} edges={edges} saved={saved} onExpand={chainId?handleExpand:undefined} expanding={expanding} />
+          : (
+            <div style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:40, color:"var(--text-3)" }}>
+              <span style={{ fontSize:36, opacity:0.2, marginBottom:12 }}>&#x261B;</span>
+              <p style={{ fontSize:13, fontWeight:500, textAlign:"center", maxWidth:200, margin:0 }}>Select a node or edge on the canvas to view its properties.</p>
             </div>
-          </div>
-
-          {/* Command bar */}
-          <div style={{ padding:"10px 24px 14px", display:"flex", justifyContent:"center", flexDirection:"column", alignItems:"center", gap:8 }}>
-            <div style={{ width:"100%", maxWidth:640 }}>
-              <ModeSelector value={mode} onChange={setMode} disabled={loading} />
-            </div>
-            <div style={{ background:"#fff", border:BR, borderRadius:12, padding:"6px 6px 6px 16px", display:"flex", alignItems:"center", gap:8, width:"100%", maxWidth:640, boxShadow:"0 1px 3px rgba(0,0,0,0.04)" }}>
-              <span style={{ color:"#000", display:"flex" }}><TerminalIcon /></span>
-              <input type="text" value={query} onChange={(e)=>setQuery(e.target.value)} onKeyDown={(e)=>e.key==="Enter"&&handleSearch()}
-                placeholder='Query graph (e.g. "Show paths between Subsystem A and Admin")...' disabled={loading}
-                style={{ flex:1, background:"transparent", border:"none", outline:"none", fontSize:13, fontFamily:"'JetBrains Mono',monospace", fontWeight:500, color:"#1a1c1c" }} />
-              <button onClick={handleSearch} disabled={loading||!query.trim()}
-                style={{ background:loading?"#e4e4e7":"#f3f3f3", color:loading?"#71717a":"#1a1c1c", border:"1px solid #e4e4e7", padding:"7px 12px", borderRadius:8, fontSize:11, fontWeight:600, fontFamily:"inherit", cursor:loading?"not-allowed":"pointer", display:"flex", alignItems:"center", gap:4 }}>
-                Run <span style={{ fontSize:10, color:"#71717a" }}>&#x23CE;</span>
-              </button>
-            </div>
-          </div>
-        </main>
-
-        {/* Right Inspector */}
-        <aside style={{ width:320, borderLeft:BR, background:"#fff", display:"flex", flexDirection:"column", flexShrink:0 }}>
-          <div style={{ height:48, display:"flex", alignItems:"center", padding:"0 16px", borderBottom:BR, background:"#fff" }}>
-            <h2 style={{ fontSize:15, fontWeight:600, color:"#000", margin:0, letterSpacing:"-0.01em" }}>Inspector</h2>
-          </div>
-          {selectedNode
-            ? <NodeDetailPanel node={selectedNode} edges={edges} saved={saved} onExpand={chainId?handleExpand:undefined} expanding={expanding} />
-            : (
-              <div style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:40, color:"#71717a" }}>
-                <span style={{ fontSize:36, opacity:0.2, marginBottom:12 }}>&#x261B;</span>
-                <p style={{ fontSize:13, fontWeight:500, textAlign:"center", maxWidth:200, margin:0 }}>Select a node or edge on the canvas to view its properties.</p>
-              </div>
-            )
-          }
-        </aside>
-      </div>
+          )
+        }
+      </aside>
     </div>
   );
 }

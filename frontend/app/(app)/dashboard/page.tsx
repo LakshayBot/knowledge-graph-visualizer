@@ -18,7 +18,7 @@ export default function DashboardPage() {
 }
 
 function DashboardContent() {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const { fetchApi, loading } = useApi<SavedChain[]>();
   const [chains, setChains] = useState<SavedChain[]>([]);
   const [fetched, setFetched] = useState(false);
@@ -36,7 +36,7 @@ function DashboardContent() {
       style={{
         padding: "40px 24px 80px",
         background: "var(--bg)",
-        minHeight: "calc(100svh - 90px)",
+        minHeight: "calc(100svh - 56px)",
       }}
     >
       <div style={{ maxWidth: 960, margin: "0 auto" }}>
@@ -67,9 +67,6 @@ function DashboardContent() {
               Explore your saved causal graphs or start a new one.
             </p>
           </div>
-          <Button variant="outline" onClick={logout}>
-            Sign Out
-          </Button>
         </div>
 
         {/* Quick action */}
