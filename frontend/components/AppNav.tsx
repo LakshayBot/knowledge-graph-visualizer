@@ -9,6 +9,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -301,16 +302,18 @@ export default function AppNav() {
             <DropdownMenuContent align="end" className="w-48">
               {isAuthenticated ? (
                 <>
-                  <DropdownMenuLabel className="font-normal">
-                    <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                      <p className="text-sm font-medium leading-none" style={{ margin: 0, color: "var(--text-1)" }}>
-                        {user?.username}
-                      </p>
-                      <p className="text-xs leading-none" style={{ margin: 0, color: "var(--text-3)" }}>
-                        {user?.email}
-                      </p>
-                    </div>
-                  </DropdownMenuLabel>
+                  <DropdownMenuGroup>
+                    <DropdownMenuLabel className="font-normal">
+                      <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                        <p className="text-sm font-medium leading-none" style={{ margin: 0, color: "var(--text-1)" }}>
+                          {user?.username}
+                        </p>
+                        <p className="text-xs leading-none" style={{ margin: 0, color: "var(--text-3)" }}>
+                          {user?.email}
+                        </p>
+                      </div>
+                    </DropdownMenuLabel>
+                  </DropdownMenuGroup>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onSelect={() => router.push("/profile")}>
                     Profile
