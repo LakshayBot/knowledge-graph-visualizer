@@ -1,5 +1,0 @@
-/Users/lakshaymalhotra/Desktop/Github_Projects/knowledge-explorer/CausalExplorer/src/CausalExplorer.Application/obj/Release/net8.0/CausalExplorer.Application.csproj.AssemblyReference.cache
-/Users/lakshaymalhotra/Desktop/Github_Projects/knowledge-explorer/CausalExplorer/src/CausalExplorer.Application/obj/Release/net8.0/CausalExplorer.Application.GeneratedMSBuildEditorConfig.editorconfig
-/Users/lakshaymalhotra/Desktop/Github_Projects/knowledge-explorer/CausalExplorer/src/CausalExplorer.Application/obj/Release/net8.0/CausalExplorer.Application.AssemblyInfoInputs.cache
-/Users/lakshaymalhotra/Desktop/Github_Projects/knowledge-explorer/CausalExplorer/src/CausalExplorer.Application/obj/Release/net8.0/CausalExplorer.Application.AssemblyInfo.cs
-/Users/lakshaymalhotra/Desktop/Github_Projects/knowledge-explorer/CausalExplorer/src/CausalExplorer.Application/obj/Release/net8.0/CausalExplorer.Application.csproj.CoreCompileInputs.cache
