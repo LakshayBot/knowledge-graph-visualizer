@@ -105,6 +105,9 @@
         <member name="M:CausalExplorer.Application.Auth.Commands.RevokeTokenCommandHandler.Handle(CausalExplorer.Application.Auth.Commands.RevokeTokenCommand,System.Threading.CancellationToken)">
             <inheritdoc />
         </member>
+        <member name="T:CausalExplorer.Application.Auth.Commands.UpdateUserCommandHandler">
+            <summary>Handles <see cref="T:CausalExplorer.Application.Auth.Commands.UpdateUserCommand"/>.</summary>
+        </member>
         <member name="T:CausalExplorer.Application.Auth.Commands.RegisterCommand">
             <summary>Command to register a new user account.</summary>
         </member>
@@ -129,6 +132,12 @@
         <member name="M:CausalExplorer.Application.Auth.Commands.RevokeTokenCommand.#ctor(System.String)">
             <summary>Command to revoke an existing refresh token.</summary>
         </member>
+        <member name="T:CausalExplorer.Application.Auth.Commands.UpdateUserCommand">
+            <summary>Command to update the current user's profile — username, email, and/or password.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.Auth.Commands.UpdateUserCommand.#ctor(System.Guid,System.String,System.String,System.String,System.String)">
+            <summary>Command to update the current user's profile — username, email, and/or password.</summary>
+        </member>
         <member name="T:CausalExplorer.Application.Auth.Commands.RegisterCommandValidator">
             <summary>Validates <see cref="T:CausalExplorer.Application.Auth.Commands.RegisterCommand"/>.</summary>
         </member>
@@ -152,6 +161,9 @@
         </member>
         <member name="M:CausalExplorer.Application.Auth.Commands.RevokeTokenCommandValidator.#ctor">
             <summary>Defines all validation rules.</summary>
+        </member>
+        <member name="T:CausalExplorer.Application.Auth.Commands.UpdateUserCommandValidator">
+            <summary>Validates <see cref="T:CausalExplorer.Application.Auth.Commands.UpdateUserCommand"/>.</summary>
         </member>
         <member name="T:CausalExplorer.Application.Auth.DTOs.AuthResultDto">
             <summary>Returned after a successful login or token refresh.</summary>
@@ -198,6 +210,9 @@
         <member name="M:CausalExplorer.Application.CausalChains.Commands.SaveChainCommandHandler.Handle(CausalExplorer.Application.CausalChains.Commands.SaveChainCommand,System.Threading.CancellationToken)">
             <inheritdoc />
         </member>
+        <member name="T:CausalExplorer.Application.CausalChains.Commands.RemoveSavedChainCommandHandler">
+            <summary>Handles <see cref="T:CausalExplorer.Application.CausalChains.Commands.RemoveSavedChainCommand"/>.</summary>
+        </member>
         <member name="T:CausalExplorer.Application.CausalChains.Commands.CreateCausalChainCommand">
             <summary>Command to create a new named causal chain rooted at a given event node.</summary>
         </member>
@@ -209,6 +224,12 @@
         </member>
         <member name="M:CausalExplorer.Application.CausalChains.Commands.SaveChainCommand.#ctor(System.Guid,System.Guid,System.String)">
             <summary>Command to save a causal chain to a user's personal library.</summary>
+        </member>
+        <member name="T:CausalExplorer.Application.CausalChains.Commands.RemoveSavedChainCommand">
+            <summary>Command to remove a saved chain from a user's history.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.CausalChains.Commands.RemoveSavedChainCommand.#ctor(System.Guid,System.Guid)">
+            <summary>Command to remove a saved chain from a user's history.</summary>
         </member>
         <member name="T:CausalExplorer.Application.CausalChains.Commands.CreateCausalChainCommandValidator">
             <summary>Validates <see cref="T:CausalExplorer.Application.CausalChains.Commands.CreateCausalChainCommand"/>.</summary>
@@ -308,7 +329,7 @@
         <member name="T:CausalExplorer.Application.CausalChains.Queries.ExpandChainNodeQueryHandler">
             <summary>Handles <see cref="T:CausalExplorer.Application.CausalChains.Queries.ExpandChainNodeQuery"/>.</summary>
         </member>
-        <member name="M:CausalExplorer.Application.CausalChains.Queries.ExpandChainNodeQueryHandler.#ctor(CausalExplorer.Application.Common.Interfaces.IAIService,CausalExplorer.Domain.Interfaces.ICausalChainRepository,CausalExplorer.Domain.Interfaces.IEventNodeRepository)">
+        <member name="M:CausalExplorer.Application.CausalChains.Queries.ExpandChainNodeQueryHandler.#ctor(CausalExplorer.Application.Common.Interfaces.IAIService,CausalExplorer.Domain.Interfaces.ICausalChainRepository,CausalExplorer.Domain.Interfaces.IEventNodeRepository,CausalExplorer.Domain.Interfaces.ICausalEdgeRepository,CausalExplorer.Domain.Interfaces.IUnitOfWork)">
             <summary>Initialises the handler.</summary>
         </member>
         <member name="M:CausalExplorer.Application.CausalChains.Queries.ExpandChainNodeQueryHandler.Handle(CausalExplorer.Application.CausalChains.Queries.ExpandChainNodeQuery,System.Threading.CancellationToken)">
@@ -317,7 +338,7 @@
         <member name="T:CausalExplorer.Application.CausalChains.Queries.GetInitialChainQueryHandler">
             <summary>Handles <see cref="T:CausalExplorer.Application.CausalChains.Queries.GetInitialChainQuery"/>.</summary>
         </member>
-        <member name="M:CausalExplorer.Application.CausalChains.Queries.GetInitialChainQueryHandler.#ctor(CausalExplorer.Domain.Interfaces.IEventNodeRepository,CausalExplorer.Domain.Interfaces.ICausalEdgeRepository)">
+        <member name="M:CausalExplorer.Application.CausalChains.Queries.GetInitialChainQueryHandler.#ctor(CausalExplorer.Domain.Interfaces.IEventNodeRepository,CausalExplorer.Domain.Interfaces.ICausalChainRepository,CausalExplorer.Domain.Interfaces.ICausalEdgeRepository,CausalExplorer.Domain.Interfaces.IUnitOfWork)">
             <summary>Initialises the handler.</summary>
         </member>
         <member name="M:CausalExplorer.Application.CausalChains.Queries.GetInitialChainQueryHandler.Handle(CausalExplorer.Application.CausalChains.Queries.GetInitialChainQuery,System.Threading.CancellationToken)">
@@ -716,7 +737,7 @@
             Generates an AI-authored causal explanation linking two events.
             </summary>
         </member>
-        <member name="M:CausalExplorer.Application.Common.Interfaces.IAIService.ExpandChainNodeAsync(System.Guid,System.String,System.Threading.CancellationToken)">
+        <member name="M:CausalExplorer.Application.Common.Interfaces.IAIService.ExpandChainNodeAsync(System.Guid,System.String,System.String,System.String,System.Threading.CancellationToken)">
             <summary>
             Suggests new nodes and edges to expand a chain at a given node from a particular perspective.
             </summary>

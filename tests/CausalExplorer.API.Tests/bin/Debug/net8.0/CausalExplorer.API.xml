@@ -302,6 +302,23 @@
             <param name="cancellationToken">Cancellation token.</param>
             <response code="200">List of saved chain DTOs, most recent first.</response>
         </member>
+        <member name="M:CausalExplorer.API.Controllers.v1.UsersController.UpdateCurrentUser(CausalExplorer.Application.Auth.Commands.UpdateUserCommand,System.Threading.CancellationToken)">
+            <summary>
+            Updates the current user's profile. All fields are optional; only supplied values are changed.
+            To change password, both CurrentPassword and NewPassword must be provided.
+            </summary>
+            <response code="200">Updated user profile DTO.</response>
+            <response code="400">Validation failed.</response>
+            <response code="403">Current password is incorrect.</response>
+        </member>
+        <member name="M:CausalExplorer.API.Controllers.v1.UsersController.RemoveSavedChain(System.Guid,System.Threading.CancellationToken)">
+            <summary>
+            Removes a saved chain from the current user's history / personal library.
+            </summary>
+            <param name="chainId">The identifier of the saved chain to remove.</param>
+            <param name="cancellationToken">Cancellation token.</param>
+            <response code="204">Chain removed from history.</response>
+        </member>
         <member name="T:CausalExplorer.API.Extensions.ApplicationBuilderExtensions">
             <summary>
             Extension methods to configure the ASP.NET Core middleware pipeline

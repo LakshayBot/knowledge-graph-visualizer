@@ -811,7 +811,9 @@
           "FluentValidation": "11.9.1",
           "FluentValidation.DependencyInjectionExtensions": "11.9.1",
           "MediatR": "12.2.0",
-          "Microsoft.Extensions.Logging.Abstractions": "8.0.1"
+          "Microsoft.Extensions.DependencyInjection.Abstractions": "8.0.1",
+          "Microsoft.Extensions.Logging.Abstractions": "8.0.1",
+          "Microsoft.Extensions.Options": "8.0.2"
         },
         "runtime": {
           "CausalExplorer.Application.dll": {

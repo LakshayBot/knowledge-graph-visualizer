@@ -105,6 +105,9 @@
         <member name="M:CausalExplorer.Application.Auth.Commands.RevokeTokenCommandHandler.Handle(CausalExplorer.Application.Auth.Commands.RevokeTokenCommand,System.Threading.CancellationToken)">
             <inheritdoc />
         </member>
+        <member name="T:CausalExplorer.Application.Auth.Commands.UpdateUserCommandHandler">
+            <summary>Handles <see cref="T:CausalExplorer.Application.Auth.Commands.UpdateUserCommand"/>.</summary>
+        </member>
         <member name="T:CausalExplorer.Application.Auth.Commands.RegisterCommand">
             <summary>Command to register a new user account.</summary>
         </member>
@@ -129,6 +132,12 @@
         <member name="M:CausalExplorer.Application.Auth.Commands.RevokeTokenCommand.#ctor(System.String)">
             <summary>Command to revoke an existing refresh token.</summary>
         </member>
+        <member name="T:CausalExplorer.Application.Auth.Commands.UpdateUserCommand">
+            <summary>Command to update the current user's profile — username, email, and/or password.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.Auth.Commands.UpdateUserCommand.#ctor(System.Guid,System.String,System.String,System.String,System.String)">
+            <summary>Command to update the current user's profile — username, email, and/or password.</summary>
+        </member>
         <member name="T:CausalExplorer.Application.Auth.Commands.RegisterCommandValidator">
             <summary>Validates <see cref="T:CausalExplorer.Application.Auth.Commands.RegisterCommand"/>.</summary>
         </member>
@@ -152,6 +161,9 @@
         </member>
         <member name="M:CausalExplorer.Application.Auth.Commands.RevokeTokenCommandValidator.#ctor">
             <summary>Defines all validation rules.</summary>
+        </member>
+        <member name="T:CausalExplorer.Application.Auth.Commands.UpdateUserCommandValidator">
+            <summary>Validates <see cref="T:CausalExplorer.Application.Auth.Commands.UpdateUserCommand"/>.</summary>
         </member>
         <member name="T:CausalExplorer.Application.Auth.DTOs.AuthResultDto">
             <summary>Returned after a successful login or token refresh.</summary>
@@ -183,7 +195,7 @@
         <member name="T:CausalExplorer.Application.CausalChains.Commands.CreateCausalChainCommandHandler">
             <summary>Handles <see cref="T:CausalExplorer.Application.CausalChains.Commands.CreateCausalChainCommand"/>.</summary>
         </member>
-        <member name="M:CausalExplorer.Application.CausalChains.Commands.CreateCausalChainCommandHandler.#ctor(CausalExplorer.Domain.Interfaces.ICausalChainRepository,CausalExplorer.Domain.Interfaces.IEventNodeRepository,CausalExplorer.Domain.Interfaces.IUnitOfWork)">
+        <member name="M:CausalExplorer.Application.CausalChains.Commands.CreateCausalChainCommandHandler.#ctor(CausalExplorer.Domain.Interfaces.ICausalChainRepository,CausalExplorer.Domain.Interfaces.IEventNodeRepository,CausalExplorer.Domain.Interfaces.IUnitOfWork,CausalExplorer.Application.Common.Interfaces.IPostgresDataStore)">
             <summary>Initialises the handler.</summary>
         </member>
         <member name="M:CausalExplorer.Application.CausalChains.Commands.CreateCausalChainCommandHandler.Handle(CausalExplorer.Application.CausalChains.Commands.CreateCausalChainCommand,System.Threading.CancellationToken)">
@@ -198,6 +210,9 @@
         <member name="M:CausalExplorer.Application.CausalChains.Commands.SaveChainCommandHandler.Handle(CausalExplorer.Application.CausalChains.Commands.SaveChainCommand,System.Threading.CancellationToken)">
             <inheritdoc />
         </member>
+        <member name="T:CausalExplorer.Application.CausalChains.Commands.RemoveSavedChainCommandHandler">
+            <summary>Handles <see cref="T:CausalExplorer.Application.CausalChains.Commands.RemoveSavedChainCommand"/>.</summary>
+        </member>
         <member name="T:CausalExplorer.Application.CausalChains.Commands.CreateCausalChainCommand">
             <summary>Command to create a new named causal chain rooted at a given event node.</summary>
         </member>
@@ -209,6 +224,12 @@
         </member>
         <member name="M:CausalExplorer.Application.CausalChains.Commands.SaveChainCommand.#ctor(System.Guid,System.Guid,System.String)">
             <summary>Command to save a causal chain to a user's personal library.</summary>
+        </member>
+        <member name="T:CausalExplorer.Application.CausalChains.Commands.RemoveSavedChainCommand">
+            <summary>Command to remove a saved chain from a user's history.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.CausalChains.Commands.RemoveSavedChainCommand.#ctor(System.Guid,System.Guid)">
+            <summary>Command to remove a saved chain from a user's history.</summary>
         </member>
         <member name="T:CausalExplorer.Application.CausalChains.Commands.CreateCausalChainCommandValidator">
             <summary>Validates <see cref="T:CausalExplorer.Application.CausalChains.Commands.CreateCausalChainCommand"/>.</summary>
@@ -296,6 +317,12 @@
         <member name="M:CausalExplorer.Application.CausalChains.Queries.GetUserSavedChainsQuery.#ctor(System.Guid)">
             <summary>Returns a user's saved chains with metadata.</summary>
         </member>
+        <member name="T:CausalExplorer.Application.CausalChains.Queries.GetChainScopedGraphQuery">
+            <summary>Returns only the nodes and edges scoped to a specific chain (via chain_nodes junction table).</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.CausalChains.Queries.GetChainScopedGraphQuery.#ctor(System.Guid,System.Nullable{CausalExplorer.Domain.Enums.Perspective})">
+            <summary>Returns only the nodes and edges scoped to a specific chain (via chain_nodes junction table).</summary>
+        </member>
         <member name="T:CausalExplorer.Application.CausalChains.Queries.GetCausalChainQueryHandler">
             <summary>Handles <see cref="T:CausalExplorer.Application.CausalChains.Queries.GetCausalChainQuery"/>.</summary>
         </member>
@@ -308,7 +335,7 @@
         <member name="T:CausalExplorer.Application.CausalChains.Queries.ExpandChainNodeQueryHandler">
             <summary>Handles <see cref="T:CausalExplorer.Application.CausalChains.Queries.ExpandChainNodeQuery"/>.</summary>
         </member>
-        <member name="M:CausalExplorer.Application.CausalChains.Queries.ExpandChainNodeQueryHandler.#ctor(CausalExplorer.Application.Common.Interfaces.IAIService,CausalExplorer.Domain.Interfaces.ICausalChainRepository,CausalExplorer.Domain.Interfaces.IEventNodeRepository)">
+        <member name="M:CausalExplorer.Application.CausalChains.Queries.ExpandChainNodeQueryHandler.#ctor(CausalExplorer.Application.Common.Interfaces.IAIService,CausalExplorer.Domain.Interfaces.ICausalChainRepository,CausalExplorer.Domain.Interfaces.IEventNodeRepository,CausalExplorer.Domain.Interfaces.ICausalEdgeRepository,CausalExplorer.Domain.Interfaces.IUnitOfWork,CausalExplorer.Application.Common.Interfaces.IPostgresDataStore)">
             <summary>Initialises the handler.</summary>
         </member>
         <member name="M:CausalExplorer.Application.CausalChains.Queries.ExpandChainNodeQueryHandler.Handle(CausalExplorer.Application.CausalChains.Queries.ExpandChainNodeQuery,System.Threading.CancellationToken)">
@@ -317,7 +344,7 @@
         <member name="T:CausalExplorer.Application.CausalChains.Queries.GetInitialChainQueryHandler">
             <summary>Handles <see cref="T:CausalExplorer.Application.CausalChains.Queries.GetInitialChainQuery"/>.</summary>
         </member>
-        <member name="M:CausalExplorer.Application.CausalChains.Queries.GetInitialChainQueryHandler.#ctor(CausalExplorer.Domain.Interfaces.IEventNodeRepository,CausalExplorer.Domain.Interfaces.ICausalEdgeRepository)">
+        <member name="M:CausalExplorer.Application.CausalChains.Queries.GetInitialChainQueryHandler.#ctor(CausalExplorer.Domain.Interfaces.IEventNodeRepository,CausalExplorer.Domain.Interfaces.ICausalChainRepository,CausalExplorer.Domain.Interfaces.ICausalEdgeRepository,CausalExplorer.Domain.Interfaces.IUnitOfWork)">
             <summary>Initialises the handler.</summary>
         </member>
         <member name="M:CausalExplorer.Application.CausalChains.Queries.GetInitialChainQueryHandler.Handle(CausalExplorer.Application.CausalChains.Queries.GetInitialChainQuery,System.Threading.CancellationToken)">
@@ -331,6 +358,9 @@
         </member>
         <member name="M:CausalExplorer.Application.CausalChains.Queries.GetUserSavedChainsQueryHandler.Handle(CausalExplorer.Application.CausalChains.Queries.GetUserSavedChainsQuery,System.Threading.CancellationToken)">
             <inheritdoc />
+        </member>
+        <member name="T:CausalExplorer.Application.CausalChains.Queries.GetChainScopedGraphQueryHandler">
+            <summary>Handles <see cref="T:CausalExplorer.Application.CausalChains.Queries.GetChainScopedGraphQuery"/> — reads the complete graph from PostgreSQL snapshot, bypassing Neo4j entirely.</summary>
         </member>
         <member name="T:CausalExplorer.Application.CausalEdges.Commands.AddCausalEdgeCommand">
             <summary>Command to add a directed causal edge between two event nodes.</summary>
@@ -716,7 +746,7 @@
             Generates an AI-authored causal explanation linking two events.
             </summary>
         </member>
-        <member name="M:CausalExplorer.Application.Common.Interfaces.IAIService.ExpandChainNodeAsync(System.Guid,System.String,System.Threading.CancellationToken)">
+        <member name="M:CausalExplorer.Application.Common.Interfaces.IAIService.ExpandChainNodeAsync(System.Guid,System.String,System.String,System.String,System.Threading.CancellationToken)">
             <summary>
             Suggests new nodes and edges to expand a chain at a given node from a particular perspective.
             </summary>
@@ -770,6 +800,24 @@
             A <see cref="T:CausalExplorer.Application.Common.DTOs.GeneratedGraphDto"/> containing extracted event nodes, inferred causal
             edges, and source URLs from Wikipedia.
             </returns>
+        </member>
+        <member name="T:CausalExplorer.Application.Common.Interfaces.IPostgresDataStore">
+            <summary>
+            Dual-write abstraction for persisting event nodes and causal edges
+            to the PostgreSQL relational store alongside Neo4j graph operations.
+            </summary>
+        </member>
+        <member name="M:CausalExplorer.Application.Common.Interfaces.IPostgresDataStore.BulkAddEventNodesAsync(System.Collections.Generic.IEnumerable{CausalExplorer.Domain.Entities.EventNode},System.Threading.CancellationToken)">
+            <summary>Bulk-adds event nodes — duplicates silently skipped.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.Common.Interfaces.IPostgresDataStore.BulkAddCausalEdgesAsync(System.Collections.Generic.IEnumerable{CausalExplorer.Domain.Entities.CausalEdge},System.Threading.CancellationToken)">
+            <summary>Bulk-adds causal edges — duplicates silently skipped.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.Common.Interfaces.IPostgresDataStore.AddChainNodeMappingsAsync(System.Guid,System.Collections.Generic.IEnumerable{System.Guid},System.Threading.CancellationToken)">
+            <summary>Maps node IDs to a chain for chain-scoped loading.</summary>
+        </member>
+        <member name="M:CausalExplorer.Application.Common.Interfaces.IPostgresDataStore.GetChainNodeIdsAsync(System.Guid,System.Threading.CancellationToken)">
+            <summary>Returns all node IDs mapped to a chain.</summary>
         </member>
         <member name="T:CausalExplorer.Application.Common.Interfaces.ITokenService">
             <summary>

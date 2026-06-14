@@ -18,7 +18,7 @@
         <member name="M:CausalExplorer.Infrastructure.AI.AIServiceClient.GenerateCausalLinkAsync(System.Guid,System.Guid,System.Threading.CancellationToken)">
             <inheritdoc />
         </member>
-        <member name="M:CausalExplorer.Infrastructure.AI.AIServiceClient.ExpandChainNodeAsync(System.Guid,System.String,System.Threading.CancellationToken)">
+        <member name="M:CausalExplorer.Infrastructure.AI.AIServiceClient.ExpandChainNodeAsync(System.Guid,System.String,System.String,System.String,System.Threading.CancellationToken)">
             <inheritdoc />
         </member>
         <member name="M:CausalExplorer.Infrastructure.AI.AIServiceClient.SearchSimilarEventsAsync(System.String,System.Int32,System.Threading.CancellationToken)">
@@ -404,6 +404,13 @@
         </member>
         <member name="M:CausalExplorer.Infrastructure.Persistence.Migrations.InitialCreate.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
             <inheritdoc />
+        </member>
+        <member name="T:CausalExplorer.Infrastructure.Persistence.PostgresDataStore">
+            <summary>
+            EF Core implementation of <see cref="T:CausalExplorer.Application.Common.Interfaces.IPostgresDataStore"/>.
+            Writes event nodes and causal edges to PostgreSQL, skipping duplicates.
+            Edges referencing nodes not yet in PostgreSQL are silently skipped (FK-safe).
+            </summary>
         </member>
         <member name="T:CausalExplorer.Infrastructure.Persistence.RefreshTokenRecord">
             <summary>

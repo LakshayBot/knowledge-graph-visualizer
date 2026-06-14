@@ -115,6 +115,9 @@
         <member name="P:CausalExplorer.Domain.Entities.CausalChain.ViewCount">
             <summary>Gets the cumulative number of times this chain has been viewed.</summary>
         </member>
+        <member name="P:CausalExplorer.Domain.Entities.CausalChain.GraphSnapshot">
+            <summary>Gets the complete graph snapshot (all nodes + edges) stored as JSONB for chain-scoped loading.</summary>
+        </member>
         <member name="M:CausalExplorer.Domain.Entities.CausalChain.Create(System.Guid,System.String,CausalExplorer.Domain.Enums.EventDomain)">
             <summary>
             Creates a new <see cref="T:CausalExplorer.Domain.Entities.CausalChain"/> with an initial node count of 1
@@ -152,6 +155,11 @@
             Updates the title of this causal chain.
             </summary>
             <param name="title">New title. Must not be null or whitespace.</param>
+        </member>
+        <member name="M:CausalExplorer.Domain.Entities.CausalChain.SetGraphSnapshot(System.String)">
+            <summary>
+            Stores a complete graph snapshot for chain-scoped loading, avoiding cross-chain Neo4j leakage.
+            </summary>
         </member>
         <member name="T:CausalExplorer.Domain.Entities.CausalEdge">
             <summary>
