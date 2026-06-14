@@ -127,35 +127,11 @@ function ExploreContent() {
   const hasEmptyCanvas = nodes.length === 0 && !loading;
 
   return (
-    <div style={{ flex: 1, display: "flex", overflow: "hidden", position: "relative" }}>
+    <div style={{ flex: 1, display: "flex", overflow: "hidden", position: "relative", background: hasEmptyCanvas ? "var(--bg-subtle)" : undefined }}>
       {/* Canvas area */}
       <main style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
         <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
-          {hasEmptyCanvas ? (
-            <div
-              style={{
-                width: "100%",
-                height: "100%",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 10,
-                background: "var(--bg-subtle)",
-              }}
-            >
-              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--text-4)" strokeWidth="1.5" strokeLinecap="round">
-                <circle cx="11" cy="11" r="8" />
-                <path d="m21 21-4.35-4.35" />
-              </svg>
-              <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text-3)", textAlign: "center", maxWidth: 260, margin: 0 }}>
-                Type a question to generate a causal graph
-              </p>
-              <p style={{ fontSize: 11, color: "var(--text-4)", textAlign: "center", margin: 0 }}>
-                Grok AI will analyze causes and effects
-              </p>
-            </div>
-          ) : (
+          {hasEmptyCanvas ? null : (
             <GraphBackground>
               <GraphCanvas nodes={nodes} edges={edges} rootId={rootNodeId} onNodeClick={handleNodeClick} loading={loading} />
             </GraphBackground>
@@ -192,7 +168,37 @@ function ExploreContent() {
         }
       </aside>
 
-      {/* ── Command bar — spans full viewport width, centered on true viewport centerline ── */}
+      {/* ── Empty state — spans full viewport, centered on true centerline ── */}
+      {hasEmptyCanvas && (
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 130,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 10,
+            pointerEvents: "none",
+          }}
+        >
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--text-4)" strokeWidth="1.5" strokeLinecap="round" style={{ pointerEvents: "auto" }}>
+            <circle cx="11" cy="11" r="8" />
+            <path d="m21 21-4.35-4.35" />
+          </svg>
+          <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text-3)", textAlign: "center", maxWidth: 260, margin: 0, pointerEvents: "auto" }}>
+            Type a question to generate a causal graph
+          </p>
+          <p style={{ fontSize: 11, color: "var(--text-4)", textAlign: "center", margin: 0, pointerEvents: "auto" }}>
+            Grok AI will analyze causes and effects
+          </p>
+        </div>
+      )}
+
+      {/* ── Command bar — full viewport width, centered on true centerline ── */}
       <div
         style={{
           position: "absolute",
