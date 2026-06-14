@@ -1,14 +1,8 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import {
-  costData,
-  monthlyRequests,
-  trafficLocations,
-  latencyMetrics,
-  tokenUsage,
-  modelPerformance,
-} from "./data";
+import { fetchAnalyticsOverview, type AnalyticsOverview } from "./data";
 import CostCard from "./CostCard";
 import TotalRequestsCard from "./TotalRequestsCard";
 import TrafficCard from "./TrafficCard";
@@ -18,23 +12,35 @@ import ModelPerformanceCard from "./ModelPerformanceCard";
 
 const containerVariants = {
   hidden: {},
-  visible: {
-    transition: {
-      staggerChildren: 0.08,
-      delayChildren: 0.1,
-    },
-  },
+  visible: { transition: { staggerChildren: 0.07, delayChildren: 0.1 } },
 };
 
 const cardVariants = {
-  hidden: { opacity: 0, y: 24 },
-  visible: {
-    opacity: 1,
-    y: 0,
-  },
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0 },
 };
 
 export default function AnalyticsDashboard() {
+  const [data, setData] = useState<AnalyticsOverview | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    fetchAnalyticsOverview()
+      .then((result) => {
+        if (!cancelled) setData(result);
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err.message);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, []);
+
   return (
     <div
       style={{
@@ -72,7 +78,6 @@ export default function AnalyticsDashboard() {
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-          {/* Date range selector */}
           <div
             style={{
               display: "flex",
@@ -102,7 +107,6 @@ export default function AnalyticsDashboard() {
             </svg>
           </div>
 
-          {/* Export button */}
           <button
             style={{
               display: "inline-flex",
@@ -130,7 +134,6 @@ export default function AnalyticsDashboard() {
             Export Report
           </button>
 
-          {/* Mobile app link */}
           <a
             href="#"
             style={{
@@ -146,14 +149,8 @@ export default function AnalyticsDashboard() {
               textDecoration: "none",
               transition: "border-color 0.2s, color 0.2s",
             }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = "var(--text-1)";
-              e.currentTarget.style.color = "var(--text-1)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = "var(--border)";
-              e.currentTarget.style.color = "var(--text-2)";
-            }}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--text-1)"; e.currentTarget.style.color = "var(--text-1)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--text-2)"; }}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
@@ -164,74 +161,80 @@ export default function AnalyticsDashboard() {
         </div>
       </div>
 
-      {/* ── Grid Layout ── */}
-      <motion.div
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr 2fr",
-          gap: 14,
-          alignItems: "start",
-        }}
-      >
-        {/* Row 1: Cost Cards + Total Requests */}
-        <motion.div variants={cardVariants}>
-          <CostCard data={costData[0]} />
-        </motion.div>
-        <motion.div variants={cardVariants}>
-          <CostCard data={costData[1]} />
-        </motion.div>
-        <motion.div variants={cardVariants}>
-          <TotalRequestsCard data={monthlyRequests} />
-        </motion.div>
+      {/* ── Loading state ── */}
+      {loading && (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "80px 0", gap: 10, color: "var(--text-4)", fontSize: 13 }}>
+          <div style={{ width: 18, height: 18, border: "2px solid var(--border-med)", borderTopColor: "var(--text-1)", borderRadius: "50%", animation: "spin 0.6s linear infinite" }} />
+          Loading analytics...
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        </div>
+      )}
 
-        {/* Row 2: Traffic + Latency (full-width under the grid) */}
-        {/* We use a nested sub-grid for the rest to keep a clean 2-col layout */}
-      </motion.div>
+      {/* ── Error state ── */}
+      {error && (
+        <div style={{ padding: "60px 24px", textAlign: "center", color: "var(--text-3)" }}>
+          <p style={{ fontSize: 14, fontWeight: 700 }}>Failed to load analytics</p>
+          <p style={{ fontSize: 12 }}>{error}</p>
+          <button onClick={() => window.location.reload()} style={{ marginTop: 16, padding: "8px 20px", background: "var(--text-1)", color: "var(--bg)", border: "none", borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+            Retry
+          </button>
+        </div>
+      )}
+
+      {/* ── Dashboard Grid ── */}
+      {data && (
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+          style={{ display: "grid", gridTemplateColumns: "1fr 1fr 2fr", gap: 14, alignItems: "start" }}
+        >
+          {/* Row 1 */}
+          <motion.div variants={cardVariants}>
+            <CostCard data={data.apiCosts} />
+          </motion.div>
+          <motion.div variants={cardVariants}>
+            <CostCard data={data.infrastructureCosts} />
+          </motion.div>
+          <motion.div variants={cardVariants}>
+            <TotalRequestsCard data={data.monthlyRequests} />
+          </motion.div>
+        </motion.div>
+      )}
 
       {/* Row 2 */}
-      <motion.div
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          gap: 14,
-          marginTop: 14,
-          alignItems: "stretch",
-        }}
-      >
-        <motion.div variants={cardVariants}>
-          <TrafficCard data={trafficLocations} />
+      {data && (
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+          style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginTop: 14, alignItems: "stretch" }}
+        >
+          <motion.div variants={cardVariants}>
+            <TrafficCard data={data.trafficLocations} />
+          </motion.div>
+          <motion.div variants={cardVariants}>
+            <LatencyCard latency={data.latency} costs={[data.apiCosts, data.infrastructureCosts]} />
+          </motion.div>
         </motion.div>
-        <motion.div variants={cardVariants}>
-          <LatencyCard data={latencyMetrics} />
-        </motion.div>
-      </motion.div>
+      )}
 
       {/* Row 3 */}
-      <motion.div
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          gap: 14,
-          marginTop: 14,
-          alignItems: "stretch",
-        }}
-      >
-        <motion.div variants={cardVariants}>
-          <TokenUsageCard data={tokenUsage} />
+      {data && (
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+          style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginTop: 14, alignItems: "stretch" }}
+        >
+          <motion.div variants={cardVariants}>
+            <TokenUsageCard data={data.tokenUsage} />
+          </motion.div>
+          <motion.div variants={cardVariants}>
+            <ModelPerformanceCard data={data.modelPerformance} />
+          </motion.div>
         </motion.div>
-        <motion.div variants={cardVariants}>
-          <ModelPerformanceCard data={modelPerformance} />
-        </motion.div>
-      </motion.div>
+      )}
     </div>
   );
 }

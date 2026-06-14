@@ -1,10 +1,10 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import type { CostData } from "./data";
+import type { CostTrend } from "./data";
 
 interface Props {
-  data: CostData;
+  data: CostTrend;
 }
 
 function formatCurrency(val: number): string {
@@ -17,58 +17,54 @@ function formatCurrency(val: number): string {
 }
 
 export default function CostCard({ data }: Props) {
+  const prefix = data.isPositive ? "+" : "";
+  const arrow = data.isPositive ? "▲" : "▼";
+  const changeColor = data.isPositive ? "#22c55e" : "#ef4444";
   const maxVal = Math.max(data.current, data.previous);
   const currentPct = (data.current / maxVal) * 100;
   const previousPct = (data.previous / maxVal) * 100;
-  const prefix = data.isPositive ? "+" : "";
-  const changeColor = data.isPositive ? "#22c55e" : "#ef4444";
 
   return (
-    <Card className="border-border/60 shadow-xs">
-      <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-sm font-medium text-muted-foreground">
-            {data.label}
-          </CardTitle>
-          <span
-            className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold"
-            style={{
-              color: changeColor,
-              background: data.isPositive
-                ? "rgba(34,197,94,0.1)"
-                : "rgba(239,68,68,0.1)",
-            }}
-          >
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              {data.isPositive ? (
-                <polyline points="18 15 12 9 6 15" />
-              ) : (
-                <polyline points="6 9 12 15 18 9" />
-              )}
-            </svg>
-            {prefix}{data.change}%
-          </span>
-        </div>
+    <Card className="border-border/60 shadow-xs" style={{ borderRadius: 12 }}>
+      <CardHeader className="pb-1">
+        <CardTitle className="text-xs font-medium" style={{ color: "var(--text-3)" }}>
+          {data.label}
+        </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="mb-4">
-          <span className="text-2xl font-bold tracking-tight">
-            {formatCurrency(data.current)}
+        {/* Primary: percentage change — large */}
+        <div className="mb-3 flex items-baseline gap-2">
+          <span
+            style={{
+              fontSize: 28,
+              fontWeight: 800,
+              letterSpacing: "-0.04em",
+              color: changeColor,
+              lineHeight: 1,
+            }}
+          >
+            {arrow} {prefix}{data.changePercent}%
           </span>
-          <span className="ml-2 text-xs text-muted-foreground">/mo</span>
         </div>
 
+        {/* Soft pastel progress blocks */}
         <div className="space-y-3">
+          {/* Current */}
           <div>
-            <div className="mb-1.5 flex items-center justify-between text-xs">
-              <span style={{ color: "var(--text-3)" }}>Current</span>
-              <span className="font-medium tabular-nums">{formatCurrency(data.current)}</span>
+            <div
+              className="mb-1 flex items-center justify-between text-xs"
+              style={{ color: "var(--text-3)" }}
+            >
+              <span>Current</span>
+              <span className="font-semibold tabular-nums" style={{ color: "var(--text-1)" }}>
+                {formatCurrency(data.current)}
+              </span>
             </div>
             <div
               style={{
-                height: 6,
-                borderRadius: 3,
-                background: "var(--border)",
+                height: 10,
+                borderRadius: 6,
+                background: "rgba(34,197,94,0.12)",
                 overflow: "hidden",
               }}
             >
@@ -76,22 +72,30 @@ export default function CostCard({ data }: Props) {
                 style={{
                   height: "100%",
                   width: `${currentPct}%`,
-                  borderRadius: 3,
-                  background: "var(--text-1)",
+                  borderRadius: 6,
+                  background: "#22c55e",
+                  opacity: 0.7,
                   transition: "width 0.6s ease",
                 }}
               />
             </div>
           </div>
+
+          {/* Previous */}
           <div>
-            <div className="mb-1.5 flex items-center justify-between text-xs">
-              <span style={{ color: "var(--text-3)" }}>Previous</span>
-              <span className="font-medium tabular-nums">{formatCurrency(data.previous)}</span>
+            <div
+              className="mb-1 flex items-center justify-between text-xs"
+              style={{ color: "var(--text-3)" }}
+            >
+              <span>Previous</span>
+              <span className="font-semibold tabular-nums" style={{ color: "var(--text-1)" }}>
+                {formatCurrency(data.previous)}
+              </span>
             </div>
             <div
               style={{
-                height: 6,
-                borderRadius: 3,
+                height: 10,
+                borderRadius: 6,
                 background: "var(--border)",
                 overflow: "hidden",
               }}
@@ -100,9 +104,9 @@ export default function CostCard({ data }: Props) {
                 style={{
                   height: "100%",
                   width: `${previousPct}%`,
-                  borderRadius: 3,
+                  borderRadius: 6,
                   background: "var(--text-3)",
-                  opacity: 0.5,
+                  opacity: 0.3,
                   transition: "width 0.6s ease",
                 }}
               />

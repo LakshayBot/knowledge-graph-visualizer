@@ -11,6 +11,7 @@ import {
   ResponsiveContainer,
   Tooltip,
   Cell,
+  Line,
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { MonthlyRequest } from "./data";
@@ -36,8 +37,8 @@ function CustomTooltip({ active, payload, label }: any) {
       <p style={{ margin: 0, fontWeight: 600, marginBottom: 4, color: "#f5f2ec" }}>
         {label}
       </p>
-      <p style={{ margin: 0, color: "#22c55e", fontWeight: 700 }}>
-        {payload[0].value?.toLocaleString()} requests
+      <p style={{ margin: 0, color: "#fb923c", fontWeight: 700 }}>
+        {payload[0]?.value?.toLocaleString()} requests
       </p>
     </div>
   );
@@ -49,7 +50,6 @@ export default function TotalRequestsCard({ data }: Props) {
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    // Simulate loading delay + GSAP reveal
     const timer = setTimeout(() => {
       if (skeletonRef.current && chartRef.current) {
         gsap.to(skeletonRef.current, {
@@ -66,8 +66,7 @@ export default function TotalRequestsCard({ data }: Props) {
           },
         });
       }
-    }, 1400);
-
+    }, 1200);
     return () => clearTimeout(timer);
   }, []);
 
@@ -75,29 +74,22 @@ export default function TotalRequestsCard({ data }: Props) {
   const peakMonth = data.reduce((a, b) => (a.requests > b.requests ? a : b));
 
   return (
-    <Card className="border-border/60 shadow-xs">
+    <Card className="border-border/60 shadow-xs" style={{ borderRadius: 12 }}>
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm font-medium text-muted-foreground">
             Total Requests
           </CardTitle>
-          {loaded && (
-            <span className="text-xs" style={{ color: "var(--text-3)" }}>
-              Max: {peakMonth.month} ·{" "}
-              <span style={{ color: "var(--text-1)", fontWeight: 600 }}>
-                {(peakMonth.requests / 1000).toFixed(0)}k
-              </span>
-            </span>
-          )}
+          <span className="text-xs" style={{ color: "var(--text-3)" }}>
+            Max: <span style={{ color: "#fb923c", fontWeight: 600 }}>{peakMonth.month} · {(peakMonth.requests / 1000).toFixed(0)}k</span>
+          </span>
         </div>
-        {loaded && (
-          <div className="mt-1">
-            <span className="text-2xl font-bold tracking-tight">
-              {data.reduce((s, d) => s + d.requests, 0).toLocaleString()}
-            </span>
-            <span className="ml-2 text-xs text-muted-foreground">total</span>
-          </div>
-        )}
+        <div className="mt-0">
+          <span className="text-2xl font-bold tracking-tight">
+            {data.reduce((s, d) => s + d.requests, 0).toLocaleString()}
+          </span>
+          <span className="ml-2 text-xs text-muted-foreground">total</span>
+        </div>
       </CardHeader>
       <CardContent>
         <div style={{ position: "relative", height: 200 }}>
@@ -125,31 +117,28 @@ export default function TotalRequestsCard({ data }: Props) {
                 }}
               />
             ))}
-            {/* Sweeping shimmer overlay */}
             <div
               className="skeleton-shimmer"
               style={{
                 position: "absolute",
                 inset: 0,
-                background:
-                  "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.15) 50%, transparent 100%)",
+                background: "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.15) 50%, transparent 100%)",
                 backgroundSize: "200% 100%",
                 animation: "shimmer 1.5s ease-in-out infinite",
               }}
             />
           </div>
 
-          {/* Actual chart */}
-          <div
-            ref={chartRef}
-            style={{
-              position: "absolute",
-              inset: 0,
-              opacity: 0,
-            }}
-          >
+          {/* Actual combo chart */}
+          <div ref={chartRef} style={{ position: "absolute", inset: 0, opacity: 0 }}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={data} margin={{ top: 4, right: 4, left: -16, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="barGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#fb923c" stopOpacity={0.7} />
+                    <stop offset="100%" stopColor="#fb923c" stopOpacity={0.15} />
+                  </linearGradient>
+                </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                 <XAxis
                   dataKey="month"
@@ -164,20 +153,26 @@ export default function TotalRequestsCard({ data }: Props) {
                   tickFormatter={(v: number) => `${(v / 1000).toFixed(0)}k`}
                 />
                 <Tooltip content={<CustomTooltip />} cursor={{ fill: "var(--border)", opacity: 0.3 }} />
-                <Bar
-                  dataKey="requests"
-                  radius={[4, 4, 0, 0]}
-                  maxBarSize={32}
-                  style={{ cursor: "pointer" }}
-                >
-                  {data.map((entry, index) => (
+                {/* Bars */}
+                <Bar dataKey="requests" radius={[6, 6, 0, 0]} maxBarSize={28} style={{ cursor: "pointer" }}>
+                  {data.map((entry) => (
                     <Cell
-                      key={index}
-                      fill={entry.requests === maxVal ? "#22c55e" : "var(--text-1)"}
-                      opacity={entry.requests === maxVal ? 0.85 : 0.3}
+                      key={entry.month}
+                      fill={entry.requests === maxVal ? "#fb923c" : "#fb923c"}
+                      fillOpacity={entry.requests === maxVal ? 0.9 : 0.35}
                     />
                   ))}
                 </Bar>
+                {/* Dashed orange trend line */}
+                <Line
+                  type="monotone"
+                  dataKey="requests"
+                  stroke="#fb923c"
+                  strokeWidth={2}
+                  strokeDasharray="5 4"
+                  dot={false}
+                  activeDot={false}
+                />
               </BarChart>
             </ResponsiveContainer>
           </div>

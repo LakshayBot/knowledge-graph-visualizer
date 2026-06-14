@@ -1,15 +1,5 @@
 "use client";
 
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  Cell,
-} from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { ModelPerformance } from "./data";
 
@@ -17,91 +7,141 @@ interface Props {
   data: ModelPerformance[];
 }
 
-function CustomTooltip({ active, payload, label }: any) {
-  if (!active || !payload || !payload.length) return null;
-  const entry = payload[0]?.payload;
-  return (
-    <div
-      style={{
-        background: "#111",
-        color: "#f5f2ec",
-        border: "none",
-        borderRadius: 8,
-        padding: "10px 14px",
-        boxShadow: "0 8px 30px rgba(0,0,0,0.3)",
-        fontSize: 12,
-        minWidth: 140,
-      }}
-    >
-      <p style={{ margin: 0, fontWeight: 600, marginBottom: 6, color: "#f5f2ec" }}>
-        {label}
-      </p>
-      {entry && (
-        <>
-          <p style={{ margin: 0, color: "#22c55e", fontWeight: 600 }}>
-            Accuracy: {entry.accuracy}%
-          </p>
-          <p style={{ margin: 0, color: "#eab308", fontWeight: 600 }}>
-            Latency: {entry.latency}ms
-          </p>
-          <p style={{ margin: 0, color: "var(--text-3)", fontWeight: 500, marginTop: 2 }}>
-            {(entry.calls / 1000).toFixed(1)}k calls
-          </p>
-        </>
-      )}
-    </div>
-  );
+/** Map a score (70-99) to an orange opacity */
+function scoreOpacity(score: number): number {
+  // 70 → 0.1,  80 → 0.3,  90 → 0.6,  99 → 0.95
+  return 0.05 + (score - 70) / 29 * 0.9;
 }
 
-const COLORS = ["#22c55e", "#3b82f6", "#a855f7", "#eab308", "#ec4899"];
-
 export default function ModelPerformanceCard({ data }: Props) {
+  // All 12 months
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
   return (
-    <Card className="border-border/60 shadow-xs">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">
-          Model Performance
-        </CardTitle>
+    <Card className="border-border/60 shadow-xs" style={{ borderRadius: 12 }}>
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-sm font-medium text-muted-foreground">
+            Model Performance
+          </CardTitle>
+          {/* Legend */}
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1">
+              <span style={{ width: 10, height: 10, borderRadius: 2, background: "#fb923c", opacity: 0.2, display: "inline-block" }} />
+              <span style={{ fontSize: 9, color: "var(--text-4)" }}>Low</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <span style={{ width: 10, height: 10, borderRadius: 2, background: "#fb923c", opacity: 0.6, display: "inline-block" }} />
+              <span style={{ fontSize: 9, color: "var(--text-4)" }}>Avg</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <span style={{ width: 10, height: 10, borderRadius: 2, background: "#fb923c", opacity: 0.95, display: "inline-block" }} />
+              <span style={{ fontSize: 9, color: "var(--text-4)" }}>High</span>
+            </div>
+          </div>
+        </div>
       </CardHeader>
       <CardContent>
-        <div style={{ height: 200 }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart
-              data={data}
-              layout="vertical"
-              margin={{ top: 4, right: 40, left: 0, bottom: 0 }}
-              barSize={18}
-              barGap={6}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: `90px repeat(${months.length}, 1fr)`,
+            gap: 3,
+            alignItems: "center",
+          }}
+        >
+          {/* Header row */}
+          <div />
+          {months.map((m) => (
+            <div
+              key={m}
+              style={{
+                textAlign: "center",
+                fontSize: 9,
+                fontWeight: 600,
+                color: "var(--text-4)",
+                paddingBottom: 4,
+              }}
             >
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" horizontal={false} />
-              <XAxis
-                type="number"
-                domain={[0, 100]}
-                axisLine={false}
-                tickLine={false}
-                tick={{ fontSize: 11, fill: "var(--text-3)", fontWeight: 500 }}
-                tickFormatter={(v: number) => `${v}%`}
-              />
-              <YAxis
-                type="category"
-                dataKey="model"
-                axisLine={false}
-                tickLine={false}
-                tick={{ fontSize: 11, fill: "var(--text-1)", fontWeight: 600 }}
-                width={72}
-              />
-              <Tooltip content={<CustomTooltip />} cursor={{ fill: "var(--border)", opacity: 0.2 }} />
-              <Bar
-                dataKey="accuracy"
-                radius={[0, 4, 4, 0]}
-                style={{ cursor: "pointer" }}
-              >
-                {data.map((_, index) => (
-                  <Cell key={index} fill={COLORS[index % COLORS.length]} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+              {m}
+            </div>
+          ))}
+
+          {/* Model rows */}
+          {data.map((model) => {
+            const scoresByMonth = new Map(model.monthlyScores.map((s) => [s.month, s.score]));
+            return (
+              <>
+                {/* Model label */}
+                <div
+                  key={model.model}
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 600,
+                    color: "var(--text-1)",
+                    paddingRight: 8,
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {model.model}
+                </div>
+
+                {/* Score cells */}
+                {months.map((month) => {
+                  const score = scoresByMonth.get(month) ?? 85;
+                  const opacity = scoreOpacity(score);
+                  return (
+                    <div
+                      key={`${model.model}-${month}`}
+                      title={`${model.model} · ${month}: ${score}`}
+                      style={{
+                        aspectRatio: "1",
+                        borderRadius: 4,
+                        background: `rgba(251, 146, 60, ${opacity})`,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: 10,
+                        fontWeight: 700,
+                        color: score >= 90 ? "#fff" : "rgba(0,0,0,0.5)",
+                        transition: "transform 0.15s, box-shadow 0.15s",
+                        cursor: "default",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = "scale(1.15)";
+                        e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.15)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = "scale(1)";
+                        e.currentTarget.style.boxShadow = "none";
+                      }}
+                    >
+                      {score}
+                    </div>
+                  );
+                })}
+              </>
+            );
+          })}
+        </div>
+
+        {/* Bottom legend rows */}
+        <div
+          className="mt-4 flex items-center gap-6 text-xs"
+          style={{ color: "var(--text-4)" }}
+        >
+          <div className="flex items-center gap-2">
+            <span style={{ width: 12, height: 3, borderRadius: 2, background: "var(--text-3)", opacity: 0.3, display: "inline-block" }} />
+            Benchmark
+          </div>
+          <div className="flex items-center gap-2">
+            <span style={{ width: 12, height: 3, borderRadius: 2, background: "#fb923c", opacity: 0.5, display: "inline-block" }} />
+            Industry Avg
+          </div>
+          <div className="flex items-center gap-2">
+            <span style={{ width: 12, height: 3, borderRadius: 2, background: "#fb923c", opacity: 0.9, display: "inline-block" }} />
+            Your Models
+          </div>
         </div>
       </CardContent>
     </Card>

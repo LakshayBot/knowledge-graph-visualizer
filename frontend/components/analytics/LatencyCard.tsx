@@ -1,120 +1,130 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import type { LatencyMetric } from "./data";
+import type { LatencyData, CostTrend } from "./data";
 
 interface Props {
-  data: LatencyMetric[];
+  latency: LatencyData;
+  costs: CostTrend[];
 }
 
-export default function LatencyCard({ data }: Props) {
-  const pct = 99.97;
-  const statusColor = pct >= 99.9 ? "#22c55e" : pct >= 99.5 ? "#eab308" : "#ef4444";
+function formatCurrency(val: number): string {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(val);
+}
+
+export default function LatencyCard({ latency, costs }: Props) {
+  const totalCost = costs.reduce((s, c) => s + c.current, 0);
 
   return (
-    <Card className="border-border/60 shadow-xs">
+    <Card className="border-border/60 shadow-xs" style={{ borderRadius: 12 }}>
       <CardHeader className="pb-2">
         <CardTitle className="text-sm font-medium text-muted-foreground">
-          System Latency
+          System Latency & Cost
         </CardTitle>
-        <div className="mt-1 flex items-baseline gap-3">
-          <span className="text-2xl font-bold tracking-tight">99.97%</span>
+      </CardHeader>
+      <CardContent>
+        {/* Top half: total cost + green pill */}
+        <div className="mb-5 flex items-baseline gap-3">
+          <span className="text-3xl font-extrabold tracking-tight" style={{ color: "var(--text-1)", letterSpacing: "-0.04em" }}>
+            {formatCurrency(totalCost)}
+          </span>
+          <span
+            className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold"
+            style={{
+              color: "#22c55e",
+              background: "rgba(34,197,94,0.1)",
+            }}
+          >
+            <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#22c55e", display: "inline-block" }} />
+            +{latency.uptimePercent}%
+          </span>
           <span className="text-xs" style={{ color: "var(--text-3)" }}>
             uptime
           </span>
-          <span
-            className="ml-auto inline-flex items-center gap-1.5 text-xs font-semibold"
-            style={{ color: statusColor }}
-          >
-            <span
-              style={{
-                width: 7,
-                height: 7,
-                borderRadius: "50%",
-                background: statusColor,
-                display: "inline-block",
-              }}
-            />
-            Operational
-          </span>
         </div>
-      </CardHeader>
-      <CardContent>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: 12,
-          }}
-        >
-          {data.map((m) => {
-            const dotColor =
-              m.status === "good"
-                ? "#22c55e"
-                : m.status === "warning"
-                  ? "#eab308"
-                  : "#ef4444";
-            return (
-              <div
-                key={m.label}
-                style={{
-                  padding: "12px 14px",
-                  borderRadius: 8,
-                  border: "1px solid var(--border)",
-                  background: "var(--bg-subtle)",
-                }}
-              >
+
+        {/* Bottom half: continuous segmented horizontal bar */}
+        <div>
+          <div
+            style={{
+              display: "flex",
+              height: 28,
+              borderRadius: 8,
+              overflow: "hidden",
+              gap: 2,
+            }}
+          >
+            {latency.percentiles.map((p) => {
+              const maxVal = Math.max(...latency.percentiles.map((x) => x.valueMs));
+              const widthPct = (p.valueMs / maxVal) * 100;
+              return (
                 <div
+                  key={p.label}
                   style={{
+                    flex: widthPct,
+                    height: "100%",
+                    borderRadius: 6,
+                    background: p.color,
+                    opacity: 0.75,
+                    position: "relative",
+                    minWidth: 40,
                     display: "flex",
                     alignItems: "center",
-                    gap: 6,
-                    marginBottom: 6,
+                    justifyContent: "center",
                   }}
                 >
                   <span
                     style={{
-                      width: 6,
-                      height: 6,
-                      borderRadius: "50%",
-                      background: dotColor,
-                      display: "inline-block",
-                      flexShrink: 0,
+                      fontSize: 10,
+                      fontWeight: 700,
+                      color: "#fff",
+                      textShadow: "0 1px 2px rgba(0,0,0,0.3)",
+                      whiteSpace: "nowrap",
                     }}
-                  />
+                  >
+                    {p.valueMs}ms
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+          {/* Labels below the bar */}
+          <div
+            style={{
+              display: "flex",
+              marginTop: 6,
+            }}
+          >
+            {latency.percentiles.map((p) => {
+              const maxVal = Math.max(...latency.percentiles.map((x) => x.valueMs));
+              const widthPct = (p.valueMs / maxVal) * 100;
+              return (
+                <div
+                  key={p.label}
+                  style={{
+                    flex: widthPct,
+                    minWidth: 40,
+                    textAlign: "center",
+                  }}
+                >
                   <span
                     style={{
-                      fontSize: 11,
+                      fontSize: 10,
                       fontWeight: 600,
                       color: "var(--text-3)",
                     }}
                   >
-                    {m.label}
+                    {p.label}
                   </span>
                 </div>
-                <span
-                  style={{
-                    fontSize: 18,
-                    fontWeight: 800,
-                    color: "var(--text-1)",
-                    letterSpacing: "-0.02em",
-                  }}
-                >
-                  {m.value}
-                </span>
-                <span
-                  style={{
-                    fontSize: 11,
-                    color: "var(--text-4)",
-                    marginLeft: 4,
-                    fontWeight: 500,
-                  }}
-                >
-                  {m.unit}
-                </span>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
       </CardContent>
     </Card>

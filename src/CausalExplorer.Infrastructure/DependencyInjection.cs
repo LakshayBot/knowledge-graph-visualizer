@@ -1,6 +1,7 @@
 using CausalExplorer.Application.Common.Interfaces;
 using CausalExplorer.Domain.Interfaces;
 using CausalExplorer.Infrastructure.AI;
+using CausalExplorer.Infrastructure.Analytics;
 using CausalExplorer.Infrastructure.Cache;
 using CausalExplorer.Infrastructure.Graph;
 using CausalExplorer.Infrastructure.Identity;
@@ -38,6 +39,7 @@ public static class DependencyInjection
             .AddNeo4j(configuration)
             .AddRedis(configuration)
             .AddAiService(configuration)
+            .AddAnalyticsService(configuration)
             .AddVectorSearch(configuration)
             .AddIdentityServices(configuration);
 
@@ -163,6 +165,26 @@ public static class DependencyInjection
             sp.GetRequiredService<EmbeddingServiceClient>());
         services.AddTransient<IKnowledgeGraphGenerator>(sp =>
             sp.GetRequiredService<KnowledgeGraphGeneratorClient>());
+
+        return services;
+    }
+
+    // ── Analytics service ────────────────────────────────────────────────────
+
+    private static IServiceCollection AddAnalyticsService(
+        this IServiceCollection services,
+        IConfiguration configuration)
+    {
+        var baseUrl = configuration["AIService:BaseUrl"] ?? "http://localhost:8000";
+
+        services.AddHttpClient<AnalyticsService>(client =>
+        {
+            client.BaseAddress = new Uri(baseUrl);
+            client.Timeout     = TimeSpan.FromSeconds(30);
+        });
+
+        services.AddScoped<IAnalyticsService>(sp =>
+            sp.GetRequiredService<AnalyticsService>());
 
         return services;
     }
