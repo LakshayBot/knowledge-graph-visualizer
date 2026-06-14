@@ -192,42 +192,6 @@ function ExploreContent() {
           </div>
         </aside>
 
-        {/* Left Tools Panel */}
-        <aside style={{ width:288, display:"flex", flexDirection:"column", borderRight:BR, background:"#fff", flexShrink:0 }}>
-          <div style={{ display:"flex", borderBottom:BR, background:"#f9f9f9", padding:8, gap:4 }}>
-            {["Strategic","Technical"].map((t,i) => (
-              <button key={t} style={{
-                flex:1, padding:"6px 10px", borderRadius:6,
-                background: i===0?"#fff":"transparent", border: i===0?BR:"1px solid transparent",
-                color: i===0?"#000":"#71717a",
-                fontSize:12, fontWeight:600, fontFamily:"inherit", cursor:"pointer",
-                boxShadow: i===0?"0 1px 2px rgba(0,0,0,0.04)":"none",
-              }}>{t}</button>
-            ))}
-          </div>
-          <div style={{ padding:"16px", overflowY:"auto", flex:1, display:"flex", flexDirection:"column", gap:20 }}>
-            <section>
-              <h3 style={{ fontSize:11, fontWeight:600, color:"#000", textTransform:"uppercase", letterSpacing:"0.06em", margin:"0 0 12px 0" }}>Entity Types</h3>
-              <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
-                {[
-                  { label:"Organizations", count:"1.2k", active:true,  color:"#000" },
-                  { label:"Individuals",   count:"842",  active:true,  color:"#5d5e66" },
-                  { label:"Events",        count:"45k",  active:false, color:"#1b1b1b" },
-                ].map((e) => (
-                  <label key={e.label} style={{ display:"flex", alignItems:"center", gap:10, padding:"6px 8px", borderRadius:4, cursor:"pointer", fontSize:13, fontWeight:500, color:"#4c4546", transition:"background 0.15s", border:"1px solid transparent" }}
-                    onMouseEnter={(ev)=>(ev.currentTarget.style.background="#f3f3f3")}
-                    onMouseLeave={(ev)=>(ev.currentTarget.style.background="transparent")}
-                  >
-                    <span style={{ width:12, height:12, borderRadius:3, background: e.active?e.color:"transparent", border:`1.5px solid ${e.active?e.color:"#cfc4c5"}`, flexShrink:0, display:"block" }} />
-                    {e.label}
-                    <span style={{ marginLeft:"auto", fontSize:11, fontWeight:500, color:"#71717a", fontFamily:"'JetBrains Mono',monospace" }}>{e.count}</span>
-                  </label>
-                ))}
-              </div>
-            </section>
-          </div>
-        </aside>
-
         {/* Center canvas */}
         <main style={{ flex:1, position:"relative", overflow:"hidden", display:"flex", flexDirection:"column" }}>
           <div style={{ flex:1, position:"relative", overflow:"hidden" }}>
