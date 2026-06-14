@@ -10,12 +10,33 @@ import type { GraphNode, GraphEdge } from "@/types/graph";
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5001/api/v1";
 
+/* ── Tiny SVG icons ──────────────────────────────────── */
+function DashboardIcon() { return (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>); }
+function ExploreIcon() { return (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12"/></svg>); }
+function HistoryIcon() { return (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>); }
+function SettingsIcon() { return (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>); }
+function SupportIcon() { return (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>); }
+function BellIcon() { return (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>); }
+function SearchIcon() { return (<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>); }
+function TerminalIcon() { return (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>); }
+function PlusIcon() { return (<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>); }
+function ZoomInIcon() { return (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/><path d="m21 21-4.35-4.35"/></svg>); }
+function ZoomOutIcon() { return (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="8" y1="11" x2="14" y2="11"/><path d="m21 21-4.35-4.35"/></svg>); }
+function FitIcon() { return (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M8 3H5a2 2 0 00-2 2v3M18 3h3a2 2 0 012 2v3M21 16v3a2 2 0 01-2 2h-3M3 16v3a2 2 0 002 2h3"/></svg>); }
+
+const NAV_ITEMS = [
+  { label: "Dashboard", href: "/dashboard", Icon: DashboardIcon },
+  { label: "Explore",   href: "/explore",   Icon: ExploreIcon },
+  { label: "History",   href: "/history",   Icon: HistoryIcon },
+];
+
+const BOTTOM_ITEMS = [
+  { label: "Settings", Icon: SettingsIcon },
+  { label: "Support",  Icon: SupportIcon },
+];
+
 export default function ExplorePage() {
-  return (
-    <AuthGuard>
-      <ExploreContent />
-    </AuthGuard>
-  );
+  return (<AuthGuard><ExploreContent /></AuthGuard>);
 }
 
 function ExploreContent() {
@@ -38,31 +59,24 @@ function ExploreContent() {
   useEffect(() => {
     const cid = searchParams.get("chainId");
     if (!cid) return;
-    setChainId(cid);
-    setSaved(true);
-    setLoading(true);
-    fetch(`${API}/causalchains/${cid}/scoped?perspective=Mainstream`, { headers: headers() })
+    setChainId(cid); setSaved(true); setLoading(true);
+    fetch(`${API}/causalchains/${cid}/scoped?perspective=Mainstream`, { headers: authHeaders() })
       .then((r) => r.ok ? r.json() : null)
       .then((data) => {
-        const n = (data?.nodes ?? []) as GraphNode[];
-        const e = (data?.edges ?? []) as GraphEdge[];
-        setNodes(n);
-        setEdges(e);
-        const root = n.length > 0 ? n[0] : null;
-        if (root) { setQuery(data?.chainMetadata?.title ?? root.title ?? ""); setRootNodeId(root.id); }
+        const n = (data?.nodes ?? []) as GraphNode[]; const e = (data?.edges ?? []) as GraphEdge[];
+        setNodes(n); setEdges(e);
+        if (n[0]) { setQuery(data?.chainMetadata?.title ?? n[0].title ?? ""); setRootNodeId(n[0].id); }
       })
       .catch(() => setError("Failed to load saved chain."))
       .finally(() => setLoading(false));
   }, [searchParams]);
 
   function getToken() { return localStorage.getItem("accessToken") ?? ""; }
-  function headers(): Record<string, string> {
-    const h: Record<string, string> = { "Content-Type": "application/json" };
-    const t = getToken(); if (t) h["Authorization"] = `Bearer ${t}`;
-    return h;
+  function authHeaders(): Record<string, string> {
+    const t = getToken(); return { "Content-Type": "application/json", ...(t ? { Authorization: `Bearer ${t}` } : {}) };
   }
   async function autoSave(cid: string) {
-    try { await fetch(`${API}/causalchains/${cid}/save`, { method: "POST", headers: headers(), body: JSON.stringify({ notes: "" }) }); setSaved(true); } catch {}
+    try { await fetch(`${API}/causalchains/${cid}/save`, { method:"POST", headers:authHeaders(), body:'{"notes":""}' }); setSaved(true); } catch {}
   }
 
   async function handleSearch() {
@@ -70,19 +84,17 @@ function ExploreContent() {
     setLoading(true); setError(""); setNodes([]); setEdges([]); setSelectedNode(null); setChainId(null); setRootNodeId(null); setSaved(false);
     try {
       const rootEventId = crypto.randomUUID();
-      const chainRes = await fetch(`${API}/causalchains`, { method: "POST", headers: headers(), body: JSON.stringify({ title: query.trim(), rootEventId, domain: "Economics" }) });
-      if (!chainRes.ok) { const errBody = await chainRes.json().catch(() => ({})); throw new Error(errBody.title || errBody.detail || "Failed"); }
-      const chainData = await chainRes.json(); const cid = chainData.id as string;
+      const r1 = await fetch(`${API}/causalchains`, { method:"POST", headers:authHeaders(), body: JSON.stringify({ title:query.trim(), rootEventId, domain:"Economics" }) });
+      if (!r1.ok) { const eb = await r1.json().catch(()=>({})); throw new Error(eb.title||eb.detail||"Failed"); }
+      const cd = await r1.json(); const cid = cd.id as string;
       setChainId(cid); setRootNodeId(rootEventId); autoSave(cid);
-      const initRes = await fetch(`${API}/causalchains/${cid}/scoped?perspective=Mainstream`, { headers: headers() });
-      if (initRes.ok) { const gd = await initRes.json(); setNodes(gd.nodes ?? []); setEdges(gd.edges ?? []); }
-      const expandRes = await fetch(`${API}/causalchains/${cid}/expand/${rootEventId}?perspective=Mainstream`, { method: "POST", headers: headers() });
-      if (expandRes.ok) {
-        const expData = await expandRes.json();
-        if (expData.nodes && expData.edges) {
-          setNodes((prev) => { const seen = new Set(prev.map((n) => n.id)); return [...prev, ...(expData.nodes as GraphNode[]).filter((n) => !seen.has(n.id))]; });
-          setEdges((prev) => { const seen = new Set(prev.map((e) => e.id)); return [...prev, ...(expData.edges as GraphEdge[]).filter((e) => !seen.has(e.id))]; });
-        }
+      const r2 = await fetch(`${API}/causalchains/${cid}/scoped?perspective=Mainstream`, { headers:authHeaders() });
+      if (r2.ok) { const gd = await r2.json(); setNodes(gd.nodes??[]); setEdges(gd.edges??[]); }
+      const r3 = await fetch(`${API}/causalchains/${cid}/expand/${rootEventId}?perspective=Mainstream`, { method:"POST", headers:authHeaders() });
+      if (r3.ok) {
+        const ed = await r3.json();
+        if (ed.nodes) setNodes((p) => { const s=new Set(p.map((n:G)=>n.id)); return [...p, ...(ed.nodes as GraphNode[]).filter((n)=>!s.has(n.id))]; });
+        if (ed.edges) setEdges((p) => { const s=new Set(p.map((e:G)=>e.id)); return [...p, ...(ed.edges as GraphEdge[]).filter((e)=>!s.has(e.id))]; });
       }
     } catch (e) { setError(e instanceof Error ? e.message : "Something went wrong"); } finally { setLoading(false); }
   }
@@ -92,156 +104,142 @@ function ExploreContent() {
   async function handleExpand(nodeId: string) {
     if (!chainId || expanding) return; setExpanding(true);
     try {
-      const res = await fetch(`${API}/causalchains/${chainId}/expand/${nodeId}?perspective=Mainstream`, { method: "POST", headers: headers() });
-      if (res.ok) {
-        const graphData = await res.json();
-        setNodes((prev) => { const seen = new Set(prev.map((n) => n.id)); return [...prev, ...((graphData.nodes ?? []) as GraphNode[]).filter((n) => !seen.has(n.id))]; });
-        setEdges((prev) => { const seen = new Set(prev.map((e) => e.id)); return [...prev, ...((graphData.edges ?? []) as GraphEdge[]).filter((e) => !seen.has(e.id))]; });
+      const r = await fetch(`${API}/causalchains/${chainId}/expand/${nodeId}?perspective=Mainstream`, { method:"POST", headers:authHeaders() });
+      if (r.ok) { const d = await r.json();
+        setNodes((p) => { const s=new Set(p.map((n:G)=>n.id)); return [...p, ...((d.nodes??[]) as GraphNode[]).filter((n)=>!s.has(n.id))]; });
+        setEdges((p) => { const s=new Set(p.map((e:G)=>e.id)); return [...p, ...((d.edges??[]) as GraphEdge[]).filter((e)=>!s.has(e.id))]; });
       }
     } catch {} finally { setExpanding(false); }
   }
 
-  const S = (c: string) => ({ borderRight: `1px solid ${c}`, background: "#fff", flexShrink: 0 });
+  type G = { id: string };
 
   if (isNarrow) {
     return (
-      <div style={{ height: "calc(100svh - 90px)", display: "flex", flexDirection: "column", background: "#f9f9f9" }}>
-        <div style={{ padding: "12px 16px", background: "#fff", borderBottom: "1px solid #e4e4e7" }}>
-          <div style={{ display: "flex", gap: 0, background: "#fff", border: "1px solid #e4e4e7", borderRadius: 12, padding: "4px 4px 4px 14px", alignItems: "center" }}>
-            <span style={{ color: "#000", fontSize: 16, fontWeight: 700 }}>&gt;_</span>
-            <input type="text" value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleSearch()} placeholder="Query graph..." disabled={loading}
-              style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: 13, fontFamily: "'JetBrains Mono', monospace", fontWeight: 500, color: "#1a1c1c", padding: "8px 4px" }} />
-            <button onClick={handleSearch} disabled={loading || !query.trim()}
-              style={{ background: loading ? "#e4e4e7" : "#000", color: loading ? "#71717a" : "#fff", border: "none", padding: "8px 14px", borderRadius: 8, fontSize: 12, fontWeight: 600, fontFamily: "inherit", cursor: loading ? "not-allowed" : "pointer" }}>
-              {loading ? "..." : "Run"}
-            </button>
+      <div style={{ height:"calc(100svh - 90px)", display:"flex", flexDirection:"column", background:"#f9f9f9" }}>
+        <div style={{ padding:"12px 16px", background:"#fff", borderBottom:"1px solid #e4e4e7" }}>
+          <div style={{ display:"flex", gap:0, background:"#fff", border:"1px solid #e4e4e7", borderRadius:12, padding:"4px 4px 4px 14px", alignItems:"center" }}>
+            <span style={{ color:"#000", fontSize:16, fontWeight:700, fontFamily:"monospace" }}>&gt;_</span>
+            <input type="text" value={query} onChange={(e)=>setQuery(e.target.value)} onKeyDown={(e)=>e.key==="Enter"&&handleSearch()} placeholder="Query graph..." disabled={loading}
+              style={{ flex:1, background:"transparent", border:"none", outline:"none", fontSize:13, fontFamily:"'JetBrains Mono',monospace", fontWeight:500, color:"#1a1c1c", padding:"8px 4px" }} />
+            <button onClick={handleSearch} disabled={loading||!query.trim()}
+              style={{ background:loading?"#e4e4e7":"#000", color:loading?"#71717a":"#fff", border:"none", padding:"8px 14px", borderRadius:8, fontSize:12, fontWeight:600, fontFamily:"inherit", cursor:loading?"not-allowed":"pointer" }}>Run</button>
           </div>
         </div>
-        <div style={{ flex: 1, minHeight: 0 }}>
-          <GraphCanvas nodes={nodes} edges={edges} rootId={rootNodeId} onNodeClick={handleNodeClick} loading={loading} />
-        </div>
-        {selectedNode && (
-          <div style={{ maxHeight: "45vh", overflowY: "auto", borderTop: "1px solid #e4e4e7" }}>
-            <NodeDetailPanel node={selectedNode} edges={edges} saved={saved} onExpand={chainId ? handleExpand : undefined} expanding={expanding} />
-          </div>
-        )}
+        <div style={{ flex:1, minHeight:0 }}><GraphCanvas nodes={nodes} edges={edges} rootId={rootNodeId} onNodeClick={handleNodeClick} loading={loading} /></div>
+        {selectedNode && <div style={{ maxHeight:"45vh", overflowY:"auto", borderTop:"1px solid #e4e4e7" }}><NodeDetailPanel node={selectedNode} edges={edges} saved={saved} onExpand={chainId?handleExpand:undefined} expanding={expanding} /></div>}
       </div>
     );
   }
 
+  const BR = "1px solid #e4e4e7";
+
   return (
-    <div style={{ height: "calc(100svh - 90px)", display: "flex", flexDirection: "column", background: "#f9f9f9", overflow: "hidden" }}>
-      {/* Headbar */}
-      <header style={{ height: 56, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 24px", background: "#fff", borderBottom: "1px solid #e4e4e7", flexShrink: 0 }}>
-        <span style={{ fontSize: 16, fontWeight: 700, color: "#000", letterSpacing: "-0.02em" }}>GraphEngine</span>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          {/* User avatar with initials */}
-          <a href="/profile" style={{
-            width: 32, height: 32, borderRadius: "50%", background: "#000", color: "#fff",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontWeight: 600, fontSize: 12, textDecoration: "none", cursor: "pointer",
-            border: "1px solid #000", flexShrink: 0,
-          }}>
-            <span style={{ lineHeight: 1 }}>A</span>
-          </a>
+    <div style={{ height:"100svh", display:"flex", flexDirection:"column", background:"#f9f9f9", overflow:"hidden" }}>
+      {/* ── TopNavBar ───────────────────────────────── */}
+      <header style={{ height:56, display:"flex", alignItems:"center", justifyContent:"space-between", padding:"0 24px", background:"#fff", borderBottom:BR, flexShrink:0 }}>
+        <div style={{ display:"flex", alignItems:"center", gap:28 }}>
+          <span style={{ fontSize:16, fontWeight:700, color:"#000", letterSpacing:"-0.02em" }}>GraphEngine</span>
+          <div style={{ display:"flex", gap:24 }}>
+            {["Analytics","Network","Schema"].map((t,i) => (
+              <span key={t} style={{ fontSize:13, fontWeight:500, color:i===1?"#000":"#71717a", padding:"8px 0", cursor:"pointer", borderBottom:i===1?"2px solid #000":"2px solid transparent" }}>{t}</span>
+            ))}
+          </div>
+        </div>
+        <div style={{ display:"flex", alignItems:"center", gap:16 }}>
+          <div style={{ position:"relative" }}>
+            <div style={{ position:"absolute", left:10, top:"50%", transform:"translateY(-50%)", color:"#71717a", display:"flex" }}><SearchIcon /></div>
+            <input type="text" placeholder="Search nodes..." style={{ width:240, height:36, padding:"0 52px 0 32px", background:"#f3f3f3", border:"1px solid #e4e4e7", borderRadius:6, fontSize:12, fontWeight:500, fontFamily:"'JetBrains Mono',monospace", color:"#1a1c1c", outline:"none" }} />
+            <span style={{ position:"absolute", right:10, top:"50%", transform:"translateY(-50%)", fontSize:10, fontWeight:600, color:"#71717a", background:"#f9f9f9", border:"1px solid #e4e4e7", borderRadius:4, padding:"1px 6px", fontFamily:"monospace" }}>&#x2318;K</span>
+          </div>
+          <button style={{ background:"#000", color:"#fff", border:"none", padding:"8px 16px", borderRadius:6, fontSize:12, fontWeight:600, fontFamily:"inherit", cursor:"pointer" }}>Share</button>
+          <button style={{ background:"transparent", border:"none", color:"#71717a", cursor:"pointer", padding:6, borderRadius:4, display:"flex" }}><BellIcon /></button>
+          <button style={{ background:"transparent", border:"none", color:"#71717a", cursor:"pointer", padding:6, borderRadius:4, display:"flex" }}><SettingsIcon /></button>
+          <div style={{ width:32, height:32, borderRadius:"50%", background:"#000", color:"#fff", display:"flex", alignItems:"center", justifyContent:"center", fontWeight:600, fontSize:12, border:"1px solid #000", flexShrink:0, cursor:"pointer" }}>A</div>
         </div>
       </header>
 
-      {/* Main workspace: Sidebar | Canvas | Inspector */}
-      <div style={{ flex: 1, display: "flex", overflow: "hidden", minHeight: 0 }}>
-        {/* Sidebar */}
-        <aside style={{ ...S("#e4e4e7"), width: 256, display: "flex", flexDirection: "column", padding: "16px 12px" }}>
-          <div style={{ marginBottom: 24, marginTop: 8 }}>
-            <div style={{ width: 32, height: 32, borderRadius: 4, background: "#000", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 16, marginBottom: 14 }}>G</div>
-            <h1 style={{ fontSize: 20, fontWeight: 700, color: "#000", margin: 0, letterSpacing: "-0.01em", lineHeight: 1 }}>GraphEngine</h1>
-            <p style={{ fontSize: 11, fontWeight: 500, color: "#71717a", letterSpacing: "0.04em", textTransform: "uppercase", margin: "4px 0 0 0" }}>Enterprise v2.4</p>
+      {/* ── Main workspace ───────────────────────────── */}
+      <div style={{ flex:1, display:"flex", overflow:"hidden", minHeight:0 }}>
+        {/* SideNavBar */}
+        <aside style={{ width:256, display:"flex", flexDirection:"column", borderRight:BR, background:"#fff", padding:"16px 12px", flexShrink:0 }}>
+          <div style={{ marginBottom:24, marginTop:8 }}>
+            <div style={{ width:32, height:32, borderRadius:4, background:"#000", color:"#fff", display:"flex", alignItems:"center", justifyContent:"center", fontWeight:700, fontSize:16, marginBottom:14, letterSpacing:"-0.02em" }}>G</div>
+            <h1 style={{ fontSize:20, fontWeight:700, color:"#000", margin:0, letterSpacing:"-0.01em", lineHeight:1 }}>GraphEngine</h1>
+            <p style={{ fontSize:11, fontWeight:500, color:"#71717a", letterSpacing:"0.04em", textTransform:"uppercase", margin:"4px 0 0 0" }}>Enterprise v2.4</p>
           </div>
-          <button style={{ width: "100%", background: "#f3f3f3", border: "1px solid #e4e4e7", color: "#1a1c1c", padding: "10px 0", borderRadius: 6, fontSize: 12, fontWeight: 600, fontFamily: "inherit", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginBottom: 20 }}>
-            <span style={{ fontSize: 16, lineHeight: 1 }}>+</span> New Project
+          <button style={{ width:"100%", background:"#f3f3f3", border:"1px solid #e4e4e7", color:"#1a1c1c", padding:"10px 0", borderRadius:6, fontSize:12, fontWeight:600, fontFamily:"inherit", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:6, marginBottom:20 }}>
+            <PlusIcon /> New Project
           </button>
-          <nav style={{ flex: 1, display: "flex", flexDirection: "column", gap: 2 }}>
-            {[
-              { label: "Dashboard", href: "/dashboard", active: false },
-              { label: "Explore", href: "/explore", active: true },
-              { label: "History", href: "/history", active: false },
-            ].map((link) => (
-              <a key={link.label} href={link.href} onClick={(e) => { e.preventDefault(); router.push(link.href); }}
-                style={{
-                  display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", borderRadius: 8,
-                  background: link.active ? "#e3e1ec" : "transparent",
-                  color: link.active ? "#63646c" : "#4c4546",
-                  fontWeight: link.active ? 600 : 500, fontSize: 13,
-                  textDecoration: "none", transition: "background 0.15s",
-                }}
-                onMouseEnter={(e) => { if (!link.active) e.currentTarget.style.background = "#f3f3f3"; }}
-                onMouseLeave={(e) => { if (!link.active) e.currentTarget.style.background = "transparent"; }}
-              >
-                {link.label}
-              </a>
-            ))}
+          <nav style={{ flex:1, display:"flex", flexDirection:"column", gap:2 }}>
+            {NAV_ITEMS.map(({label, href, Icon}) => {
+              const active = label === "Explore";
+              return (
+                <a key={label} href={href} onClick={(e)=>{e.preventDefault();router.push(href);}}
+                  style={{ display:"flex", alignItems:"center", gap:10, padding:"8px 12px", borderRadius:8, background:active?"#e3e1ec":"transparent", color:active?"#63646c":"#4c4546", fontWeight:active?600:500, fontSize:13, textDecoration:"none", transition:"background 0.15s" }}
+                  onMouseEnter={(e)=>{if(!active)e.currentTarget.style.background="#f3f3f3"}}
+                  onMouseLeave={(e)=>{if(!active)e.currentTarget.style.background="transparent"}}
+                ><span style={{ display:"flex", color:active?"#63646c":"#4c4546" }}><Icon /></span>{label}</a>
+              );
+            })}
           </nav>
-          <div style={{ borderTop: "1px solid #e4e4e7", paddingTop: 12, display: "flex", flexDirection: "column", gap: 2 }}>
-            {["Settings", "Support"].map((l) => (
-              <a key={l} href="#" style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", borderRadius: 8, color: "#4c4546", fontSize: 13, fontWeight: 500, textDecoration: "none", transition: "background 0.15s" }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = "#f3f3f3")} onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
-                {l}
-              </a>
+          <div style={{ borderTop:BR, paddingTop:12, display:"flex", flexDirection:"column", gap:2 }}>
+            {BOTTOM_ITEMS.map(({label, Icon}) => (
+              <a key={label} href="#" style={{ display:"flex", alignItems:"center", gap:10, padding:"8px 12px", borderRadius:8, color:"#4c4546", fontSize:13, fontWeight:500, textDecoration:"none", transition:"background 0.15s" }}
+                onMouseEnter={(e)=>(e.currentTarget.style.background="#f3f3f3")} onMouseLeave={(e)=>(e.currentTarget.style.background="transparent")}
+              ><span style={{ display:"flex" }}><Icon /></span>{label}</a>
             ))}
           </div>
         </aside>
 
         {/* Center canvas */}
-        <main style={{ flex: 1, position: "relative", overflow: "hidden", display: "flex", flexDirection: "column" }}>
-          {/* Grid background canvas */}
-          <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
-            {/* Dot grid style background */}
-            <div style={{ position: "absolute", inset: 0, backgroundImage: "radial-gradient(circle, #e4e4e7 1px, transparent 1px)", backgroundSize: "40px 40px", pointerEvents: "none", opacity: 0.6 }} />
-            <div style={{ position: "relative", zIndex: 1, width: "100%", height: "100%" }}>
+        <main style={{ flex:1, position:"relative", overflow:"hidden", display:"flex", flexDirection:"column" }}>
+          <div style={{ flex:1, position:"relative", overflow:"hidden" }}>
+            <div style={{ position:"absolute", inset:0, backgroundImage:"radial-gradient(circle, #e4e4e7 1px, transparent 1px)", backgroundSize:"40px 40px", pointerEvents:"none", opacity:0.6 }} />
+            <div style={{ position:"relative", zIndex:1, width:"100%", height:"100%" }}>
               <GraphCanvas nodes={nodes} edges={edges} rootId={rootNodeId} onNodeClick={handleNodeClick} loading={loading} />
             </div>
-
             {/* Zoom controls */}
-            <div style={{ position: "absolute", bottom: 20, right: 20, zIndex: 20 }}>
-              <div style={{ background: "#fff", border: "1px solid #e4e4e7", borderRadius: 8, display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
-                {["+", "\u2212", "\u25A1"].map((c) => (
-                  <button key={c} style={{ padding: "8px 12px", border: "none", borderBottom: c === "\u25A1" ? "none" : "1px solid #e4e4e7", background: "#fff", color: "#4c4546", cursor: "pointer", fontSize: 16, lineHeight: 1, fontFamily: "inherit", transition: "background 0.15s, color 0.15s" }}
-                    onMouseEnter={(e) => { e.currentTarget.style.background = "#f3f3f3"; e.currentTarget.style.color = "#000"; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.background = "#fff"; e.currentTarget.style.color = "#4c4546"; }}>{c}</button>
+            <div style={{ position:"absolute", bottom:20, right:24, zIndex:20 }}>
+              <div style={{ background:"#fff", border:BR, borderRadius:8, display:"flex", flexDirection:"column", overflow:"hidden", boxShadow:"0 1px 3px rgba(0,0,0,0.06)" }}>
+                {[{icon:<ZoomInIcon />, last:false}, {icon:<ZoomOutIcon />, last:false}, {icon:<FitIcon />, last:true}].map(({icon, last}, i) => (
+                  <button key={i} style={{ padding:"8px 10px", border:"none", borderBottom:last?"none":BR, background:"#fff", color:"#4c4546", cursor:"pointer", display:"flex", fontFamily:"inherit", transition:"background 0.15s, color 0.15s" }}
+                    onMouseEnter={(e)=>{e.currentTarget.style.background="#f3f3f3";e.currentTarget.style.color="#000"}}
+                    onMouseLeave={(e)=>{e.currentTarget.style.background="#fff";e.currentTarget.style.color="#4c4546"}}>{icon}</button>
                 ))}
               </div>
             </div>
           </div>
 
           {/* Command bar */}
-          <div style={{ padding: "10px 24px 12px", display: "flex", justifyContent: "center" }}>
-            <div style={{ background: "#fff", border: "1px solid #e4e4e7", borderRadius: 12, padding: "5px 5px 5px 14px", display: "flex", alignItems: "center", gap: 8, width: "100%", maxWidth: 640, boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#71717a" strokeWidth="2" strokeLinecap="round">
-                <polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/>
-              </svg>
-              <input type="text" value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                placeholder="Query graph (e.g. 'What caused the Euro to weaken?')" disabled={loading}
-                style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: 13, fontFamily: "'JetBrains Mono', monospace", fontWeight: 500, color: "#1a1c1c" }} />
-              <button onClick={handleSearch} disabled={loading || !query.trim()}
-                style={{ background: loading || !query.trim() ? "#e4e4e7" : "#000", color: loading || !query.trim() ? "#71717a" : "#fff", border: "none", padding: "7px 14px", borderRadius: 8, fontSize: 11, fontWeight: 600, fontFamily: "inherit", cursor: loading ? "not-allowed" : "pointer" }}>
-                {loading ? "Running..." : "Run"}
+          <div style={{ padding:"10px 24px 14px", display:"flex", justifyContent:"center" }}>
+            <div style={{ background:"#fff", border:BR, borderRadius:12, padding:"6px 6px 6px 16px", display:"flex", alignItems:"center", gap:8, width:"100%", maxWidth:640, boxShadow:"0 1px 3px rgba(0,0,0,0.04)" }}>
+              <span style={{ color:"#000", display:"flex" }}><TerminalIcon /></span>
+              <input type="text" value={query} onChange={(e)=>setQuery(e.target.value)} onKeyDown={(e)=>e.key==="Enter"&&handleSearch()}
+                placeholder='Query graph (e.g. "Show paths between Subsystem A and Admin")...' disabled={loading}
+                style={{ flex:1, background:"transparent", border:"none", outline:"none", fontSize:13, fontFamily:"'JetBrains Mono',monospace", fontWeight:500, color:"#1a1c1c" }} />
+              <button onClick={handleSearch} disabled={loading||!query.trim()}
+                style={{ background:loading?"#e4e4e7":"#f3f3f3", color:loading?"#71717a":"#1a1c1c", border:"1px solid #e4e4e7", padding:"7px 12px", borderRadius:8, fontSize:11, fontWeight:600, fontFamily:"inherit", cursor:loading?"not-allowed":"pointer", display:"flex", alignItems:"center", gap:4 }}>
+                Run <span style={{ fontSize:10, color:"#71717a" }}>&#x23CE;</span>
               </button>
             </div>
           </div>
         </main>
 
         {/* Right Inspector */}
-        <aside style={{ ...S("#e4e4e7"), width: 320, display: "flex", flexDirection: "column" }}>
-          <div style={{ height: 48, display: "flex", alignItems: "center", padding: "0 16px", borderBottom: "1px solid #e4e4e7" }}>
-            <h2 style={{ fontSize: 15, fontWeight: 600, color: "#000", margin: 0, letterSpacing: "-0.01em" }}>Inspector</h2>
+        <aside style={{ width:320, borderLeft:BR, background:"#fff", display:"flex", flexDirection:"column", flexShrink:0 }}>
+          <div style={{ height:48, display:"flex", alignItems:"center", padding:"0 16px", borderBottom:BR, background:"#fff" }}>
+            <h2 style={{ fontSize:15, fontWeight:600, color:"#000", margin:0, letterSpacing:"-0.01em" }}>Inspector</h2>
           </div>
-          {selectedNode ? (
-            <NodeDetailPanel node={selectedNode} edges={edges} saved={saved} onExpand={chainId ? handleExpand : undefined} expanding={expanding} />
-          ) : (
-            <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 40, color: "#71717a" }}>
-              <span style={{ fontSize: 32, opacity: 0.25, marginBottom: 12, color: "#000" }}>&#x261B;</span>
-              <p style={{ fontSize: 13, fontWeight: 500, textAlign: "center", maxWidth: 200, margin: 0 }}>Select a node or edge on the canvas to view its properties.</p>
-            </div>
-          )}
+          {selectedNode
+            ? <NodeDetailPanel node={selectedNode} edges={edges} saved={saved} onExpand={chainId?handleExpand:undefined} expanding={expanding} />
+            : (
+              <div style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:40, color:"#71717a" }}>
+                <span style={{ fontSize:36, opacity:0.2, marginBottom:12 }}>&#x261B;</span>
+                <p style={{ fontSize:13, fontWeight:500, textAlign:"center", maxWidth:200, margin:0 }}>Select a node or edge on the canvas to view its properties.</p>
+              </div>
+            )
+          }
         </aside>
       </div>
     </div>
