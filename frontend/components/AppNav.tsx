@@ -163,9 +163,8 @@ export default function AppNav() {
           padding: "0 24px",
         }}
       >
-        {/* ── Left side: Logo + Desktop Nav ── */}
-        <div style={{ display: "flex", alignItems: "center", gap: 28 }}>
-          {/* Logo */}
+        {/* ── Left: Logo ── */}
+        <div style={{ flex: "0 0 auto" }}>
           <Link
             href="/dashboard"
             style={{
@@ -197,37 +196,45 @@ export default function AppNav() {
             </span>
             <span className="hidden sm:inline">CausalExplorer</span>
           </Link>
-
-          {/* Desktop nav links */}
-          <nav style={{ display: "flex", alignItems: "center", gap: 2 }}>
-            {NAV_ITEMS.map((item) => {
-              const active = isActive(item.href);
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  style={{
-                    ...navLinkStyle,
-                    color: active ? "var(--text-1)" : "var(--text-3)",
-                    background: active ? "var(--bg-subtle)" : "transparent",
-                    fontWeight: active ? 600 : 500,
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!active) e.currentTarget.style.background = "var(--bg-subtle)";
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!active) e.currentTarget.style.background = "transparent";
-                  }}
-                >
-                  {item.label}
-                </Link>
-              );
-            })}
-          </nav>
         </div>
 
-        {/* ── Right side: Theme toggle + Avatar + Mobile menu ── */}
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        {/* ── Center: Desktop nav links ── */}
+        <nav
+          style={{
+            flex: 1,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 2,
+          }}
+        >
+          {NAV_ITEMS.map((item) => {
+            const active = isActive(item.href);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                style={{
+                  ...navLinkStyle,
+                  color: active ? "var(--text-1)" : "var(--text-3)",
+                  background: active ? "var(--bg-subtle)" : "transparent",
+                  fontWeight: active ? 600 : 500,
+                }}
+                onMouseEnter={(e) => {
+                  if (!active) e.currentTarget.style.background = "var(--bg-subtle)";
+                }}
+                onMouseLeave={(e) => {
+                  if (!active) e.currentTarget.style.background = "transparent";
+                }}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
+        </nav>
+
+        {/* ── Right: Theme toggle + Avatar + Mobile menu ── */}
+        <div style={{ flex: "0 0 auto", display: "flex", alignItems: "center", gap: 6 }}>
           {/* Dark mode toggle */}
           <button
             onClick={toggleDark}
