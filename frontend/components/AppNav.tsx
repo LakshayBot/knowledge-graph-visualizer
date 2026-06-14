@@ -12,7 +12,6 @@ import {
   DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -299,39 +298,161 @@ export default function AppNav() {
                 </AvatarFallback>
               </Avatar>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuContent
+              align="end"
+              style={{
+                background: "var(--surface)",
+                border: "1px solid var(--border)",
+                borderRadius: 8,
+                padding: 4,
+                minWidth: 180,
+                boxShadow: "0 4px 24px rgba(0,0,0,0.08)",
+              }}
+            >
               {isAuthenticated ? (
                 <>
                   <DropdownMenuGroup>
-                    <DropdownMenuLabel className="font-normal">
-                      <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                        <p className="text-sm font-medium leading-none" style={{ margin: 0, color: "var(--text-1)" }}>
+                    <DropdownMenuLabel style={{ padding: "8px 10px 4px" }}>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                        <p
+                          style={{
+                            margin: 0,
+                            fontSize: 13,
+                            fontWeight: 600,
+                            color: "var(--text-1)",
+                            lineHeight: 1.3,
+                          }}
+                        >
                           {user?.username}
                         </p>
-                        <p className="text-xs leading-none" style={{ margin: 0, color: "var(--text-3)" }}>
+                        <p
+                          style={{
+                            margin: 0,
+                            fontSize: 11,
+                            color: "var(--text-3)",
+                            lineHeight: 1.3,
+                          }}
+                        >
                           {user?.email}
                         </p>
                       </div>
                     </DropdownMenuLabel>
                   </DropdownMenuGroup>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onSelect={() => router.push("/profile")}>
+                  <div style={{ height: 1, background: "var(--border)", margin: "4px 0" }} />
+                  <DropdownMenuItem
+                    onSelect={() => router.push("/profile")}
+                    render={
+                      <button
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          padding: "8px 10px",
+                          fontSize: 13,
+                          fontWeight: 500,
+                          color: "var(--text-1)",
+                          borderRadius: 6,
+                          cursor: "pointer",
+                          width: "100%",
+                          border: "none",
+                          background: "transparent",
+                          textAlign: "left",
+                          fontFamily: "inherit",
+                          lineHeight: 1,
+                          transition: "background 0.12s",
+                        }}
+                        onMouseEnter={(e) => (e.currentTarget.style.background = "var(--bg-subtle)")}
+                        onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                      />
+                    }
+                  >
                     Profile
                   </DropdownMenuItem>
-                  <DropdownMenuSeparator />
+                  <div style={{ height: 1, background: "var(--border)", margin: "4px 0" }} />
                   <DropdownMenuItem
                     onSelect={() => { logout(); router.push("/"); }}
-                    className="text-destructive focus:text-destructive"
+                    render={
+                      <button
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          padding: "8px 10px",
+                          fontSize: 13,
+                          fontWeight: 500,
+                          color: "var(--text-3)",
+                          borderRadius: 6,
+                          cursor: "pointer",
+                          width: "100%",
+                          border: "none",
+                          background: "transparent",
+                          textAlign: "left",
+                          fontFamily: "inherit",
+                          lineHeight: 1,
+                          transition: "background 0.12s",
+                        }}
+                        onMouseEnter={(e) => (e.currentTarget.style.background = "var(--bg-subtle)")}
+                        onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                      />
+                    }
                   >
                     Sign out
                   </DropdownMenuItem>
                 </>
               ) : (
                 <>
-                  <DropdownMenuItem onSelect={() => router.push("/login")}>
+                  <DropdownMenuItem
+                    onSelect={() => router.push("/login")}
+                    render={
+                      <button
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          padding: "8px 10px",
+                          fontSize: 13,
+                          fontWeight: 500,
+                          color: "var(--text-1)",
+                          borderRadius: 6,
+                          cursor: "pointer",
+                          width: "100%",
+                          border: "none",
+                          background: "transparent",
+                          textAlign: "left",
+                          fontFamily: "inherit",
+                          lineHeight: 1,
+                          transition: "background 0.12s",
+                        }}
+                        onMouseEnter={(e) => (e.currentTarget.style.background = "var(--bg-subtle)")}
+                        onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                      />
+                    }
+                  >
                     Sign in
                   </DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => router.push("/register")}>
+                  <DropdownMenuItem
+                    onSelect={() => router.push("/register")}
+                    render={
+                      <button
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          padding: "8px 10px",
+                          fontSize: 13,
+                          fontWeight: 500,
+                          color: "var(--text-1)",
+                          borderRadius: 6,
+                          cursor: "pointer",
+                          width: "100%",
+                          border: "none",
+                          background: "transparent",
+                          textAlign: "left",
+                          fontFamily: "inherit",
+                          lineHeight: 1,
+                          transition: "background 0.12s",
+                        }}
+                        onMouseEnter={(e) => (e.currentTarget.style.background = "var(--bg-subtle)")}
+                        onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                      />
+                    }
+                  >
                     Create account
                   </DropdownMenuItem>
                 </>
