@@ -39,6 +39,7 @@ function MoonIcon() {
 
 const NAV_ITEMS = [
   { label: "Dashboard", href: "/dashboard" },
+  { label: "Analytics", href: "/analytics" },
   { label: "Explore",   href: "/explore" },
   { label: "History",   href: "/history" },
 ];
