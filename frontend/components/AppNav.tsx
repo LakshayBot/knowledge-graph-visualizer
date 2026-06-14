@@ -342,7 +342,7 @@ export default function AppNav() {
                   <DropdownMenuItem
                     onSelect={() => router.push("/profile")}
                     render={
-                      <button
+                      <div
                         style={{
                           display: "flex",
                           alignItems: "center",
@@ -353,9 +353,6 @@ export default function AppNav() {
                           borderRadius: 6,
                           cursor: "pointer",
                           width: "100%",
-                          border: "none",
-                          background: "transparent",
-                          textAlign: "left",
                           fontFamily: "inherit",
                           lineHeight: 1,
                           transition: "background 0.12s",
@@ -371,7 +368,7 @@ export default function AppNav() {
                   <DropdownMenuItem
                     onSelect={() => { logout(); router.push("/"); }}
                     render={
-                      <button
+                      <div
                         style={{
                           display: "flex",
                           alignItems: "center",
@@ -382,9 +379,6 @@ export default function AppNav() {
                           borderRadius: 6,
                           cursor: "pointer",
                           width: "100%",
-                          border: "none",
-                          background: "transparent",
-                          textAlign: "left",
                           fontFamily: "inherit",
                           lineHeight: 1,
                           transition: "background 0.12s",
@@ -402,7 +396,7 @@ export default function AppNav() {
                   <DropdownMenuItem
                     onSelect={() => router.push("/login")}
                     render={
-                      <button
+                      <div
                         style={{
                           display: "flex",
                           alignItems: "center",
@@ -413,9 +407,6 @@ export default function AppNav() {
                           borderRadius: 6,
                           cursor: "pointer",
                           width: "100%",
-                          border: "none",
-                          background: "transparent",
-                          textAlign: "left",
                           fontFamily: "inherit",
                           lineHeight: 1,
                           transition: "background 0.12s",
@@ -430,7 +421,7 @@ export default function AppNav() {
                   <DropdownMenuItem
                     onSelect={() => router.push("/register")}
                     render={
-                      <button
+                      <div
                         style={{
                           display: "flex",
                           alignItems: "center",
@@ -441,9 +432,6 @@ export default function AppNav() {
                           borderRadius: 6,
                           cursor: "pointer",
                           width: "100%",
-                          border: "none",
-                          background: "transparent",
-                          textAlign: "left",
                           fontFamily: "inherit",
                           lineHeight: 1,
                           transition: "background 0.12s",
