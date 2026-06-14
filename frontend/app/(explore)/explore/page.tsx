@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import AuthGuard from "@/components/auth/AuthGuard";
 import { useBreakpoint } from "@/hooks/useBreakpoint";
 import GraphCanvas from "@/components/explore/GraphCanvas";
+import GraphBackground from "@/components/explore/GraphBackground";
 import NodeDetailPanel from "@/components/explore/NodeDetailPanel";
 import ModeSelector from "@/components/explore/ModeSelector";
 import type { GraphNode, GraphEdge } from "@/types/graph";
@@ -128,7 +129,7 @@ function ExploreContent() {
               style={{ background:loading?"#e4e4e7":"#000", color:loading?"#71717a":"#fff", border:"none", padding:"8px 14px", borderRadius:8, fontSize:12, fontWeight:600, fontFamily:"inherit", cursor:loading?"not-allowed":"pointer" }}>Run</button>
           </div>
         </div>
-        <div style={{ flex:1, minHeight:0 }}><GraphCanvas nodes={nodes} edges={edges} rootId={rootNodeId} onNodeClick={handleNodeClick} loading={loading} /></div>
+        <div style={{ flex:1, minHeight:0, position:"relative" }}><GraphBackground><GraphCanvas nodes={nodes} edges={edges} rootId={rootNodeId} onNodeClick={handleNodeClick} loading={loading} /></GraphBackground></div>
         {selectedNode && <div style={{ maxHeight:"45vh", overflowY:"auto", borderTop:"1px solid #e4e4e7" }}><NodeDetailPanel node={selectedNode} edges={edges} saved={saved} onExpand={chainId?handleExpand:undefined} expanding={expanding} /></div>}
       </div>
     );
@@ -197,10 +198,9 @@ function ExploreContent() {
         {/* Center canvas */}
         <main style={{ flex:1, position:"relative", overflow:"hidden", display:"flex", flexDirection:"column" }}>
           <div style={{ flex:1, position:"relative", overflow:"hidden" }}>
-            <div style={{ position:"absolute", inset:0, backgroundImage:"radial-gradient(circle, #e4e4e7 1px, transparent 1px)", backgroundSize:"40px 40px", pointerEvents:"none", opacity:0.6 }} />
-            <div style={{ position:"relative", zIndex:1, width:"100%", height:"100%" }}>
+            <GraphBackground>
               <GraphCanvas nodes={nodes} edges={edges} rootId={rootNodeId} onNodeClick={handleNodeClick} loading={loading} />
-            </div>
+            </GraphBackground>
             {/* Zoom controls */}
             <div style={{ position:"absolute", bottom:20, right:24, zIndex:20 }}>
               <div style={{ background:"#fff", border:BR, borderRadius:8, display:"flex", flexDirection:"column", overflow:"hidden", boxShadow:"0 1px 3px rgba(0,0,0,0.06)" }}>
