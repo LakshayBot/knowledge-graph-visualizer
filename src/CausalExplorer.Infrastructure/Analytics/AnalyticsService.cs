@@ -8,10 +8,6 @@ using Microsoft.Extensions.Logging;
 
 namespace CausalExplorer.Infrastructure.Analytics;
 
-/// <summary>
-/// Aggregates analytics data from the Python AI sidecar's prompt-logs endpoint
-/// and supplies computed/fallback data for metrics not yet tracked persistently.
-/// </summary>
 public sealed class AnalyticsService : IAnalyticsService
 {
     private readonly HttpClient _http;
@@ -30,26 +26,21 @@ public sealed class AnalyticsService : IAnalyticsService
         _logger = logger;
     }
 
-    /// <inheritdoc/>
     public async Task<AnalyticsOverviewDto> GetOverviewAsync(CancellationToken ct = default)
     {
-        // Fetch raw prompt logs from Python sidecar
         var logs = await FetchPromptLogsAsync(ct);
 
         return new AnalyticsOverviewDto(
-            ApiCosts:         ComputeApiCosts(logs),
-            InfrastructureCosts: ComputeInfraCosts(),
-            MonthlyRequests:  ComputeMonthlyRequests(logs),
-            TrafficLocations: ComputeTrafficLocations(),
-            Latency:          ComputeLatency(logs),
-            TokenUsage:       ComputeTokenUsage(logs),
-            ModelPerformance: ComputeModelPerformance(logs)
+            ApiCosts:          ComputeApiCosts(logs),
+            DailyRequests:     ComputeDailyRequests(logs),
+            TrafficCategories: ComputeTrafficCategories(logs),
+            Latency:           ComputeLatency(logs),
+            TokenUsage:        ComputeTokenUsage(logs),
+            ModelHeatmap:      ComputeModelHeatmap(logs)
         );
     }
 
-    // ─────────────────────────────────────
-    //  Internal record for prompt-logs API
-    // ─────────────────────────────────────
+    // ── Internal record ──
 
     private sealed record PromptLogEntry(
         [property: JsonPropertyName("id")] string Id,
@@ -73,10 +64,8 @@ public sealed class AnalyticsService : IAnalyticsService
         {
             var response = await _http.GetAsync("/api/prompt-logs?limit=5000", ct);
             response.EnsureSuccessStatusCode();
-
             var logs = await response.Content
                 .ReadFromJsonAsync<List<PromptLogEntry>>(JsonOptions, ct);
-
             return logs ?? [];
         }
         catch (Exception ex)
@@ -86,215 +75,207 @@ public sealed class AnalyticsService : IAnalyticsService
         }
     }
 
-    // ── Cost aggregation ─────────────────
+    // ── API Costs: overall + today vs yesterday ──
 
     private static CostTrendDto ComputeApiCosts(IReadOnlyList<PromptLogEntry> logs)
     {
-        var now      = DateTime.UtcNow;
-        var current  = logs.Where(l => IsRecent(l.CreatedAt, 30)).Sum(l => l.CostUsd ?? 0);
-        var previous = logs.Where(l => IsRecent(l.CreatedAt, 60) && !IsRecent(l.CreatedAt, 30))
-                           .Sum(l => l.CostUsd ?? 0);
+        var overall = logs.Sum(l => l.CostUsd ?? 0);
+        var now     = DateTime.UtcNow.Date;
+        var current = logs.Where(l => ParseDate(l.CreatedAt) == now).Sum(l => l.CostUsd ?? 0);
+        var previous = logs.Where(l => ParseDate(l.CreatedAt) == now.AddDays(-1)).Sum(l => l.CostUsd ?? 0);
 
-        var change = previous > 0 ? (current - previous) / previous * 100 : 12.5d;
-        return new CostTrendDto("API Costs", (decimal)current, (decimal)previous, Math.Round((decimal)change, 1), current >= previous);
+        var change = previous > 0
+            ? (current - previous) / previous * 100
+            : (current > 0 ? 100d : 0d);
+
+        return new CostTrendDto(
+            "API Costs",
+            (decimal)Math.Round(overall, 4),
+            (decimal)Math.Round(current, 4),       // Current → today's cost
+            (decimal)Math.Round(previous, 4),       // Previous → yesterday's cost
+            Math.Round((decimal)change, 1),
+            current >= previous
+        );
     }
 
-    private static CostTrendDto ComputeInfraCosts()
-    {
-        // Infra costs are not tracked in prompt-logs; return sample
-        return new CostTrendDto("Infrastructure", 21_900m, 22_370m, -2.1m, false);
-    }
+    // ── Daily requests (last 30 days, chronologically sorted) ──
 
-    // ── Monthly requests ─────────────────
-
-    private static IReadOnlyList<MonthlyRequestDto> ComputeMonthlyRequests(IReadOnlyList<PromptLogEntry> logs)
+    private static IReadOnlyList<DailyRequestDto> ComputeDailyRequests(IReadOnlyList<PromptLogEntry> logs)
     {
-        var months = logs
-            .GroupBy(l => ParseMonth(l.CreatedAt))
-            .Where(g => g.Key is not null)
-            .Select(g => new MonthlyRequestDto(g.Key!, g.Count()))
-            .OrderBy(m => m.Month)
+        // Group by date, sort by actual DateTime (not formatted string!)
+        var daily = logs
+            .GroupBy(l => ParseDate(l.CreatedAt))
+            .Where(g => g.Key != default)
+            .Select(g => new { Date = g.Key, Count = g.Count() })
+            .OrderBy(x => x.Date)
             .ToList();
 
-        // If we don't have enough real data, seed with realistic sample
-        if (months.Count < 3)
+        // Always fill last 30 days so the chart is never blank
+        var filled = new List<DailyRequestDto>();
+        for (int i = 29; i >= 0; i--)
         {
-            months =
-            [
-                new("Jan", 12_400), new("Feb", 18_100), new("Mar", 15_900),
-                new("Apr", 22_300), new("May", 19_800), new("Jun", 26_500),
-                new("Jul", 24_200), new("Aug", 28_900), new("Sep", 27_100),
-                new("Oct", 30_500), new("Nov", 28_400), new("Dec", 32_000),
-            ];
+            var date = DateTime.UtcNow.Date.AddDays(-i);
+            var label = date.ToString("MMM dd", CultureInfo.InvariantCulture);
+            var count = daily.FirstOrDefault(d => d.Date == date)?.Count ?? 0;
+            filled.Add(new DailyRequestDto(label, count));
         }
-
-        return months;
+        return filled;
     }
 
-    // ── Traffic by location (sample) ──────
+    // ── Traffic by category (from endpoint, always show all categories) ──
 
-    private static IReadOnlyList<TrafficLocationDto> ComputeTrafficLocations()
+    private static readonly string[] AllCategories =
+        ["Economics", "Geopolitics", "Technology", "Healthcare", "Climate", "General"];
+
+    private static IReadOnlyList<TrafficCategoryDto> ComputeTrafficCategories(IReadOnlyList<PromptLogEntry> logs)
     {
-        // Geo-location is not tracked; return representative sample
-        return new List<TrafficLocationDto>
-        {
-            new("United States",   "🇺🇸", 1_250_000, 34),
-            new("United Kingdom",  "🇬🇧",   620_000, 17),
-            new("Germany",         "🇩🇪",   480_000, 13),
-            new("India",           "🇮🇳",   410_000, 11),
-            new("Canada",          "🇨🇦",   290_000,  8),
-            new("Australia",       "🇦🇺",   220_000,  6),
-            new("Japan",           "🇯🇵",   180_000,  5),
-            new("Brazil",          "🇧🇷",   120_000,  3),
-        };
+        var total = logs.Count;
+
+        var actual = logs
+            .GroupBy(l => MapEndpointToCategory(l.Endpoint))
+            .ToDictionary(g => g.Key, g => g.Count());
+
+        return AllCategories
+            .Select(cat => new TrafficCategoryDto(
+                cat,
+                actual.GetValueOrDefault(cat, 0),
+                total > 0 ? (int)Math.Round(actual.GetValueOrDefault(cat, 0) * 100.0 / Math.Max(total, 1)) : 0
+            ))
+            .OrderByDescending(c => c.Requests)
+            .ToList();
     }
 
-    // ── Latency ──────────────────────────
+    private static string MapEndpointToCategory(string endpoint) => endpoint.ToLowerInvariant() switch
+    {
+        "graph_generation"     => "Economics",
+        "expand_chain"         => "Geopolitics",
+        "extract_events"       => "Technology",
+        "generate_causal_link" => "Healthcare",
+        "validate_chain"       => "Climate",
+        _                      => "General",
+    };
+
+    // ── Latency from duration_ms ──
 
     private static LatencyDto ComputeLatency(IReadOnlyList<PromptLogEntry> logs)
     {
         var durations = logs
-            .Where(l => l.DurationMs.HasValue)
-            .Select(l => (int)l.DurationMs!.Value)
+            .Where(l => l.DurationMs.HasValue && l.DurationMs > 0)
+            .Select(l => l.DurationMs!.Value)
             .OrderBy(d => d)
             .ToList();
 
+        var avgMs = durations.Count > 0 ? (int)durations.Average() : 0;
+        var uptime = 99.97m;
+
         if (durations.Count == 0)
         {
-            return new LatencyDto(
-                TotalCost: 4923.89m,
-                UptimePercent: 99.97m,
-                Percentiles: new List<LatencyPercentileDto>
-                {
-                    new("P50", 42,   "#14b8a6", "good"),
-                    new("P75", 89,   "#22c55e", "good"),
-                    new("P90", 156,  "#eab308", "warning"),
-                    new("P99", 420,  "#ef4444", "critical"),
-                }
-            );
+            return new LatencyDto(avgMs, uptime, []);
         }
 
-        var totalCost = (decimal)logs.Sum(l => l.CostUsd ?? 0);
-        var uptime    = 99.97m;
-
         return new LatencyDto(
-            TotalCost: Math.Round(totalCost, 2),
-            UptimePercent: uptime,
-            Percentiles: new List<LatencyPercentileDto>
+            avgMs,
+            uptime,
+            new List<LatencyPercentileDto>
             {
-                new("P50",  Percentile(durations, 50),  "#14b8a6", durations.Count > 0 ? "good" : "good"),
-                new("P75",  Percentile(durations, 75),  "#22c55e", "good"),
-                new("P90",  Percentile(durations, 90),  "#eab308", "warning"),
-                new("P99",  Percentile(durations, 99),  "#ef4444", "critical"),
+                new("P50", Percentile(durations, 50), "#14b8a6", "good"),
+                new("P75", Percentile(durations, 75), "#22c55e", "good"),
+                new("P90", Percentile(durations, 90), "#eab308", "warning"),
+                new("P99", Percentile(durations, 99), "#ef4444", "critical"),
             }
         );
     }
 
-    // ── Token usage ──────────────────────
+    // ── Token usage (daily, last 14 days) ──
 
     private static IReadOnlyList<TokenUsageDto> ComputeTokenUsage(IReadOnlyList<PromptLogEntry> logs)
     {
         var daily = logs
             .GroupBy(l => ParseDate(l.CreatedAt))
-            .Where(g => g.Key is not null)
+            .Where(g => g.Key != default)
             .Select(g =>
             {
-                var input  = g.Sum(l => l.InputTokens ?? 0);
-                var output = g.Sum(l => l.OutputTokens ?? 0);
-                return new TokenUsageDto(g.Key!, input, output, input + output);
+                var input  = g.Sum(l => (long)(l.InputTokens ?? 0));
+                var output = g.Sum(l => (long)(l.OutputTokens ?? 0));
+                return new TokenUsageDto(
+                    g.Key.ToString("MMM dd", CultureInfo.InvariantCulture),
+                    input,
+                    output,
+                    input + output
+                );
             })
             .OrderBy(t => t.Date)
             .ToList();
 
-        if (daily.Count < 3)
+        if (daily.Count < 2)
         {
-            daily = new List<TokenUsageDto>
+            // Fill last 14 days with zero-fill
+            var filled = new List<TokenUsageDto>();
+            for (int i = 13; i >= 0; i--)
             {
-                new("Mon", 850_000, 340_000, 1_190_000),
-                new("Tue", 1_020_000, 410_000, 1_430_000),
-                new("Wed", 980_000, 380_000, 1_360_000),
-                new("Thu", 1_150_000, 520_000, 1_670_000),
-                new("Fri", 910_000, 360_000, 1_270_000),
-                new("Sat", 540_000, 210_000, 750_000),
-                new("Sun", 480_000, 190_000, 670_000),
-            };
+                var date = DateTime.UtcNow.Date.AddDays(-i);
+                var label = date.ToString("MMM dd", CultureInfo.InvariantCulture);
+                var existing = daily.FirstOrDefault(d => d.Date == label);
+                filled.Add(existing ?? new TokenUsageDto(label, 0, 0, 0));
+            }
+            return filled;
         }
 
-        return daily;
+        return daily.TakeLast(14).ToList();
     }
 
-    // ── Model performance ────────────────
+    // ── Model heatmap: daily token totals per model ──
 
-    private static IReadOnlyList<ModelPerformanceDto> ComputeModelPerformance(IReadOnlyList<PromptLogEntry> logs)
+    private static IReadOnlyList<ModelHeatmapDto> ComputeModelHeatmap(IReadOnlyList<PromptLogEntry> logs)
     {
         var models = logs
             .Where(l => !string.IsNullOrWhiteSpace(l.Model))
-            .GroupBy(l => l.Model)
+            .Select(l => l.Model)
+            .Distinct()
             .ToList();
 
-        if (models.Count == 0)
-        {
-            // Return sample data with monthly scores for the heatmap
-            var months = new[] { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
-            var modelNames = new[] { "GPT-4o", "Claude 4", "Grok-3", "Gemini", "Mistral" };
-            var rng = new Random(42);
+        if (models.Count == 0) return [];
 
-            return modelNames.Select(name =>
+        // Build heatmap: last 30 days × models
+        var days = Enumerable.Range(0, 30)
+            .Select(i => DateTime.UtcNow.Date.AddDays(-29 + i))
+            .ToList();
+
+        return models.Select(model =>
+        {
+            var modelLogs = logs.Where(l => l.Model == model).ToList();
+            var maxTokens = modelLogs
+                .Select(l => (long)(l.InputTokens ?? 0) + (l.OutputTokens ?? 0))
+                .DefaultIfEmpty(1)
+                .Max();
+
+            var scores = days.Select(day =>
             {
-                var baseScore = name switch
-                {
-                    "GPT-4o"   => 94,
-                    "Claude 4" => 92,
-                    "Grok-3"   => 89,
-                    "Gemini"   => 87,
-                    _          => 83,
-                };
-                var scores = months.Select((m, i) =>
-                    new MonthlyModelScoreDto(m, Math.Clamp(baseScore + rng.Next(-5, 4), 70, 99))
-                ).ToList();
+                var dayTotal = modelLogs
+                    .Where(l => ParseDate(l.CreatedAt) == day)
+                    .Sum(l => (long)(l.InputTokens ?? 0) + (l.OutputTokens ?? 0));
 
-                return new ModelPerformanceDto(name, scores);
+                // Normalize to 0-100 score for heatmap opacity
+                var score = maxTokens > 0
+                    ? (int)Math.Round(dayTotal * 100.0 / maxTokens)
+                    : 0;
+
+                return new DailyModelScoreDto(
+                    day.ToString("dd", CultureInfo.InvariantCulture),
+                    score
+                );
             }).ToList();
-        }
 
-        // Use real model names with sample monthly scores
-        var modelList = models.Select(g => g.Key).Distinct().ToList();
-        var allMonths = new[] { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
-        var rand = new Random(42);
-
-        return modelList.Select(name =>
-        {
-            var avgTokens = logs.Where(l => l.Model == name).Average(l => l.InputTokens ?? 100) / 1000;
-            var baseScore = (int)Math.Clamp(avgTokens, 70, 99);
-            var scores = allMonths.Select((m, i) =>
-                new MonthlyModelScoreDto(m, Math.Clamp(baseScore + rand.Next(-4, 4), 70, 99))
-            ).ToList();
-
-            return new ModelPerformanceDto(name, scores);
+            return new ModelHeatmapDto(model, scores);
         }).ToList();
     }
 
-    // ── Utility helpers ──────────────────
+    // ── Helpers ──
 
-    private static bool IsRecent(string createdDate, int days)
+    private static DateTime ParseDate(string createdDate)
     {
-        if (!DateTime.TryParse(createdDate, CultureInfo.InvariantCulture, DateTimeStyles.None, out var dt))
-            return false;
-        return dt >= DateTime.UtcNow.AddDays(-days);
-    }
-
-    private static string? ParseMonth(string createdDate)
-    {
-        if (!DateTime.TryParse(createdDate, CultureInfo.InvariantCulture, DateTimeStyles.None, out var dt))
-            return null;
-        return dt.ToString("MMM", CultureInfo.InvariantCulture);
-    }
-
-    private static string? ParseDate(string createdDate)
-    {
-        if (!DateTime.TryParse(createdDate, CultureInfo.InvariantCulture, DateTimeStyles.None, out var dt))
-            return null;
-        return dt.ToString("ddd", CultureInfo.InvariantCulture);
+        return DateTime.TryParse(createdDate, CultureInfo.InvariantCulture,
+            DateTimeStyles.None, out var dt) ? dt.Date : default;
     }
 
     private static int Percentile(IReadOnlyList<int> sorted, int p)

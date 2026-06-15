@@ -4,13 +4,12 @@ import { useState, useCallback, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import AuthGuard from "@/components/auth/AuthGuard";
 import { useBreakpoint } from "@/hooks/useBreakpoint";
+import { apiFetch } from "@/lib/api-client";
 import GraphCanvas from "@/components/explore/GraphCanvas";
 import GraphBackground from "@/components/explore/GraphBackground";
 import NodeDetailPanel from "@/components/explore/NodeDetailPanel";
 import ModeSelector from "@/components/explore/ModeSelector";
 import type { GraphNode, GraphEdge } from "@/types/graph";
-
-const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5001/api/v1";
 
 /* ── Tiny inline icons ──────────────────────────────── */
 function TerminalIcon() { return (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>); }
@@ -43,10 +42,9 @@ function ExploreContent() {
     const cid = searchParams.get("chainId");
     if (!cid) return;
     setChainId(cid); setSaved(true); setLoading(true);
-    fetch(`${API}/causalchains/${cid}/scoped?perspective=Mainstream`, { headers: authHeaders() })
-      .then((r) => r.ok ? r.json() : null)
+    apiFetch<{ nodes?: GraphNode[]; edges?: GraphEdge[]; chainMetadata?: { title?: string } }>(`/causalchains/${cid}/scoped?perspective=Mainstream`)
       .then((data) => {
-        const n = (data?.nodes ?? []) as GraphNode[]; const e = (data?.edges ?? []) as GraphEdge[];
+        const n = data?.nodes ?? []; const e = data?.edges ?? [];
         setNodes(n); setEdges(e);
         if (n[0]) { setQuery(data?.chainMetadata?.title ?? n[0].title ?? ""); setRootNodeId(n[0].id); }
       })
@@ -54,12 +52,8 @@ function ExploreContent() {
       .finally(() => setLoading(false));
   }, [searchParams]);
 
-  function getToken() { return localStorage.getItem("accessToken") ?? ""; }
-  function authHeaders(): Record<string, string> {
-    const t = getToken(); return { "Content-Type": "application/json", ...(t ? { Authorization: `Bearer ${t}` } : {}) };
-  }
   async function autoSave(cid: string) {
-    try { await fetch(`${API}/causalchains/${cid}/save`, { method:"POST", headers:authHeaders(), body:'{"notes":""}' }); setSaved(true); } catch {}
+    try { await apiFetch(`/causalchains/${cid}/save`, { method:"POST", body:'{"notes":""}' }); setSaved(true); } catch {}
   }
 
   async function handleSearch() {
@@ -67,18 +61,14 @@ function ExploreContent() {
     setLoading(true); setError(""); setNodes([]); setEdges([]); setSelectedNode(null); setChainId(null); setRootNodeId(null); setSaved(false);
     try {
       const rootEventId = crypto.randomUUID();
-      const r1 = await fetch(`${API}/causalchains`, { method:"POST", headers:authHeaders(), body: JSON.stringify({ title:query.trim(), rootEventId, domain:"Economics" }) });
-      if (!r1.ok) { const eb = await r1.json().catch(()=>({})); throw new Error(eb.title||eb.detail||"Failed"); }
-      const cd = await r1.json(); const cid = cd.id as string;
+      const cd = await apiFetch<{ id: string }>("/causalchains", { method:"POST", body: JSON.stringify({ title:query.trim(), rootEventId, domain:"Economics" }) });
+      const cid = cd.id;
       setChainId(cid); setRootNodeId(rootEventId); autoSave(cid);
-      const r2 = await fetch(`${API}/causalchains/${cid}/scoped?perspective=Mainstream`, { headers:authHeaders() });
-      if (r2.ok) { const gd = await r2.json(); setNodes(gd.nodes??[]); setEdges(gd.edges??[]); }
-      const r3 = await fetch(`${API}/causalchains/${cid}/expand/${rootEventId}?perspective=Mainstream`, { method:"POST", headers:authHeaders() });
-      if (r3.ok) {
-        const ed = await r3.json();
-        if (ed.nodes) setNodes((p) => { const s=new Set(p.map((n:G)=>n.id)); return [...p, ...(ed.nodes as GraphNode[]).filter((n)=>!s.has(n.id))]; });
-        if (ed.edges) setEdges((p) => { const s=new Set(p.map((e:G)=>e.id)); return [...p, ...(ed.edges as GraphEdge[]).filter((e)=>!s.has(e.id))]; });
-      }
+      const gd = await apiFetch<{ nodes?: GraphNode[]; edges?: GraphEdge[] }>(`/causalchains/${cid}/scoped?perspective=Mainstream`);
+      setNodes(gd.nodes??[]); setEdges(gd.edges??[]);
+      const ed = await apiFetch<{ nodes?: GraphNode[]; edges?: GraphEdge[] }>(`/causalchains/${cid}/expand/${rootEventId}?perspective=Mainstream`, { method:"POST" });
+      if (ed.nodes) setNodes((p) => { const s=new Set(p.map((n:G)=>n.id)); return [...p, ...(ed.nodes as GraphNode[]).filter((n)=>!s.has(n.id))]; });
+      if (ed.edges) setEdges((p) => { const s=new Set(p.map((e:G)=>e.id)); return [...p, ...(ed.edges as GraphEdge[]).filter((e)=>!s.has(e.id))]; });
     } catch (e) { setError(e instanceof Error ? e.message : "Something went wrong"); } finally { setLoading(false); }
   }
 
@@ -87,11 +77,9 @@ function ExploreContent() {
   async function handleExpand(nodeId: string) {
     if (!chainId || expanding) return; setExpanding(true);
     try {
-      const r = await fetch(`${API}/causalchains/${chainId}/expand/${nodeId}?perspective=Mainstream`, { method:"POST", headers:authHeaders() });
-      if (r.ok) { const d = await r.json();
-        setNodes((p) => { const s=new Set(p.map((n:G)=>n.id)); return [...p, ...((d.nodes??[]) as GraphNode[]).filter((n)=>!s.has(n.id))]; });
-        setEdges((p) => { const s=new Set(p.map((e:G)=>e.id)); return [...p, ...((d.edges??[]) as GraphEdge[]).filter((e)=>!s.has(e.id))]; });
-      }
+      const d = await apiFetch<{ nodes?: GraphNode[]; edges?: GraphEdge[] }>(`/causalchains/${chainId}/expand/${nodeId}?perspective=Mainstream`, { method:"POST" });
+      setNodes((p) => { const s=new Set(p.map((n:G)=>n.id)); return [...p, ...((d.nodes??[]) as GraphNode[]).filter((n)=>!s.has(n.id))]; });
+      setEdges((p) => { const s=new Set(p.map((e:G)=>e.id)); return [...p, ...((d.edges??[]) as GraphEdge[]).filter((e)=>!s.has(e.id))]; });
     } catch {} finally { setExpanding(false); }
   }
 
@@ -152,21 +140,27 @@ function ExploreContent() {
         <div style={{ height: 130, flexShrink: 0 }} />
       </main>
 
-      {/* Right Inspector */}
-      <aside style={{ width: 320, borderLeft: BR, background: "var(--surface)", display: "flex", flexDirection: "column", flexShrink: 0 }}>
-        <div style={{ height: 48, display: "flex", alignItems: "center", padding: "0 16px", borderBottom: BR, background: "var(--surface)" }}>
-          <h2 style={{ fontSize: 15, fontWeight: 600, color: "var(--text-1)", margin: 0, letterSpacing: "-0.01em" }}>Inspector</h2>
-        </div>
-        {selectedNode
-          ? <NodeDetailPanel node={selectedNode} edges={edges} saved={saved} onExpand={chainId ? handleExpand : undefined} expanding={expanding} />
-          : (
-            <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 40, color: "var(--text-3)" }}>
-              <span style={{ fontSize: 36, opacity: 0.2, marginBottom: 12 }}>&#x261B;</span>
-              <p style={{ fontSize: 13, fontWeight: 500, textAlign: "center", maxWidth: 200, margin: 0 }}>Select a node or edge on the canvas to view its properties.</p>
-            </div>
-          )
-        }
-      </aside>
+      {/* Right Inspector — only visible when a node is selected */}
+      {selectedNode && (
+        <aside style={{ width: 320, borderLeft: BR, background: "var(--surface)", display: "flex", flexDirection: "column", flexShrink: 0 }}>
+          <div style={{ height: 48, display: "flex", alignItems: "center", padding: "0 16px", borderBottom: BR, background: "var(--surface)" }}>
+            <h2 style={{ fontSize: 15, fontWeight: 600, color: "var(--text-1)", margin: 0, letterSpacing: "-0.01em" }}>Inspector</h2>
+            <button
+              onClick={() => setSelectedNode(null)}
+              style={{ marginLeft: "auto", background: "none", border: "none", cursor: "pointer", color: "var(--text-3)", padding: 4, borderRadius: 4, display: "flex", transition: "color 0.15s" }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = "var(--text-1)")}
+              onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-3)")}
+              aria-label="Close inspector"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+          </div>
+          <NodeDetailPanel node={selectedNode} edges={edges} saved={saved} onExpand={chainId ? handleExpand : undefined} expanding={expanding} />
+        </aside>
+      )}
 
       {/* ── Empty state — spans full viewport, centered on true centerline ── */}
       {hasEmptyCanvas && (

@@ -4,12 +4,11 @@ import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import AuthGuard from "@/components/auth/AuthGuard";
 import { useBreakpoint } from "@/hooks/useBreakpoint";
+import { apiFetch } from "@/lib/api-client";
 import GraphCanvas from "@/components/explore/GraphCanvas";
 import NodeDetailPanel from "@/components/explore/NodeDetailPanel";
 import Button from "@/components/shared/Button";
 import type { GraphNode, GraphEdge } from "@/types/graph";
-
-const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5001/api/v1";
 interface ChainMeta {
   chainId?: string; title?: string; domain?: string; nodeCount?: number;
 }
@@ -60,32 +59,13 @@ function ChainContent() {
   const [rootNodeId, setRootNodeId] = useState<string | null>(null);
   const [expanding, setExpanding] = useState(false);
 
-  function getToken() {
-    return localStorage.getItem("accessToken") ?? "";
-  }
-
-  function headers(): Record<string, string> {
-    const h: Record<string, string> = { "Content-Type": "application/json" };
-    const t = getToken();
-    if (t) h["Authorization"] = `Bearer ${t}`;
-    return h;
-  }
-
   useEffect(() => {
     async function load() {
       setLoading(true);
       try {
         const [initialData, fullData] = await Promise.all([
-          fetch(`${API}/causalchains/${id}/initial?perspective=Mainstream`, { headers: headers() }).then(async (res) => {
-            if (!res.ok) {
-              const body = await res.json().catch(() => ({}));
-              throw new Error(body.title || body.detail || "Chain not found");
-            }
-            return res.json() as Promise<ChainGraphResponse>;
-          }),
-          fetch(`${API}/causalchains/${id}?depth=6`, { headers: headers() }).then((res) =>
-            res.ok ? res.json() as Promise<ChainGraphResponse> : null,
-          ),
+          apiFetch<ChainGraphResponse>(`/causalchains/${id}/initial?perspective=Mainstream`),
+          apiFetch<ChainGraphResponse>(`/causalchains/${id}?depth=6`).catch(() => null),
         ]);
         const { nodes: chainNodes, edges: chainEdges } = chooseSavedGraph(initialData, fullData);
         const metadata = fullData?.chainMetadata ?? initialData.chainMetadata;
@@ -110,23 +90,17 @@ function ChainContent() {
     if (expanding) return;
     setExpanding(true);
     try {
-      const res = await fetch(`${API}/causalchains/${id}/expand/${nodeId}?perspective=Mainstream`, {
-        method: "POST",
-        headers: headers(),
+      const graphData = await apiFetch<{ nodes?: GraphNode[]; edges?: GraphEdge[] }>(`/causalchains/${id}/expand/${nodeId}?perspective=Mainstream`, { method: "POST" });
+      const newNodes: GraphNode[] = graphData.nodes ?? [];
+      const newEdges: GraphEdge[] = graphData.edges ?? [];
+      setNodes((prev) => {
+        const seen = new Set(prev.map((n) => n.id));
+        return [...prev, ...newNodes.filter((n) => !seen.has(n.id))];
       });
-      if (res.ok) {
-        const graphData = await res.json();
-        const newNodes: GraphNode[] = graphData.nodes ?? [];
-        const newEdges: GraphEdge[] = graphData.edges ?? [];
-        setNodes((prev) => {
-          const seen = new Set(prev.map((n) => n.id));
-          return [...prev, ...newNodes.filter((n) => !seen.has(n.id))];
-        });
-        setEdges((prev) => {
-          const seen = new Set(prev.map((e) => e.id));
-          return [...prev, ...newEdges.filter((e) => !seen.has(e.id))];
-        });
-      }
+      setEdges((prev) => {
+        const seen = new Set(prev.map((e) => e.id));
+        return [...prev, ...newEdges.filter((e) => !seen.has(e.id))];
+      });
     } catch { /* ignore expand failures in saved view */ }
     finally { setExpanding(false); }
   }
@@ -196,12 +170,14 @@ function ChainContent() {
           <div style={{ flex: 1, minHeight: 220, overflow: "hidden" }}>
             <GraphCanvas nodes={nodes} edges={edges} rootId={rootNodeId} onNodeClick={handleNodeClick} />
           </div>
-          <div style={{ borderTop: "1px solid var(--border)", flexShrink: 0, height: "min(320px, 48svh)", minHeight: 220 }}>
-            <NodeDetailPanel node={selectedNode} edges={edges} saved onExpand={handleExpand} expanding={expanding} />
-          </div>
+          {selectedNode && (
+            <div style={{ borderTop: "1px solid var(--border)", flexShrink: 0, height: "min(320px, 48svh)", minHeight: 220 }}>
+              <NodeDetailPanel node={selectedNode} edges={edges} saved onExpand={handleExpand} expanding={expanding} />
+            </div>
+          )}
         </div>
       ) : (
-        <div style={{ flex: 1, display: "grid", gridTemplateColumns: "minmax(0, 1fr) 340px", minHeight: 0, overflow: "hidden" }}>
+        <div style={{ flex: 1, display: "grid", gridTemplateColumns: selectedNode ? "minmax(0, 1fr) 340px" : "1fr", minHeight: 0, overflow: "hidden" }}>
           <div style={{ position: "relative", overflow: "hidden", background: "var(--bg-subtle)", minWidth: 0, minHeight: 0 }}>
             <div
               style={{
@@ -216,7 +192,9 @@ function ChainContent() {
               <GraphCanvas nodes={nodes} edges={edges} rootId={rootNodeId} onNodeClick={handleNodeClick} />
             </div>
           </div>
-          <NodeDetailPanel node={selectedNode} edges={edges} saved onExpand={handleExpand} expanding={expanding} />
+          {selectedNode && (
+            <NodeDetailPanel node={selectedNode} edges={edges} saved onExpand={handleExpand} expanding={expanding} />
+          )}
         </div>
       )}
     </div>

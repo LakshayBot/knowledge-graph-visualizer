@@ -4,11 +4,10 @@ import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import AuthGuard from "@/components/auth/AuthGuard";
 import { useBreakpoint } from "@/hooks/useBreakpoint";
+import { apiFetch } from "@/lib/api-client";
 import Button from "@/components/shared/Button";
 import SavedChainCard from "@/components/dashboard/SavedChainCard";
 import type { SavedChain } from "@/types/graph";
-
-const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5001/api/v1";
 
 export default function HistoryPage() {
   return (
@@ -26,27 +25,12 @@ function HistoryContent() {
   const [chains, setChains] = useState<SavedChain[]>([]);
   const [loading, setLoading] = useState(true);
 
-  function getToken() {
-    return localStorage.getItem("accessToken") ?? "";
-  }
-
-  function headers(): Record<string, string> {
-    const h: Record<string, string> = { "Content-Type": "application/json" };
-    const t = getToken();
-    if (t) h["Authorization"] = `Bearer ${t}`;
-    return h;
-  }
-
   const loadChains = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API}/users/me/chains`, { headers: headers() });
-      if (res.ok) {
-        const data = await res.json();
-        const savedChains = (data ?? []) as SavedChain[];
-        setChains([...savedChains].sort((a, b) => new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime()));
-      }
-    } catch { /* ignore */ }
+      const data = await apiFetch<SavedChain[]>("/users/me/chains");
+      setChains([...(data ?? [])].sort((a, b) => new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime()));
+    } catch { /* ignore — apiFetch handles 401 */ }
     finally { setLoading(false); }
   }, []);
 

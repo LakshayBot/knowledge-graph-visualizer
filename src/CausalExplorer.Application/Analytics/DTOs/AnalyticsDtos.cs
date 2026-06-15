@@ -3,40 +3,39 @@ namespace CausalExplorer.Application.Analytics.DTOs;
 /// <summary>Root analytics overview response.</summary>
 public sealed record AnalyticsOverviewDto(
     CostTrendDto ApiCosts,
-    CostTrendDto InfrastructureCosts,
-    IReadOnlyList<MonthlyRequestDto> MonthlyRequests,
-    IReadOnlyList<TrafficLocationDto> TrafficLocations,
+    IReadOnlyList<DailyRequestDto> DailyRequests,
+    IReadOnlyList<TrafficCategoryDto> TrafficCategories,
     LatencyDto Latency,
     IReadOnlyList<TokenUsageDto> TokenUsage,
-    IReadOnlyList<ModelPerformanceDto> ModelPerformance
+    IReadOnlyList<ModelHeatmapDto> ModelHeatmap
 );
 
-/// <summary>Cost trend with current vs previous period.</summary>
+/// <summary>Cost trend with overall total + today vs yesterday comparison.</summary>
 public sealed record CostTrendDto(
     string Label,
-    decimal Current,
-    decimal Previous,
+    decimal Overall,
+    decimal Today,
+    decimal Yesterday,
     decimal ChangePercent,
     bool IsPositive
 );
 
-/// <summary>Monthly request count.</summary>
-public sealed record MonthlyRequestDto(
-    string Month,
+/// <summary>Daily request count.</summary>
+public sealed record DailyRequestDto(
+    string Date,
     int Requests
 );
 
-/// <summary>Traffic by geographic location.</summary>
-public sealed record TrafficLocationDto(
-    string Country,
-    string Flag,
+/// <summary>Traffic by category (derived from endpoint).</summary>
+public sealed record TrafficCategoryDto(
+    string Category,
     int Requests,
     int Percentage
 );
 
-/// <summary>Latency percentiles.</summary>
+/// <summary>System latency metrics.</summary>
 public sealed record LatencyDto(
-    decimal TotalCost,
+    int AvgMs,
     decimal UptimePercent,
     IReadOnlyList<LatencyPercentileDto> Percentiles
 );
@@ -57,14 +56,14 @@ public sealed record TokenUsageDto(
     long Total
 );
 
-/// <summary>Per-model performance metrics.</summary>
-public sealed record ModelPerformanceDto(
+/// <summary>Per-model daily heatmap data.</summary>
+public sealed record ModelHeatmapDto(
     string Model,
-    IReadOnlyList<MonthlyModelScoreDto> MonthlyScores
+    IReadOnlyList<DailyModelScoreDto> DailyScores
 );
 
-/// <summary>Single month score for a model.</summary>
-public sealed record MonthlyModelScoreDto(
-    string Month,
+/// <summary>Single day score for a model heatmap cell.</summary>
+public sealed record DailyModelScoreDto(
+    string Day,
     int Score
 );
