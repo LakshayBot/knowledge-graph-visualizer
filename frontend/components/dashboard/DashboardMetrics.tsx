@@ -73,20 +73,6 @@ export default function DashboardMetrics() {
             flexWrap: "wrap",
           }}
         >
-          <div>
-            <h1
-              style={{
-                fontFamily: "Manrope, sans-serif",
-                fontSize: "clamp(24px, 2.2vw, 32px)",
-                fontWeight: 700,
-                letterSpacing: "-0.02em",
-                color: "var(--dash-heading)",
-                margin: "0 0 4px",
-              }}
-            >
-              Dashboard
-            </h1>
-          </div>
         </div>
 
         {/* ═══════════════════════════════════════════════════
