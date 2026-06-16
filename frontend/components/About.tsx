@@ -26,12 +26,7 @@ export default function About() {
 
   return (
     <div style={{ borderBottom: "1px solid var(--border)", flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: isNarrow ? "1fr" : "1.4fr 1fr",
-        }}
-      >
+      <div className="mw" style={{ width: "100%", flex: 1, display: "grid", gridTemplateColumns: isNarrow ? "1fr" : "1.4fr 1fr" }}>
         {/* Left */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}

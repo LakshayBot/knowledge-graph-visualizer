@@ -132,6 +132,7 @@ export default function ApiPreview() {
 
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0, background: "#14100e", overflow: "hidden" }}>
+      <div className="mw" style={{ width: "100%", flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
       {/* Header */}
       <div
         style={{
@@ -226,6 +227,7 @@ export default function ApiPreview() {
           </motion.div>
         ))}
       </div>
+      </div>{/* close .mw wrapper */}
     </div>
   );
 }

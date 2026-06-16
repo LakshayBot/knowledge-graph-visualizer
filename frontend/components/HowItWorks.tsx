@@ -276,7 +276,7 @@ export default function HowItWorks() {
         </div>
       ) : (
         /* ── DESKTOP: two-column split ── */
-        <div style={{ flex: 1, display: "grid", gridTemplateColumns: "1fr 1.4fr", minHeight: 0 }}>
+        <div className="mw" style={{ flex: 1, display: "grid", gridTemplateColumns: "1fr 1.4fr", minHeight: 0 }}>
           {/* Left — sticky info panel */}
           <div
             style={{

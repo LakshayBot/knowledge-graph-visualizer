@@ -26,6 +26,7 @@ export default function Features() {
 
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0, overflow: "hidden" }}>
+      <div className="mw" style={{ width: "100%", flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
       {/* Header */}
       <div
         style={{
@@ -196,6 +197,7 @@ export default function Features() {
           </div>
         ))}
       </div>
+      </div>{/* close .mw wrapper */}
     </div>
   );
 }

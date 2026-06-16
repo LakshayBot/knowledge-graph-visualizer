@@ -346,7 +346,7 @@ function ExploreContent() {
                   top: 0,
                   left: 0,
                   right: 0,
-                  bottom: 160,
+                  bottom: "clamp(110px, 16vh, 150px)",
                   display: "flex",
                   flexDirection: "column",
                   alignItems: "center",
@@ -457,7 +457,7 @@ function ExploreContent() {
         </div>
 
         {/* Spacer for command bar */}
-        <div style={{ height: 130, flexShrink: 0 }} />
+        <div style={{ height: "clamp(100px, 14vh, 140px)", flexShrink: 0 }} />
       </main>
 
       {/* ── Right Inspector ── */}
@@ -465,7 +465,7 @@ function ExploreContent() {
         {selectedNode && (
           <motion.aside
             initial={{ width: 0, opacity: 0 }}
-            animate={{ width: 340, opacity: 1 }}
+            animate={{ width: "clamp(280px, 26vw, 360px)", opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
             transition={{ duration: 0.25, ease: "easeOut" }}
             style={{
@@ -569,7 +569,7 @@ function ExploreContent() {
         <div
           style={{
             width: "100%",
-            maxWidth: 680,
+            maxWidth: "clamp(480px, 55vw, 680px)",
             pointerEvents: "auto",
             background: "rgba(255, 248, 246, 0.85)",
             backdropFilter: "blur(12px)",

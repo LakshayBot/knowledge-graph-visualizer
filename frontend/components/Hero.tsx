@@ -354,7 +354,7 @@ export default function Hero() {
           </div>
 
           {/* Graph half — takes remaining space */}
-          <div style={{ flex: 1, position: "relative", background: "var(--bg-subtle)", minHeight: isMobile ? 220 : 300, overflow: "hidden" }}>
+          <div style={{ flex: 1, position: "relative", background: "var(--bg-subtle)", minHeight: isMobile ? "clamp(240px, 35vh, 350px)" : 300, overflow: "hidden" }}>
             <div style={{ position: "absolute", inset: 0, backgroundImage: "radial-gradient(var(--border-med) 1px, transparent 1px)", backgroundSize: "24px 24px", opacity: 0.5, pointerEvents: "none" }} />
             <div style={{ position: "absolute", inset: 0 }}><CausalGraph /></div>
           </div>
@@ -362,6 +362,7 @@ export default function Hero() {
       ) : (
         /* ── DESKTOP / WIDE: side-by-side ── */
         <div
+          className="mw"
           style={{
             display: "grid",
             gridTemplateColumns: "1fr 1.6fr",

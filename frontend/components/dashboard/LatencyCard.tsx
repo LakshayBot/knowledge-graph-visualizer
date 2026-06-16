@@ -87,7 +87,7 @@ export default function LatencyCard({ latency }: Props) {
       </div>
 
       <style>{`
-        @media (min-width: 480px) { .latency-grid { grid-template-columns: repeat(4, 1fr) !important; } }
+        @media (min-width: 640px) { .latency-grid { grid-template-columns: repeat(4, 1fr) !important; } }
       `}</style>
     </div>
   );

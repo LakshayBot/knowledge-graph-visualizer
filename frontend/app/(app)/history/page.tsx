@@ -132,7 +132,8 @@ function LuminaHistoryCard({ chain }: { chain: SavedChain }) {
         display: "flex",
         flexDirection: "column",
         justifyContent: "space-between",
-        height: 256,
+        minHeight: "clamp(200px, 28vh, 256px)",
+        height: "auto",
         cursor: "pointer",
         boxShadow: hovered
           ? "0 20px 40px rgba(159, 61, 0, 0.06)"
@@ -299,7 +300,7 @@ function HistoryContent() {
     >
       <div
         style={{
-          maxWidth: 1280,
+          maxWidth: "clamp(960px, 90vw, 1440px)",
           margin: "0 auto",
           padding: containerPadding,
         }}
@@ -458,9 +459,9 @@ function HistoryContent() {
               gridTemplateColumns: isMobile
                 ? "1fr"
                 : isTablet
-                ? "repeat(2, 1fr)"
-                : "repeat(3, 1fr)",
-              gap: 24,
+                ? "repeat(auto-fill, minmax(280px, 1fr))"
+                : "repeat(auto-fill, minmax(340px, 1fr))",
+              gap: "clamp(16px, 2vw, 24px)",
             }}
           >
             {chains.map((chain) => (
