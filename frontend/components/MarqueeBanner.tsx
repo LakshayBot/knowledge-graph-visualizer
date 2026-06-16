@@ -11,8 +11,8 @@ export default function MarqueeBanner() {
   return (
     <div
       style={{
-        background: "#111",
-        color: "#f5f2ec",
+        background: "var(--chip-bg)",
+        color: "var(--chip-fg)",
         fontSize: 11,
         fontWeight: 600,
         letterSpacing: "0.1em",
@@ -20,7 +20,7 @@ export default function MarqueeBanner() {
         overflow: "hidden",
         whiteSpace: "nowrap",
         padding: "9px 0",
-        borderBottom: "1px solid rgba(255,255,255,0.05)",
+        borderBottom: "1px solid rgba(255,255,255,0.08)",
       }}
     >
       <div

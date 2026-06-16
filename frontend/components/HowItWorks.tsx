@@ -10,7 +10,7 @@ const steps = [
     title: "Ask a Question",
     desc: "Type any natural-language question — geopolitical, economic, scientific, or social. No special syntax needed.",
     detail: '"Why is the rupee falling against USD?"',
-    color: "#c8ccd4",
+    color: "#d2e4fb",
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
@@ -22,7 +22,7 @@ const steps = [
     title: "Three-Phase Retrieval",
     desc: "Neo4j keyword search runs first. On miss, Qdrant semantic search (≥ 0.70 similarity). Only a true miss triggers Grok AI generation.",
     detail: "Neo4j → Qdrant → Grok AI",
-    color: "#ccd4c8",
+    color: "#c8e8d4",
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
@@ -34,7 +34,7 @@ const steps = [
     title: "Grok Builds the Graph",
     desc: "A structured prompt to xAI's Grok returns a validated causal JSON graph — event nodes with dates, domains, confidence scores, source URLs, and directed edges with perspectives.",
     detail: "minimal · balanced · quality",
-    color: "#d4ccc8",
+    color: "#ffdbcd",
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
@@ -46,7 +46,7 @@ const steps = [
     title: "Persist & Cache",
     desc: "New nodes are bulk-written to Neo4j, embedded by Ollama (nomic-embed-text), and stored in Qdrant. Redis caches by topic + mode + count. Every query makes the system smarter.",
     detail: "Neo4j + Qdrant + Redis",
-    color: "#c8d4cc",
+    color: "#b8e0cc",
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <ellipse cx="12" cy="5" rx="9" ry="3"/>

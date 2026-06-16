@@ -205,16 +205,17 @@ export default function Nav() {
                 href="/login"
                 onClick={(e) => { e.preventDefault(); navTo("/login"); }}
                 style={{
-                  background: "var(--text-1)",
-                  color: "var(--bg)",
+                  background: "var(--brand)",
+                  color: "var(--brand-fg)",
                   fontSize: 11,
                   fontWeight: 700,
                   letterSpacing: "0.03em",
                   padding: "6px 14px",
+                  borderRadius: "0.5rem",
                   textDecoration: "none",
                   transition: "opacity 0.15s",
                 }}
-                onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.75")}
+                onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.8")}
                 onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
               >
                 Login
@@ -224,8 +225,8 @@ export default function Nav() {
               <a
                 href="https://github.com/LakshayBot/knowledge-graph-visualizer"
                 target="_blank" rel="noopener noreferrer"
-                style={{ background: "var(--text-1)", color: "var(--bg)", fontSize: 11, fontWeight: 700, letterSpacing: "0.03em", padding: "6px 14px", textDecoration: "none", transition: "opacity 0.15s" }}
-                onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.75")}
+                style={{ background: "var(--brand)", color: "var(--brand-fg)", fontSize: 11, fontWeight: 700, letterSpacing: "0.03em", padding: "6px 14px", borderRadius: "0.5rem", textDecoration: "none", transition: "opacity 0.15s" }}
+                onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.8")}
                 onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
               >
                 GitHub ↗

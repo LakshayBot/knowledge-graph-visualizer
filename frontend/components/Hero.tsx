@@ -14,13 +14,13 @@ interface GNode { id: string; label: string; badge: string; x: number; y: number
 interface GEdge { from: string; to: string; label: string; dashed?: boolean }
 
 const NODES: GNode[] = [
-  { id: "inflation", label: "US Inflation",    badge: "Cause",  x:  88, y:  60, color: "#c9cdd6" },
-  { id: "fed",       label: "Fed Rate Hike",   badge: "Policy", x: 250, y:  46, color: "#ccd5c8" },
-  { id: "usd",       label: "USD Strengthens", badge: "Effect", x: 412, y:  80, color: "#d5ccc8" },
-  { id: "deficit",   label: "Trade Deficit",   badge: "Cause",  x:  82, y: 175, color: "#c9cdd6" },
-  { id: "flight",    label: "Capital Flight",  badge: "Effect", x: 412, y: 175, color: "#d5ccc8" },
-  { id: "inr",       label: "INR Falls",       badge: "Effect", x: 250, y: 248, color: "#d5c8c8" },
-  { id: "rbi",       label: "RBI Intervenes",  badge: "Policy", x:  82, y: 255, color: "#ccd5c8" },
+  { id: "inflation", label: "US Inflation",    badge: "Cause",  x:  88, y:  60, color: "#d2e4fb" },
+  { id: "fed",       label: "Fed Rate Hike",   badge: "Policy", x: 250, y:  46, color: "#c8e8d4" },
+  { id: "usd",       label: "USD Strengthens", badge: "Effect", x: 412, y:  80, color: "#ffdbcd" },
+  { id: "deficit",   label: "Trade Deficit",   badge: "Cause",  x:  82, y: 175, color: "#d2e4fb" },
+  { id: "flight",    label: "Capital Flight",  badge: "Effect", x: 412, y: 175, color: "#ffdbcd" },
+  { id: "inr",       label: "INR Falls",       badge: "Effect", x: 250, y: 248, color: "#f6ded4" },
+  { id: "rbi",       label: "RBI Intervenes",  badge: "Policy", x:  82, y: 255, color: "#c8e8d4" },
 ];
 
 interface GEdge { from: string; to: string; label: string; dashed?: boolean; lx?: number; ly?: number }
@@ -199,7 +199,7 @@ function CausalGraph() {
                 <rect
                   x={node.x - 18} y={node.y - R - 16}
                   width={36} height={12} rx={3}
-                  fill={isHovered ? "var(--text-1)" : "#111"}
+                  fill={isHovered ? "var(--text-1)" : "var(--chip-bg)"}
                   style={{ transition: "fill 0.2s" }}
                 />
                 <text

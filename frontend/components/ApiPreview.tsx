@@ -131,7 +131,7 @@ export default function ApiPreview() {
   }
 
   return (
-    <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0, background: "#0d0c0a", overflow: "hidden" }}>
+    <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0, background: "#14100e", overflow: "hidden" }}>
       {/* Header */}
       <div
         style={{

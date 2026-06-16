@@ -1,11 +1,7 @@
 import type { Metadata } from "next";
 import Script from "next/script";
-import { GeistSans } from "geist/font/sans";
 import "./globals.css";
-import { Geist } from "next/font/google";
 import { cn } from "@/lib/utils";
-
-const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 export const metadata: Metadata = {
   title: "CausalExplorer — Understand Why Events Happen",
@@ -19,12 +15,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning className={cn("font-sans", geist.variable)}>
+    <html lang="en" suppressHydrationWarning className="font-sans">
       <head>
-        {/* Lumina Dashboard fonts */}
+        {/* Lumina Analytics fonts: Manrope (headlines), Hanken Grotesk (body), JetBrains Mono (data) */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700&family=Hanken+Grotesk:wght@400;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700&family=Hanken+Grotesk:wght@400;600&family=JetBrains+Mono:wght@500&display=swap"
+          rel="stylesheet"
+        />
         {/* Anti-FOUC: apply dark class before first paint */}
         <Script
           id="theme-init"
@@ -34,7 +33,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body style={{ fontFamily: "var(--font-geist-sans), 'Helvetica Neue', Helvetica, Arial, sans-serif" }}>
+      <body>
         {children}
       </body>
     </html>

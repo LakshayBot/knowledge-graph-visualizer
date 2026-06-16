@@ -23,126 +23,146 @@ body {
   -webkit-overflow-scrolling: touch;
   background-color: var(--bg);
   color: var(--text-1);
-  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-family: 'Hanken Grotesk', 'Helvetica Neue', Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-/* ── Design tokens ─────────────────────────────────────────── */
+/* ── Lumina Analytics Design Tokens ──────────────────────────── */
 :root {
-  /* ── Project custom vars ────────────────────────────── */
-  --bg:          #f5f2ec;
-  --bg-subtle:   #f0ece4;
-  --surface:     #fff;
-  --border:      rgba(0, 0, 0, 0.08);
-  --border-med:  rgba(0, 0, 0, 0.13);
-  --text-1:      #111;
-  --text-2:      #444;
-  --text-3:      #777;
-  --text-4:      #aaa;
-  --accent:      #111;
-  --accent-fg:   #fff;
-  --chip-bg:     #111;
-  --chip-fg:     #fff;
+  /* ── Core surfaces ────────────────────────────────── */
+  --bg:          #fff8f6;
+  --bg-subtle:   #fff1ec;
+  --surface:     #ffffff;
+  --border:      rgba(0, 0, 0, 0.06);
+  --border-med:  #e0c0b3;
+
+  /* ── Text hierarchy ──────────────────────────────── */
+  --text-1:      #251913;
+  --text-2:      #594238;
+  --text-3:      #7a5c4f;
+  --text-4:      #8c7166;
+
+  /* ── Brand (Lumina Primary Orange) ───────────────── */
+  --brand:       #9f3d00;
+  --brand-fg:    #ffffff;
+  --brand-hover: #c74e00;
+  --chip-bg:     #9f3d00;
+  --chip-fg:     #ffffff;
+
+  /* ── Chrome heights ──────────────────────────────── */
   --nav-h:       56px;
   --banner-h:    34px;
   --chrome-h:    90px;
 
-  /* ── Shadcn theme tokens (reference project vars) ──── */
-  --background: var(--bg);
-  --foreground: var(--text-1);
-  --card: var(--surface);
-  --card-foreground: var(--text-1);
-  --popover: var(--surface);
-  --popover-foreground: var(--text-1);
-  --primary: var(--text-1);
-  --primary-foreground: var(--bg);
-  --secondary: var(--bg-subtle);
-  --secondary-foreground: var(--text-2);
-  --muted: var(--bg-subtle);
-  --muted-foreground: var(--text-3);
-  --accent: var(--bg-subtle);
-  --accent-foreground: var(--text-1);
-  --destructive: #ef4444;
-  --input: var(--border-med);
-  --ring: var(--text-1);
-  --radius: 0.5rem;
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: var(--surface);
-  --sidebar-foreground: var(--text-1);
-  --sidebar-primary: var(--text-1);
-  --sidebar-primary-foreground: var(--bg);
-  --sidebar-accent: var(--bg-subtle);
+  /* ── shadcn theme tokens ─────────────────────────── */
+  --background:             var(--bg);
+  --foreground:             var(--text-1);
+  --card:                   var(--surface);
+  --card-foreground:        var(--text-1);
+  --popover:                var(--surface);
+  --popover-foreground:     var(--text-1);
+  --primary:                #9f3d00;
+  --primary-foreground:     #ffffff;
+  --secondary:              #4f6073;
+  --secondary-foreground:   #ffffff;
+  --muted:                  var(--bg-subtle);
+  --muted-foreground:       var(--text-3);
+  --accent:                 var(--bg-subtle);
+  --accent-foreground:      var(--text-1);
+  --destructive:            #ba1a1a;
+  --input:                  var(--border-med);
+  --ring:                   #9f3d00;
+  --radius:                 0.5rem;
+
+  /* ── Chart colors (Lumina palette) ──────────────── */
+  --chart-1: #9f3d00;
+  --chart-2: #00694a;
+  --chart-3: #4f6073;
+  --chart-4: #c74e00;
+  --chart-5: #00855e;
+
+  /* ── Sidebar ─────────────────────────────────────── */
+  --sidebar:                   var(--surface);
+  --sidebar-foreground:        var(--text-1);
+  --sidebar-primary:           #9f3d00;
+  --sidebar-primary-foreground:#ffffff;
+  --sidebar-accent:            var(--bg-subtle);
   --sidebar-accent-foreground: var(--text-1);
-  --sidebar-border: var(--border);
-  --sidebar-ring: var(--border-med);
+  --sidebar-border:            var(--border);
+  --sidebar-ring:              var(--border-med);
 }
 
+/* ── Dark mode ───────────────────────────────────────────────── */
 .dark {
-  /* ── Project custom vars ────────────────────────────── */
-  --bg:          #0e0d0b;
-  --bg-subtle:   #161410;
-  --surface:     #1a1916;
-  --border:      rgba(255, 255, 255, 0.07);
-  --border-med:  rgba(255, 255, 255, 0.12);
-  --text-1:      #f0ede6;
-  --text-2:      #b0aa9e;
-  --text-3:      #776f66;
-  --text-4:      #4a4540;
-  --accent:      #f0ede6;
-  --accent-fg:   #111;
-  --chip-bg:     #f0ede6;
-  --chip-fg:     #111;
+  /* ── Core surfaces ────────────────────────────────── */
+  --bg:          #1a1512;
+  --bg-subtle:   #221b17;
+  --surface:     #261e19;
+  --border:      rgba(255, 255, 255, 0.06);
+  --border-med:  rgba(255, 255, 255, 0.10);
 
-  /* ── Shadcn theme tokens (reference project vars) ──── */
-  --background: var(--bg);
-  --foreground: var(--text-1);
-  --card: var(--surface);
-  --card-foreground: var(--text-1);
-  --popover: var(--surface);
-  --popover-foreground: var(--text-1);
-  --primary: var(--text-1);
-  --primary-foreground: var(--bg);
-  --secondary: var(--bg-subtle);
-  --secondary-foreground: var(--text-2);
-  --muted: var(--bg-subtle);
-  --muted-foreground: var(--text-3);
-  --accent: var(--bg-subtle);
-  --accent-foreground: var(--text-1);
-  --destructive: #ef4444;
-  --input: var(--border-med);
-  --ring: var(--text-1);
-  --radius: 0.5rem;
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: var(--surface);
-  --sidebar-foreground: var(--text-1);
-  --sidebar-primary: var(--text-1);
-  --sidebar-primary-foreground: var(--bg);
-  --sidebar-accent: var(--bg-subtle);
+  /* ── Text hierarchy ──────────────────────────────── */
+  --text-1:      #ffede7;
+  --text-2:      #d4bfb2;
+  --text-3:      #a08c7e;
+  --text-4:      #6b5a50;
+
+  /* ── Brand ───────────────────────────────────────── */
+  --brand:       #ffb596;
+  --brand-fg:    #360f00;
+  --brand-hover: #ffccb8;
+  --chip-bg:     #ffb596;
+  --chip-fg:     #360f00;
+
+  /* ── shadcn theme tokens ─────────────────────────── */
+  --background:             var(--bg);
+  --foreground:             var(--text-1);
+  --card:                   var(--surface);
+  --card-foreground:        var(--text-1);
+  --popover:                var(--surface);
+  --popover-foreground:     var(--text-1);
+  --primary:                #ffb596;
+  --primary-foreground:     #360f00;
+  --secondary:              #b7c8de;
+  --secondary-foreground:   #0b1d2d;
+  --muted:                  var(--bg-subtle);
+  --muted-foreground:       var(--text-3);
+  --accent:                 var(--bg-subtle);
+  --accent-foreground:      var(--text-1);
+  --destructive:            #ffb4ab;
+  --input:                  var(--border-med);
+  --ring:                   #ffb596;
+
+  /* ── Chart colors ────────────────────────────────── */
+  --chart-1: #ffb596;
+  --chart-2: #65dcab;
+  --chart-3: #b7c8de;
+  --chart-4: #ff9a6c;
+  --chart-5: #82f9c6;
+
+  /* ── Sidebar ─────────────────────────────────────── */
+  --sidebar:                   var(--surface);
+  --sidebar-foreground:        var(--text-1);
+  --sidebar-primary:           #ffb596;
+  --sidebar-primary-foreground:#360f00;
+  --sidebar-accent:            var(--bg-subtle);
   --sidebar-accent-foreground: var(--text-1);
-  --sidebar-border: var(--border);
-  --sidebar-ring: var(--border-med);
+  --sidebar-border:            var(--border);
+  --sidebar-ring:              var(--border-med);
 }
 
-/* ── Section — each fills exactly one full viewport ─────────── */
+/* ── Section — each fills exactly one full viewport ──────────── */
 .snap-section {
   height: 100svh;
-  min-height: 500px;   /* safety floor for very small screens */
+  min-height: 500px;
   display: flex;
   flex-direction: column;
-  overflow: hidden;    /* clip content that overflows — no internal scroll */
+  overflow: hidden;
 }
 
-/* ── Max width wrapper (ultrawide) ─────────────────────────── */
+/* ── Max width wrapper (ultrawide) ──────────────────────────── */
 .mw {
   max-width: 1600px;
   width: 100%;
@@ -150,7 +170,7 @@ body {
   margin-right: auto;
 }
 
-/* ── Keyframes ─────────────────────────────────────────────── */
+/* ── Keyframes ──────────────────────────────────────────────── */
 @keyframes marquee {
   0%   { transform: translateX(0); }
   100% { transform: translateX(-50%); }
@@ -171,7 +191,7 @@ body {
   100% { transform: scale(1.8); opacity: 0; }
 }
 
-/* ── Utility classes ───────────────────────────────────────── */
+/* ── Utility classes ────────────────────────────────────────── */
 .eyebrow {
   font-size: 10px;
   font-weight: 700;
@@ -182,8 +202,9 @@ body {
 }
 
 .section-title {
+  font-family: 'Manrope', var(--font-sans), sans-serif;
   font-size: clamp(22px, 2.8vw, 38px);
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: -0.03em;
   color: var(--text-1);
   line-height: 1;
@@ -203,10 +224,11 @@ body {
   line-height: 1.4;
 }
 
-/* ── Bento card ────────────────────────────────────────────── */
+/* ── Bento card ─────────────────────────────────────────────── */
 .bento-card {
   background: var(--surface);
   border: 1px solid var(--border);
+  border-radius: 0.5rem;
   padding: 24px 24px 28px;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
@@ -218,24 +240,29 @@ body {
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
 }
 
-/* ── Button ────────────────────────────────────────────────── */
+/* ── Buttons ────────────────────────────────────────────────── */
 .btn-primary {
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  background: var(--accent);
-  color: var(--accent-fg);
+  background: var(--brand);
+  color: var(--brand-fg);
+  font-family: 'Manrope', var(--font-sans), sans-serif;
   font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.01em;
   padding: 12px 24px;
+  border-radius: 0.5rem;
   text-decoration: none;
   border: none;
   cursor: pointer;
-  transition: opacity 0.15s;
+  transition: background 0.15s, opacity 0.15s;
   white-space: nowrap;
 }
-.btn-primary:hover { opacity: 0.8; }
+.btn-primary:hover {
+  background: var(--brand-hover);
+  opacity: 0.9;
+}
 
 .btn-outline {
   display: inline-flex;
@@ -243,10 +270,12 @@ body {
   gap: 8px;
   background: transparent;
   color: var(--text-1);
+  font-family: 'Manrope', var(--font-sans), sans-serif;
   font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.01em;
   padding: 11px 22px;
+  border-radius: 0.5rem;
   text-decoration: none;
   border: 1px solid var(--border-med);
   cursor: pointer;
@@ -258,7 +287,7 @@ body {
   background: var(--bg-subtle);
 }
 
-/* ── Mobile nav drawer ─────────────────────────────────────── */
+/* ── Mobile nav drawer ──────────────────────────────────────── */
 .nav-drawer {
   position: fixed;
   inset: 0;
@@ -271,9 +300,12 @@ body {
   animation: fadeIn 0.2s ease;
 }
 
+/* ── Tailwind v4 theme ──────────────────────────────────────── */
 @theme inline {
-  --font-heading: var(--font-sans);
-  --font-sans: var(--font-sans);
+  --font-heading: 'Manrope', system-ui, -apple-system, sans-serif;
+  --font-sans: 'Hanken Grotesk', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -305,13 +337,14 @@ body {
   --color-card: var(--card);
   --color-foreground: var(--foreground);
   --color-background: var(--background);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
+
+  --radius-sm:  calc(var(--radius) * 0.5);
+  --radius-md:  calc(var(--radius) * 0.75);
+  --radius-lg:  var(--radius);
+  --radius-xl:  calc(var(--radius) * 1.5);
+  --radius-2xl: calc(var(--radius) * 2);
+  --radius-3xl: calc(var(--radius) * 3);
+  --radius-4xl: calc(var(--radius) * 4);
 }
 
 @layer base {

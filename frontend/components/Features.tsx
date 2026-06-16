@@ -62,7 +62,7 @@ export default function Features() {
             padding: isMobile ? "18px 20px 20px" : isTablet ? "18px 20px 22px" : "20px 24px 24px",
             borderRight: wideFirst ? "1px solid var(--border)" : (cols > 1 ? "1px solid var(--border)" : "none"),
             borderBottom: "1px solid var(--border)",
-            background: "var(--text-1)",
+            background: "#4f6073",
           }}
         >
           <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.12em", color: "rgba(255,255,255,0.35)", textTransform: "uppercase", fontFamily: "monospace", display: "block", marginBottom: 14 }}>
@@ -96,7 +96,7 @@ export default function Features() {
           <h3 style={{ fontSize: 15, fontWeight: 800, color: "var(--text-1)", letterSpacing: "-0.025em", marginBottom: 8 }}>Three Generation Modes</h3>
           <p style={{ fontSize: 13, lineHeight: 1.65, color: "var(--text-3)" }}>Minimal (grok-3-mini, 3k tokens) · Balanced (grok-3, 4k) · Quality (grok-3, 6k). Controllable per request.</p>
           <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 7 }}>
-            {[["minimal", "#4ade80"], ["balanced", "#38bdf8"], ["quality", "#c084fc"]].map(([m, c]) => (
+            {[["minimal", "#00694a"], ["balanced", "#4f6073"], ["quality", "#9f3d00"]].map(([m, c]) => (
               <div key={m} style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <span style={{ width: 6, height: 6, borderRadius: "50%", background: c, flexShrink: 0 }} />
                 <span style={{ fontSize: 11, fontFamily: "monospace", color: "var(--text-2)", fontWeight: 600 }}>{m}</span>
@@ -174,9 +174,9 @@ export default function Features() {
       {/* Stat bar */}
       <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(3, 1fr)" : "repeat(3, 1fr)", borderTop: "1px solid var(--border)" }}>
         {[
-          { val: "<100ms", label: "Cache hit latency", color: "#4ade80" },
-          { val: "0.70",   label: "Semantic threshold", color: "#38bdf8" },
-          { val: "36/36",  label: "Tests passing",      color: "#c084fc" },
+          { val: "<100ms", label: "Cache hit latency", color: "#00694a" },
+          { val: "0.70",   label: "Semantic threshold", color: "#4f6073" },
+          { val: "36/36",  label: "Tests passing",      color: "#9f3d00" },
         ].map((s, i) => (
           <div
             key={s.label}

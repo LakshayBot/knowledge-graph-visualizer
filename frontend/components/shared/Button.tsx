@@ -36,8 +36,8 @@ export default function Button({
 
   const variants: Record<string, React.CSSProperties> = {
     primary: {
-      background: "var(--accent)",
-      color: "var(--accent-fg)",
+      background: "var(--brand)",
+      color: "var(--brand-fg)",
     },
     outline: {
       background: "transparent",
