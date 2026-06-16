@@ -1,5 +1,7 @@
 "use client";
 
+import { Sparkles } from "lucide-react";
+
 interface Props {
   value: "minimal" | "balanced" | "quality";
   onChange: (v: "minimal" | "balanced" | "quality") => void;
@@ -7,73 +9,87 @@ interface Props {
 }
 
 const MODES = [
-  { key: "minimal" as const, label: "Minimal", desc: "Fast · 3k tokens", color: "#4ade80" },
-  { key: "balanced" as const, label: "Balanced", desc: "Default · 4k tokens", color: "#38bdf8" },
-  { key: "quality" as const, label: "Quality", desc: "Deep · 6k tokens", color: "#c084fc" },
+  { key: "minimal" as const, label: "Minimal", desc: "3k tokens", color: "var(--chart-2)" },
+  { key: "balanced" as const, label: "Balanced", desc: "4k tokens", color: "var(--chart-3)" },
+  { key: "quality" as const, label: "Quality", desc: "6k tokens", color: "var(--chart-4)" },
 ];
 
 export default function ModeSelector({ value, onChange, disabled }: Props) {
   return (
-    <div style={{ display: "flex", gap: 0 }}>
-      {MODES.map((m) => {
-        const active = value === m.key;
-        return (
-          <button
-            key={m.key}
-            disabled={disabled}
-            onClick={() => onChange(m.key)}
-            style={{
-              flex: 1,
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: 6,
-              padding: "10px 12px",
-              background: active ? "var(--surface)" : "transparent",
-              border: `1px solid ${active ? "var(--border-med)" : "var(--border)"}`,
-              cursor: disabled ? "not-allowed" : "pointer",
-              fontFamily: "inherit",
-              transition: "background 0.15s, border-color 0.15s",
-              opacity: disabled ? 0.5 : 1,
-              marginLeft: -1,
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <span
-                style={{
-                  width: 6,
-                  height: 6,
-                  borderRadius: "50%",
-                  background: m.color,
-                  flexShrink: 0,
-                }}
-              />
-              <span
-                style={{
-                  fontSize: 11,
-                  fontWeight: 800,
-                  color: active ? "var(--text-1)" : "var(--text-3)",
-                  letterSpacing: "-0.02em",
-                  transition: "color 0.15s",
-                }}
-              >
-                {m.label}
-              </span>
-            </div>
-            <span
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        background: "var(--bg-subtle)",
+        borderRadius: "0.5rem",
+        border: "1px solid var(--border)",
+        padding: "4px",
+      }}
+    >
+      {/* Mode tabs */}
+      <div style={{ display: "flex", gap: 0 }}>
+        {MODES.map((m) => {
+          const active = value === m.key;
+          return (
+            <button
+              key={m.key}
+              disabled={disabled}
+              onClick={() => onChange(m.key)}
               style={{
-                fontSize: 8,
-                fontWeight: 600,
-                color: "var(--text-4)",
-                letterSpacing: "0.06em",
-                textTransform: "uppercase",
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                padding: "6px 14px",
+                borderRadius: "0.375rem",
+                border: active ? "1px solid var(--border)" : "1px solid transparent",
+                background: active ? "var(--surface)" : "transparent",
+                color: active ? "var(--brand)" : "var(--text-3)",
+                fontFamily: "'JetBrains Mono', monospace",
+                fontSize: 11,
+                fontWeight: active ? 700 : 500,
+                cursor: disabled ? "not-allowed" : "pointer",
+                opacity: disabled ? 0.5 : 1,
+                transition: "all 0.15s ease",
+                letterSpacing: "0.02em",
+              }}
+              onMouseEnter={(e) => {
+                if (!active) {
+                  e.currentTarget.style.color = "var(--brand)";
+                  e.currentTarget.style.background = "var(--surface)";
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!active) {
+                  e.currentTarget.style.color = "var(--text-3)";
+                  e.currentTarget.style.background = "transparent";
+                }
               }}
             >
-              {m.desc}
-            </span>
-          </button>
-        );
-      })}
+              {m.key === "quality" && (
+                <Sparkles size={12} style={{ flexShrink: 0 }} />
+              )}
+              {m.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Token info */}
+      <span
+        style={{
+          fontSize: 10,
+          fontFamily: "'JetBrains Mono', monospace",
+          fontWeight: 500,
+          color: "var(--text-4)",
+          textTransform: "uppercase",
+          letterSpacing: "0.06em",
+          paddingRight: 12,
+        }}
+      >
+        Default ·{" "}
+        {value === "minimal" ? "3k" : value === "balanced" ? "4k" : "6k"} Tokens
+      </span>
     </div>
   );
 }

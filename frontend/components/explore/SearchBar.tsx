@@ -1,6 +1,6 @@
 "use client";
 
-import { type FormEvent, type KeyboardEvent } from "react";
+import { type KeyboardEvent } from "react";
 
 interface Props {
   value: string;
@@ -29,19 +29,24 @@ export default function SearchBar({ value, onChange, onSubmit, loading }: Props)
         style={{
           flex: 1,
           background: "var(--surface)",
-          border: "1.5px solid var(--border-med)",
+          border: "1.5px solid var(--border)",
           borderRight: "none",
+          borderRadius: "0.5rem 0 0 0.5rem",
           color: "var(--text-1)",
           fontSize: 14,
           fontWeight: 500,
           letterSpacing: "-0.01em",
           padding: "14px 18px",
           outline: "none",
-          fontFamily: "inherit",
+          fontFamily: "'Hanken Grotesk', system-ui, sans-serif",
           transition: "border-color 0.15s",
         }}
-        onFocus={(e) => (e.currentTarget.style.borderColor = "var(--text-1)")}
-        onBlur={(e) => (e.currentTarget.style.borderColor = "var(--border-med)")}
+        onFocus={(e) => {
+          e.currentTarget.style.borderColor = "var(--brand)";
+        }}
+        onBlur={(e) => {
+          e.currentTarget.style.borderColor = "var(--border)";
+        }}
       />
       <button
         onClick={onSubmit}
@@ -51,29 +56,48 @@ export default function SearchBar({ value, onChange, onSubmit, loading }: Props)
           alignItems: "center",
           justifyContent: "center",
           gap: 8,
-          background: loading || !value.trim() ? "var(--border-med)" : "var(--accent)",
-          color: loading || !value.trim() ? "var(--text-4)" : "var(--accent-fg)",
+          background:
+            loading || !value.trim() ? "var(--border-med)" : "var(--brand)",
+          color:
+            loading || !value.trim() ? "var(--text-4)" : "var(--brand-fg)",
           border: "1.5px solid transparent",
-          borderLeft: "none",
+          borderRadius: "0 0.5rem 0.5rem 0",
           padding: "0 24px",
           cursor: loading || !value.trim() ? "not-allowed" : "pointer",
-          fontFamily: "inherit",
+          fontFamily: "'Manrope', system-ui, sans-serif",
           fontSize: 13,
           fontWeight: 700,
           letterSpacing: "0.02em",
-          transition: "background 0.15s, color 0.15s",
+          transition: "background 0.15s, color 0.15s, opacity 0.15s",
           whiteSpace: "nowrap",
         }}
       >
         {loading ? (
           <>
-            <div style={{ width: 14, height: 14, border: "2px solid rgba(255,255,255,0.3)", borderTopColor: "#fff", borderRadius: "50%", animation: "spin 0.6s linear infinite" }} />
+            <div
+              style={{
+                width: 14,
+                height: 14,
+                border: "2px solid rgba(255,255,255,0.3)",
+                borderTopColor: "#fff",
+                borderRadius: "50%",
+                animation: "spin 0.6s linear infinite",
+              }}
+            />
             Thinking
             <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
           </>
         ) : (
           <>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+            >
               <circle cx="11" cy="11" r="8" />
               <path d="m21 21-4.35-4.35" />
             </svg>
