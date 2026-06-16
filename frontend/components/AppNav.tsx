@@ -14,7 +14,6 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 /* ── Inline SVG icons ──────────────────────────────── */
 function SunIcon() {
@@ -49,7 +48,6 @@ export default function AppNav() {
   const { user, isAuthenticated, logout } = useAuth();
   const [dark, setDark] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -447,63 +445,6 @@ export default function AppNav() {
               )}
             </DropdownMenuContent>
           </DropdownMenu>
-
-          {/* Mobile hamburger (hidden on md+) */}
-          <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-            <SheetTrigger
-              render={
-                <button
-                  className="md:hidden"
-                  aria-label="Open menu"
-                  style={{
-                    width: 32,
-                    height: 32,
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    background: "transparent",
-                    border: "none",
-                    color: "var(--text-3)",
-                    cursor: "pointer",
-                    borderRadius: 6,
-                  }}
-                />
-              }
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <line x1="3" y1="6" x2="21" y2="6"/>
-                <line x1="3" y1="12" x2="21" y2="12"/>
-                <line x1="3" y1="18" x2="21" y2="18"/>
-              </svg>
-            </SheetTrigger>
-            <SheetContent side="right" className="w-[240px] p-6">
-              <nav style={{ marginTop: 32, display: "flex", flexDirection: "column", gap: 4 }}>
-                {NAV_ITEMS.map((item) => {
-                  const active = isActive(item.href);
-                  return (
-                    <button
-                      key={item.href}
-                      onClick={() => { setMobileOpen(false); router.push(item.href); }}
-                      style={{
-                        textAlign: "left",
-                        padding: "10px 12px",
-                        fontSize: 14,
-                        fontWeight: active ? 600 : 500,
-                        color: active ? "var(--text-1)" : "var(--text-3)",
-                        background: active ? "var(--bg-subtle)" : "transparent",
-                        border: "none",
-                        cursor: "pointer",
-                        borderRadius: 6,
-                        fontFamily: "inherit",
-                      }}
-                    >
-                      {item.label}
-                    </button>
-                  );
-                })}
-              </nav>
-            </SheetContent>
-          </Sheet>
         </div>
       </div>
     </header>
