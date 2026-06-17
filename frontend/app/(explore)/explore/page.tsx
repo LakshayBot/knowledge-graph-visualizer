@@ -107,6 +107,8 @@ function ExploreContent() {
       const rootEventId = crypto.randomUUID();
       const cd = await apiFetch<{ id: string }>("/causalchains", {
         method: "POST",
+        provider,
+        model,
         body: JSON.stringify({
           title: query.trim(),
           rootEventId,
@@ -120,13 +122,14 @@ function ExploreContent() {
       setRootNodeId(rootEventId);
       autoSave(cid);
       const gd = await apiFetch<{ nodes?: GraphNode[]; edges?: GraphEdge[] }>(
-        `/causalchains/${cid}/scoped?perspective=Mainstream`
+        `/causalchains/${cid}/scoped?perspective=Mainstream`,
+        { provider, model }
       );
       setNodes(gd.nodes ?? []);
       setEdges(gd.edges ?? []);
       const ed = await apiFetch<{ nodes?: GraphNode[]; edges?: GraphEdge[] }>(
         `/causalchains/${cid}/expand/${rootEventId}?perspective=Mainstream`,
-        { method: "POST", body: JSON.stringify({ provider, model }) }
+        { method: "POST", provider, model, body: JSON.stringify({ provider, model }) }
       );
       if (ed.nodes)
         setNodes((p) => {
@@ -164,7 +167,7 @@ function ExploreContent() {
     try {
       const d = await apiFetch<{ nodes?: GraphNode[]; edges?: GraphEdge[] }>(
         `/causalchains/${chainId}/expand/${nodeId}?perspective=Mainstream`,
-        { method: "POST", body: JSON.stringify({ provider, model }) }
+        { method: "POST", provider, model, body: JSON.stringify({ provider, model }) }
       );
       setNodes((p) => {
         const s = new Set(p.map((n: G) => n.id));

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useAuth } from "@/hooks/useAuth";
 import AuthGuard from "@/components/auth/AuthGuard";
 import ApiKeysSection from "@/components/settings/ApiKeysSection";
 
@@ -9,7 +8,6 @@ type Tab = "keys" | "usage";
 
 export default function SettingsPage() {
   const [tab, setTab] = useState<Tab>("keys");
-  const { user } = useAuth();
 
   const tabStyle = (active: boolean): React.CSSProperties => ({
     padding: "8px 16px",
@@ -50,7 +48,6 @@ export default function SettingsPage() {
           never shared.
         </p>
 
-        {/* Tabs */}
         <div
           style={{
             display: "flex",
@@ -68,7 +65,6 @@ export default function SettingsPage() {
           </button>
         </div>
 
-        {/* Tab content */}
         {tab === "keys" && <ApiKeysSection />}
         {tab === "usage" && <UsageSection />}
       </div>
@@ -89,21 +85,11 @@ function UsageSection() {
       <p>Usage tracking is logged to your AI provider dashboards.</p>
       <p style={{ marginTop: 8 }}>
         Check your{" "}
-        <a
-          href="https://console.x.ai/"
-          target="_blank"
-          rel="noopener"
-          style={{ color: "var(--brand)" }}
-        >
+        <a href="https://console.x.ai/" target="_blank" rel="noopener" style={{ color: "var(--brand)" }}>
           xAI Console
         </a>
         ,{" "}
-        <a
-          href="https://platform.openai.com/usage"
-          target="_blank"
-          rel="noopener"
-          style={{ color: "var(--brand)" }}
-        >
+        <a href="https://platform.openai.com/usage" target="_blank" rel="noopener" style={{ color: "var(--brand)" }}>
           OpenAI Usage
         </a>
         , or other provider dashboards for detailed metrics.

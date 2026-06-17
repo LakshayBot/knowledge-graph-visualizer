@@ -13,6 +13,10 @@ export function handleSessionExpired() {
 interface ApiFetchOptions extends RequestInit {
   /** Set to false to skip attaching the Authorization header */
   auth?: boolean;
+  /** AI provider name — sent as X-Provider header for BYOK key resolution */
+  provider?: string;
+  /** AI model name — sent as X-Model header */
+  model?: string;
 }
 
 /**
@@ -38,6 +42,10 @@ export async function apiFetch<T = unknown>(
       typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
     if (token) headers["Authorization"] = `Bearer ${token}`;
   }
+
+  // Forward AI provider/model as headers for BYOK key resolution
+  if (options.provider) headers["X-Provider"] = options.provider;
+  if (options.model) headers["X-Model"] = options.model;
 
   let res = await fetch(`${API_BASE}${path}`, { ...options, headers });
 

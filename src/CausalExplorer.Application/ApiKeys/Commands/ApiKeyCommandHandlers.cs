@@ -19,6 +19,7 @@ internal sealed class ApiKeyCommandHandlers :
 {
     private readonly IUserApiKeyRepository _repo;
     private readonly IApiKeyEncryptionService _encryption;
+    private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<ApiKeyCommandHandlers> _logger;
 
     // Valid provider names
@@ -41,11 +42,13 @@ internal sealed class ApiKeyCommandHandlers :
     public ApiKeyCommandHandlers(
         IUserApiKeyRepository repo,
         IApiKeyEncryptionService encryption,
+        IUnitOfWork unitOfWork,
         ILogger<ApiKeyCommandHandlers> logger)
     {
-        _repo       = repo;
-        _encryption = encryption;
-        _logger     = logger;
+        _repo        = repo;
+        _encryption  = encryption;
+        _unitOfWork  = unitOfWork;
+        _logger      = logger;
     }
 
     /// <summary>
@@ -93,6 +96,8 @@ internal sealed class ApiKeyCommandHandlers :
             _logger.LogInformation("User {UserId} added API key for {Provider}", request.UserId, provider);
         }
 
+        await _unitOfWork.SaveChangesAsync(ct);
+
         return new ApiKeyStatusDto(
             Provider: provider,
             ProviderDisplayName: ProviderDisplayNames.GetValueOrDefault(provider, provider),
@@ -115,6 +120,7 @@ internal sealed class ApiKeyCommandHandlers :
         {
             _repo.Delete(existing);
             _logger.LogInformation("User {UserId} removed API key for {Provider}", request.UserId, provider);
+            await _unitOfWork.SaveChangesAsync(ct);
         }
     }
 

@@ -337,133 +337,23 @@ export default function AppNav() {
                     </DropdownMenuLabel>
                   </DropdownMenuGroup>
                   <div style={{ height: 1, background: "var(--border)", margin: "4px 0" }} />
-                  <DropdownMenuItem
-                    onSelect={() => router.push("/profile")}
-                    render={
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          padding: "8px 10px",
-                          fontSize: 13,
-                          fontWeight: 500,
-                          color: "var(--text-1)",
-                          borderRadius: 6,
-                          cursor: "pointer",
-                          width: "100%",
-                          fontFamily: "inherit",
-                          lineHeight: 1,
-                          transition: "background 0.12s",
-                        }}
-                        onMouseEnter={(e) => (e.currentTarget.style.background = "var(--bg-subtle)")}
-                        onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-                      />
-                    }
-                  >
+                  <DropdownMenuItem onClick={() => router.push("/profile")}>
                     Profile
                   </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onSelect={() => router.push("/settings")}
-                    render={
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          padding: "8px 10px",
-                          fontSize: 13,
-                          fontWeight: 500,
-                          color: "var(--text-1)",
-                          borderRadius: 6,
-                          cursor: "pointer",
-                          width: "100%",
-                          fontFamily: "inherit",
-                          lineHeight: 1,
-                          transition: "background 0.12s",
-                        }}
-                        onMouseEnter={(e) => (e.currentTarget.style.background = "var(--bg-subtle)")}
-                        onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-                      />
-                    }
-                  >
+                  <DropdownMenuItem onClick={() => router.push("/settings")}>
                     Settings
                   </DropdownMenuItem>
                   <div style={{ height: 1, background: "var(--border)", margin: "4px 0" }} />
-                  <DropdownMenuItem
-                    onSelect={() => { logout(); router.push("/"); }}
-                    render={
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          padding: "8px 10px",
-                          fontSize: 13,
-                          fontWeight: 500,
-                          color: "var(--text-3)",
-                          borderRadius: 6,
-                          cursor: "pointer",
-                          width: "100%",
-                          fontFamily: "inherit",
-                          lineHeight: 1,
-                          transition: "background 0.12s",
-                        }}
-                        onMouseEnter={(e) => (e.currentTarget.style.background = "var(--bg-subtle)")}
-                        onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-                      />
-                    }
-                  >
+                  <DropdownMenuItem onClick={() => { logout(); router.push("/"); }}>
                     Sign out
                   </DropdownMenuItem>
                 </>
               ) : (
                 <>
-                  <DropdownMenuItem
-                    onSelect={() => router.push("/login")}
-                    render={
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          padding: "8px 10px",
-                          fontSize: 13,
-                          fontWeight: 500,
-                          color: "var(--text-1)",
-                          borderRadius: 6,
-                          cursor: "pointer",
-                          width: "100%",
-                          fontFamily: "inherit",
-                          lineHeight: 1,
-                          transition: "background 0.12s",
-                        }}
-                        onMouseEnter={(e) => (e.currentTarget.style.background = "var(--bg-subtle)")}
-                        onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-                      />
-                    }
-                  >
+                  <DropdownMenuItem onClick={() => router.push("/login")}>
                     Sign in
                   </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onSelect={() => router.push("/register")}
-                    render={
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          padding: "8px 10px",
-                          fontSize: 13,
-                          fontWeight: 500,
-                          color: "var(--text-1)",
-                          borderRadius: 6,
-                          cursor: "pointer",
-                          width: "100%",
-                          fontFamily: "inherit",
-                          lineHeight: 1,
-                          transition: "background 0.12s",
-                        }}
-                        onMouseEnter={(e) => (e.currentTarget.style.background = "var(--bg-subtle)")}
-                        onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-                      />
-                    }
-                  >
+                  <DropdownMenuItem onClick={() => router.push("/register")}>
                     Create account
                   </DropdownMenuItem>
                 </>

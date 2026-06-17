@@ -43,6 +43,9 @@ public static class ApplicationBuilderExtensions
         app.UseAuthentication();
         app.UseAuthorization();
 
+        // Resolve per-user API keys for BYOK flow (must run after auth, before controllers)
+        app.UseMiddleware<AiKeyResolutionMiddleware>();
+
         return app;
     }
 
