@@ -10,7 +10,7 @@ import { apiFetch } from "@/lib/api-client";
 import GraphCanvas from "@/components/explore/GraphCanvas";
 import GraphBackground from "@/components/explore/GraphBackground";
 import NodeDetailPanel from "@/components/explore/NodeDetailPanel";
-import ModeSelector from "@/components/explore/ModeSelector";
+import ProviderModelSelector from "@/components/explore/ProviderModelSelector";
 import type { GraphNode, GraphEdge } from "@/types/graph";
 
 /* ── Animations ──────────────────────────────────────────── */
@@ -46,9 +46,8 @@ function ExploreContent() {
   const isNarrow = bp === "mobile" || bp === "tablet";
 
   const [query, setQuery] = useState("");
-  const [mode, setMode] = useState<"minimal" | "balanced" | "quality">(
-    "balanced"
-  );
+  const [provider, setProvider] = useState("grok");
+  const [model, setModel] = useState("grok-3-mini");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [nodes, setNodes] = useState<GraphNode[]>([]);
@@ -112,6 +111,8 @@ function ExploreContent() {
           title: query.trim(),
           rootEventId,
           domain: "Economics",
+          provider,
+          model,
         }),
       });
       const cid = cd.id;
@@ -125,7 +126,7 @@ function ExploreContent() {
       setEdges(gd.edges ?? []);
       const ed = await apiFetch<{ nodes?: GraphNode[]; edges?: GraphEdge[] }>(
         `/causalchains/${cid}/expand/${rootEventId}?perspective=Mainstream`,
-        { method: "POST" }
+        { method: "POST", body: JSON.stringify({ provider, model }) }
       );
       if (ed.nodes)
         setNodes((p) => {
@@ -163,7 +164,7 @@ function ExploreContent() {
     try {
       const d = await apiFetch<{ nodes?: GraphNode[]; edges?: GraphEdge[] }>(
         `/causalchains/${chainId}/expand/${nodeId}?perspective=Mainstream`,
-        { method: "POST" }
+        { method: "POST", body: JSON.stringify({ provider, model }) }
       );
       setNodes((p) => {
         const s = new Set(p.map((n: G) => n.id));
@@ -585,7 +586,12 @@ function ExploreContent() {
           }}
         >
           {/* Mode selector */}
-          <ModeSelector value={mode} onChange={setMode} disabled={loading} />
+          <ProviderModelSelector
+            provider={provider}
+            model={model}
+            onProviderChange={(p, m) => { setProvider(p); setModel(m); }}
+            disabled={loading}
+          />
 
           {/* Input row */}
           <div

@@ -83,6 +83,9 @@ public sealed class CausalExplorerDbContext : DbContext
     /// <summary>Gets the refresh tokens table.</summary>
     public DbSet<RefreshTokenRecord> RefreshTokens => Set<RefreshTokenRecord>();
 
+    /// <summary>Gets the user API keys table.</summary>
+    public DbSet<UserApiKey> UserApiKeys => Set<UserApiKey>();
+
     /// <summary>
     /// Initialises a new instance of <see cref="CausalExplorerDbContext"/>.
     /// </summary>

@@ -12,11 +12,13 @@ namespace CausalExplorer.Infrastructure.AI;
 /// a Wikipedia-sourced, LLM-extracted causal knowledge graph for a given topic.
 /// Uses an async job pattern: submits the job and polls <c>GET /api/graph/jobs/{id}</c>
 /// until the result is ready, so the HTTP call never times out due to slow LLM inference.
+/// Forwards per-user BYOK headers when configured via <see cref="IAiKeyContext"/>.
 /// </summary>
 public sealed class KnowledgeGraphGeneratorClient : IKnowledgeGraphGenerator
 {
     private readonly HttpClient _http;
     private readonly ILogger<KnowledgeGraphGeneratorClient> _logger;
+    private readonly IAiKeyContext _aiKeyContext;
 
     private static readonly TimeSpan PollInterval  = TimeSpan.FromSeconds(5);
     private static readonly TimeSpan MaxWait        = TimeSpan.FromMinutes(15);
@@ -30,10 +32,12 @@ public sealed class KnowledgeGraphGeneratorClient : IKnowledgeGraphGenerator
     /// <summary>Initialises the client with the typed <see cref="HttpClient"/> provided by DI.</summary>
     public KnowledgeGraphGeneratorClient(
         HttpClient http,
-        ILogger<KnowledgeGraphGeneratorClient> logger)
+        ILogger<KnowledgeGraphGeneratorClient> logger,
+        IAiKeyContext aiKeyContext)
     {
-        _http   = http;
-        _logger = logger;
+        _http         = http;
+        _logger       = logger;
+        _aiKeyContext = aiKeyContext;
     }
 
     /// <inheritdoc />
@@ -47,7 +51,22 @@ public sealed class KnowledgeGraphGeneratorClient : IKnowledgeGraphGenerator
         HttpResponseMessage submitResponse;
         try
         {
-            submitResponse = await _http.PostAsJsonAsync("/api/graph/generate", request, JsonOptions, ct);
+            var httpRequest = new HttpRequestMessage(HttpMethod.Post, "/api/graph/generate")
+            {
+                Content = JsonContent.Create(request, options: JsonOptions)
+            };
+
+            // Forward per-user BYOK headers
+            if (_aiKeyContext.HasPerUserKey)
+                httpRequest.Headers.Add("X-User-Api-Key", _aiKeyContext.ApiKey);
+            if (!string.IsNullOrEmpty(_aiKeyContext.Provider))
+                httpRequest.Headers.Add("X-Provider", _aiKeyContext.Provider);
+            if (!string.IsNullOrEmpty(_aiKeyContext.Model))
+                httpRequest.Headers.Add("X-Model", _aiKeyContext.Model);
+            if (_aiKeyContext.UserId.HasValue)
+                httpRequest.Headers.Add("X-User-Id", _aiKeyContext.UserId.Value.ToString());
+
+            submitResponse = await _http.SendAsync(httpRequest, ct);
         }
         catch (Exception ex)
         {

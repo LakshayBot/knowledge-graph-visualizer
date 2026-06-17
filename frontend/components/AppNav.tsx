@@ -362,6 +362,31 @@ export default function AppNav() {
                   >
                     Profile
                   </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onSelect={() => router.push("/settings")}
+                    render={
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          padding: "8px 10px",
+                          fontSize: 13,
+                          fontWeight: 500,
+                          color: "var(--text-1)",
+                          borderRadius: 6,
+                          cursor: "pointer",
+                          width: "100%",
+                          fontFamily: "inherit",
+                          lineHeight: 1,
+                          transition: "background 0.12s",
+                        }}
+                        onMouseEnter={(e) => (e.currentTarget.style.background = "var(--bg-subtle)")}
+                        onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                      />
+                    }
+                  >
+                    Settings
+                  </DropdownMenuItem>
                   <div style={{ height: 1, background: "var(--border)", margin: "4px 0" }} />
                   <DropdownMenuItem
                     onSelect={() => { logout(); router.push("/"); }}

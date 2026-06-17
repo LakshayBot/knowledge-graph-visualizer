@@ -1,10 +1,14 @@
 """
 CausalExplorer AI Service
 FastAPI sidecar that:
-  - Uses Grok (xAI API) for on-demand causal knowledge-graph generation.
+  - Uses multiple LLM providers (Grok, OpenAI, Claude, Gemini, Copilot, Ollama)
+    for on-demand causal knowledge-graph generation.
   - Uses Ollama (local) ONLY for dense vector embeddings (nomic-embed-text → Qdrant).
 
-Generation modes (GENERATION_MODE env var):
+BYOK (Bring Your Own Key): clients send X-User-Api-Key, X-Provider, X-Model headers.
+If no per-user key is provided, falls back to server-wide GROK_API_KEY env var.
+
+Generation modes (preserved for backward compat):
   minimal  → grok-3-mini, 4000 max_tokens, temp 0.2  [fast, cost-efficient]
   balanced → grok-3,      6000 max_tokens, temp 0.3  [detailed, well-rounded]
   quality  → grok-3,      8000 max_tokens, temp 0.4  [comprehensive, in-depth]
@@ -31,6 +35,13 @@ from qdrant_client.http.exceptions import UnexpectedResponse
 from qdrant_client.models import Distance, VectorParams
 from tenacity import retry, stop_after_attempt, wait_exponential
 
+from app.providers import (
+    PROVIDERS,
+    get_provider,
+    list_providers,
+    generate_with_provider,
+)
+
 # ── Configuration ──────────────────────────────────────────────────────────────
 
 OLLAMA_URL      = os.getenv("OLLAMA_URL",      "http://localhost:11434")
@@ -38,28 +49,24 @@ QDRANT_URL      = os.getenv("QDRANT_URL",      "http://localhost:6333")
 EMBED_MODEL     = os.getenv("EMBED_MODEL",     "nomic-embed-text")
 LOG_LEVEL       = os.getenv("LOG_LEVEL",       "INFO")
 
-# Grok / xAI
-GROK_API_KEY    = os.getenv("GROK_API_KEY",    "")
-GROK_API_URL    = "https://api.x.ai/v1/chat/completions"
-GENERATION_MODE = os.getenv("GENERATION_MODE", "minimal").lower()
+# Server-wide fallback API keys (used when no per-user key is provided)
+GROK_API_KEY       = os.getenv("GROK_API_KEY",       "")
+OPENAI_API_KEY     = os.getenv("OPENAI_API_KEY",     "")
+ANTHROPIC_API_KEY  = os.getenv("ANTHROPIC_API_KEY",  "")
+GEMINI_API_KEY     = os.getenv("GEMINI_API_KEY",     "")
+COPILOT_API_KEY    = os.getenv("COPILOT_API_KEY",    "")
+GENERATION_MODE    = os.getenv("GENERATION_MODE",    "minimal").lower()
 
-# PostgreSQL (for AI prompt/response audit logging)
-POSTGRES_URL    = os.getenv("POSTGRES_URL", "postgresql://causal:postgres@localhost:5432/CausalExplorerDb")
-
-# Profile table: mode → (model, max_tokens, temperature)
+# Legacy profile table — kept for backward compat
 _GROK_PROFILES: dict[str, dict] = {
     "minimal":  {"model": "grok-3-mini", "max_tokens": 4000, "temperature": 0.2},
     "balanced": {"model": "grok-3",      "max_tokens": 6000, "temperature": 0.3},
     "quality":  {"model": "grok-3",      "max_tokens": 8000, "temperature": 0.4},
 }
-# Fall back to minimal if an unknown mode is set
 _GROK_PROFILE = _GROK_PROFILES.get(GENERATION_MODE, _GROK_PROFILES["minimal"])
 
-# xAI pricing per 1M tokens (input / output)
-_GROK_PRICING: dict[str, dict[str, float]] = {
-    "grok-3-mini": {"input": 0.30, "output": 1.50},
-    "grok-3":      {"input": 3.00, "output": 15.00},
-}
+# PostgreSQL (for AI prompt/response audit logging)
+POSTGRES_URL    = os.getenv("POSTGRES_URL", "postgresql://causal:postgres@localhost:5432/CausalExplorerDb")
 
 COLLECTION  = "causal_events"
 VECTOR_DIM  = 768   # nomic-embed-text output dimension
@@ -78,6 +85,61 @@ structlog.configure(wrapper_class=structlog.make_filtering_bound_logger(
 ))
 log = structlog.get_logger()
 
+
+# ── Server key lookup ──────────────────────────────────────────────────────────
+
+def _get_server_key(provider: str) -> str:
+    """Return the server-wide fallback API key for a provider, or empty string."""
+    keys: dict[str, str] = {
+        "grok":    GROK_API_KEY,
+        "openai":  OPENAI_API_KEY,
+        "claude":  ANTHROPIC_API_KEY,
+        "gemini":  GEMINI_API_KEY,
+        "copilot": COPILOT_API_KEY,
+    }
+    return keys.get(provider.lower(), "")
+
+
+# ── Resolve AI parameters from request ─────────────────────────────────────────
+
+def _resolve_ai_params(request: Request, body_provider: str | None = None, body_model: str | None = None) -> dict:
+    """
+    Resolve provider, model, and API key from request headers + body.
+    Priority: request headers (BYOK) > body fields > server defaults (Grok).
+    """
+    # 1. Determine provider
+    provider = (
+        request.headers.get("X-Provider")
+        or body_provider
+        or "grok"
+    ).lower().strip()
+
+    # 2. Determine model
+    model = (
+        request.headers.get("X-Model")
+        or body_model
+        or ""
+    ).strip()
+    if not model and provider in PROVIDERS:
+        # Pick first available model for this provider
+        first = next(iter(PROVIDERS[provider].models), None)
+        if first:
+            model = first
+    if not model:
+        model = "grok-3-mini"  # ultimate fallback
+
+    # 3. Determine API key
+    api_key = (request.headers.get("X-User-Api-Key") or "").strip()
+    if not api_key and request.headers.get("X-User-Id"):
+        # User is authenticated but didn't provide a key — use server fallback
+        api_key = _get_server_key(provider)
+    if not api_key:
+        # No user context — use server fallback
+        api_key = _get_server_key(provider)
+
+    return {"provider": provider, "model": model, "api_key": api_key}
+
+
 # ── PostgreSQL helpers ──────────────────────────────────────────────────────────
 
 async def _ensure_pool() -> asyncpg.Pool:
@@ -85,6 +147,7 @@ async def _ensure_pool() -> asyncpg.Pool:
     if _DB_POOL is None:
         _DB_POOL = await asyncpg.create_pool(dsn=POSTGRES_URL, min_size=1, max_size=4)
     return _DB_POOL
+
 
 async def _log_prompt(
     endpoint: str,
@@ -98,26 +161,41 @@ async def _log_prompt(
     input_tokens: int | None = None,
     output_tokens: int | None = None,
     cost_usd: float | None = None,
+    provider: str = "grok",
+    user_id: str | None = None,
 ) -> None:
+    """Log prompt/response to PostgreSQL for audit and cost tracking."""
     try:
         pool = await _ensure_pool()
         async with pool.acquire() as conn:
-            await conn.execute(
-                """INSERT INTO ai_prompt_logs (endpoint, prompt, response, model, max_tokens, temperature, duration_ms, error, input_tokens, output_tokens, cost_usd)
-                   VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)""",
-                endpoint, prompt, response, model, max_tokens, temperature, duration_ms, error,
-                input_tokens, output_tokens, cost_usd,
-            )
+            # Try inserting with provider + user_id columns if they exist
+            try:
+                await conn.execute(
+                    """INSERT INTO ai_prompt_logs (endpoint, prompt, response, model, max_tokens, temperature, duration_ms, error, input_tokens, output_tokens, cost_usd, provider, user_id)
+                       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)""",
+                    endpoint, prompt, response, model, max_tokens, temperature, duration_ms, error,
+                    input_tokens, output_tokens, cost_usd, provider, user_id,
+                )
+            except Exception:
+                # Fall back to original columns if migration hasn't run yet
+                await conn.execute(
+                    """INSERT INTO ai_prompt_logs (endpoint, prompt, response, model, max_tokens, temperature, duration_ms, error, input_tokens, output_tokens, cost_usd)
+                       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)""",
+                    endpoint, prompt, response, model, max_tokens, temperature, duration_ms, error,
+                    input_tokens, output_tokens, cost_usd,
+                )
     except Exception:
         log.exception("ai_prompt_log.write_failed", endpoint=endpoint)
+
 
 # ── FastAPI app ────────────────────────────────────────────────────────────────
 
 app = FastAPI(
     title="CausalExplorer AI Service",
-    version="2.0.0",
+    version="3.0.0",
     description=(
-        "Grok-powered causal knowledge-graph generation. "
+        "Multi-provider causal knowledge-graph generation. "
+        "Supports Grok, OpenAI, Claude, Gemini, Copilot, and local Ollama. "
         "Ollama used exclusively for local vector embeddings."
     ),
 )
@@ -128,6 +206,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 # ── Qdrant collection bootstrap ────────────────────────────────────────────────
 
@@ -149,14 +228,18 @@ async def startup_event() -> None:
         "ai_service.startup",
         generation_mode=GENERATION_MODE,
         grok_model=_GROK_PROFILE["model"],
-        max_tokens=_GROK_PROFILE["max_tokens"],
         grok_key_set=bool(GROK_API_KEY),
+        providers_available=list(PROVIDERS.keys()),
     )
+
 
 # ── Pydantic models ────────────────────────────────────────────────────────────
 
 class ExtractEventsRequest(BaseModel):
     text: str
+    provider: str | None = None   # e.g. "openai", "grok"
+    model: str | None = None      # e.g. "gpt-4o-mini"
+
 
 class ExtractedEventItem(BaseModel):
     title:      str
@@ -164,17 +247,23 @@ class ExtractedEventItem(BaseModel):
     event_date: str
     domain:     str
 
+
 class ExtractEventsResponse(BaseModel):
     events: list[ExtractedEventItem]
+
 
 class GenerateCausalLinkRequest(BaseModel):
     from_event_id: uuid.UUID
     to_event_id:   uuid.UUID
+    provider: str | None = None
+    model: str | None = None
+
 
 class CausalLinkResponse(BaseModel):
     explanation:  str
     strength:     float = Field(ge=0.0, le=1.0)
     is_contested: bool
+
 
 class ExpandChainRequest(BaseModel):
     node_id:            uuid.UUID
@@ -182,6 +271,9 @@ class ExpandChainRequest(BaseModel):
     node_summary:       str = ""
     perspective:        str = "Economic"
     already_loaded_ids: list[uuid.UUID] = Field(default_factory=list)
+    provider: str | None = None
+    model: str | None = None
+
 
 class SuggestedNode(BaseModel):
     title:             str
@@ -189,12 +281,15 @@ class SuggestedNode(BaseModel):
     relationship_type: str
     direction:         str
 
+
 class ExpandChainResponse(BaseModel):
     suggested_nodes: list[SuggestedNode]
+
 
 class SearchSimilarRequest(BaseModel):
     query: str
     top_k: int = 10
+
 
 class SimilarEventResult(BaseModel):
     event_id:               uuid.UUID
@@ -207,20 +302,23 @@ class SimilarEventResult(BaseModel):
     event_date:             str
     created_at:             str
 
-class SearchSimilarResponse(BaseModel):
-    results: list[SimilarEventResult]
 
 class EmbeddingRequest(BaseModel):
     text: str
 
+
 class EmbeddingResponse(BaseModel):
     embedding: list[float]
+
 
 class GenerateGraphRequest(BaseModel):
     topic:        str = Field(..., min_length=3, max_length=300)
     mode:         str = Field(default="minimal")   # minimal | balanced | quality
     event_count:  int = Field(default=8, ge=3, le=20)
-    max_articles: int = Field(default=3, ge=1, le=5)   # kept for API compat; ignored by Grok path
+    max_articles: int = Field(default=3, ge=1, le=5)   # kept for API compat
+    provider: str | None = None
+    model: str | None = None
+
 
 class GeneratedEventNode(BaseModel):
     id:               str
@@ -233,6 +331,7 @@ class GeneratedEventNode(BaseModel):
     source_url:       str
     source_title:     str
 
+
 class GeneratedEdge(BaseModel):
     from_event_id:     str
     to_event_id:       str
@@ -242,6 +341,7 @@ class GeneratedEdge(BaseModel):
     explanation:       str
     is_contested:      bool = False
 
+
 class GenerateGraphResponse(BaseModel):
     topic:       str
     events:      list[GeneratedEventNode]
@@ -249,15 +349,18 @@ class GenerateGraphResponse(BaseModel):
     source_urls: list[str]
     from_cache:  bool = False
 
+
 class GraphJobSubmittedResponse(BaseModel):
     job_id: str
     status: str = "pending"
+
 
 class GraphJobStatusResponse(BaseModel):
     job_id: str
     status: str
     result: GenerateGraphResponse | None = None
     error:  str | None                   = None
+
 
 # ── Validation helpers ─────────────────────────────────────────────────────────
 
@@ -336,11 +439,7 @@ def _parse_json_from_llm(raw: str, array: bool = True) -> Any:
     try:
         return json.loads(text)
     except json.JSONDecodeError:
-        # Grok truncated the response mid-token (max_tokens hit).
-        # Attempt to salvage complete objects by truncating at the last valid
-        # complete JSON object boundary.
         if array:
-            # Find the last complete object: trim after last '}' then close the array.
             last_brace = text.rfind('}')
             if last_brace == -1:
                 raise ValueError("Truncated JSON array with no complete objects.")
@@ -352,8 +451,6 @@ def _parse_json_from_llm(raw: str, array: bool = True) -> Any:
             except json.JSONDecodeError as inner:
                 raise ValueError(f"Could not salvage truncated JSON array: {inner}") from inner
         else:
-            # For objects, find last complete key-value pair boundary.
-            # Try to close the object after the last complete value.
             last_comma = text.rfind(',')
             if last_comma != -1:
                 salvaged = text[:last_comma] + "}"
@@ -364,6 +461,7 @@ def _parse_json_from_llm(raw: str, array: bool = True) -> Any:
                 except json.JSONDecodeError:
                     pass
             raise ValueError(f"Could not salvage truncated JSON object.")
+
 
 # ── Cache helpers ──────────────────────────────────────────────────────────────
 
@@ -382,6 +480,7 @@ def _cache_get(topic: str) -> dict | None:
 def _cache_set(topic: str, payload: dict) -> None:
     _KG_CACHE[_cache_key(topic)] = (payload, time.time())
 
+
 # ── Ollama — embeddings only ───────────────────────────────────────────────────
 
 @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
@@ -395,72 +494,56 @@ async def _ollama_embed(text: str) -> list[float]:
         resp.raise_for_status()
         return resp.json()["embedding"]
 
-# ── Grok — graph generation ────────────────────────────────────────────────────
 
-@retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=30))
-async def _grok_generate(prompt: str, profile: dict | None = None, *, endpoint: str = "unknown") -> str:
+# ── Multi-provider LLM generation ──────────────────────────────────────────────
+
+async def _llm_generate(
+    prompt: str,
+    *,
+    provider: str = "grok",
+    model: str = "",
+    temperature: float = 0.3,
+    max_tokens: int = 4000,
+    api_key: str = "",
+    endpoint: str = "unknown",
+    user_id: str | None = None,
+) -> str:
     """
-    Call the xAI Grok chat-completions API.
-    If profile is provided it overrides the global GENERATION_MODE profile,
-    allowing per-request model/token selection.
-
-    Timeout scales with max_tokens: ~0.04 s/token, minimum 90 s.
-    Logs raw prompt + response to PostgreSQL for audit/debugging.
+    Call any LLM provider and return the raw text response.
+    Falls back to Grok with server key for backward compatibility.
     """
-    if not GROK_API_KEY:
-        raise RuntimeError(
-            "GROK_API_KEY is not set. Add it to your .env file and restart the service."
-        )
-    p = profile or _GROK_PROFILE
-    model       = p["model"]
-    max_tokens  = p["max_tokens"]
-    temperature = p["temperature"]
-    api_timeout = max(90, int(max_tokens * 0.04))
-    headers = {
-        "Authorization": f"Bearer {GROK_API_KEY}",
-        "Content-Type":  "application/json",
-    }
-    body = {
-        "model":       model,
-        "max_tokens":  max_tokens,
-        "temperature": temperature,
-        "messages": [
-            {"role": "user", "content": prompt},
-        ],
-    }
-    t0 = time.monotonic()
-    try:
-        async with httpx.AsyncClient(timeout=api_timeout) as client:
-            resp = await client.post(GROK_API_URL, headers=headers, json=body)
-            resp.raise_for_status()
-            data = resp.json()
-            raw = data["choices"][0]["message"]["content"]
+    # Resolve model if not specified
+    if not model and provider in PROVIDERS:
+        first = next(iter(PROVIDERS[provider].models), None)
+        model = first or "grok-3-mini"
+    if not model:
+        model = "grok-3-mini"
 
-            # Parse usage for cost tracking
-            usage = data.get("usage", {})
-            input_tokens  = usage.get("prompt_tokens")
-            output_tokens = usage.get("completion_tokens")
-            pricing = _GROK_PRICING.get(model, _GROK_PRICING.get("grok-3-mini", {"input": 0.30, "output": 1.50}))
-            cost = None
-            if input_tokens is not None and output_tokens is not None:
-                cost = (input_tokens / 1_000_000 * pricing["input"]) + (output_tokens / 1_000_000 * pricing["output"])
+    # Resolve API key
+    if not api_key:
+        api_key = _get_server_key(provider)
+    if not api_key and provider == "grok":
+        api_key = GROK_API_KEY  # backward compat
 
-        duration_ms = int((time.monotonic() - t0) * 1000)
-        await _log_prompt(endpoint, prompt, raw, model, max_tokens, temperature, duration_ms, None,
-                         input_tokens, output_tokens, round(cost, 6) if cost is not None else None)
-        return raw
-    except Exception as exc:
-        duration_ms = int((time.monotonic() - t0) * 1000)
-        await _log_prompt(endpoint, prompt, None, model, max_tokens, temperature, duration_ms, str(exc))
-        raise
+    # Build log callback
+    async def _log_cb(**kwargs) -> None:
+        await _log_prompt(**kwargs)
+
+    result = await generate_with_provider(
+        prompt=prompt,
+        provider_name=provider,
+        model=model,
+        temperature=temperature,
+        max_tokens=max_tokens,
+        api_key=api_key,
+        endpoint=endpoint,
+        log_prompt_cb=_log_cb,
+    )
+    return result["text"]
 
 
 def _build_graph_prompt(topic: str, mode: str = "minimal", event_count: int = 8) -> str:
-    """
-    Build a comprehensive causal knowledge graph prompt for Grok.
-    Produces rich events with detailed summaries, actors, and temporal context,
-    plus well explained causal edges with opposing viewpoints.
-    """
+    """Build a comprehensive causal knowledge graph prompt."""
     edge_min = max(3, event_count - 2)
     edge_max = min(event_count * 2, 30)
 
@@ -510,43 +593,63 @@ Critical rules:
 - Raw JSON only with no markdown fences, no explanatory text"""
 
 
-async def _run_graph_generation(topic: str, mode: str = "minimal", event_count: int = 8) -> GenerateGraphResponse:
-    """
-    Core pipeline: single Grok API call → parse events + edges → cache → return.
-    Uses per-request mode and event_count instead of the server-wide default.
-    """
+async def _run_graph_generation(
+    topic: str,
+    mode: str = "minimal",
+    event_count: int = 8,
+    *,
+    provider: str = "grok",
+    model: str = "",
+    api_key: str = "",
+    user_id: str | None = None,
+) -> GenerateGraphResponse:
+    """Core pipeline: LLM call → parse events + edges → cache → return."""
     cached = _cache_get(topic)
     if cached:
         return GenerateGraphResponse(**cached, from_cache=True)
 
     profile = _GROK_PROFILES.get(mode, _GROK_PROFILES["minimal"])
     prompt  = _build_graph_prompt(topic, mode=mode, event_count=event_count)
-    log.info("grok.generate.start", topic=topic, mode=mode, model=profile["model"], event_count=event_count)
+
+    resolved_model = model or profile["model"]
+    log.info(
+        "llm.generate.start",
+        topic=topic, mode=mode, provider=provider, model=resolved_model,
+        event_count=event_count,
+    )
 
     try:
-        raw = await _grok_generate(prompt, profile=profile, endpoint="graph_generation")
+        raw = await _llm_generate(
+            prompt,
+            provider=provider,
+            model=resolved_model,
+            temperature=profile["temperature"],
+            max_tokens=profile["max_tokens"],
+            api_key=api_key,
+            endpoint="graph_generation",
+            user_id=user_id,
+        )
     except Exception as exc:
-        raise HTTPException(502, f"Grok API call failed: {exc}") from exc
+        raise HTTPException(502, f"LLM API call failed ({provider}/{resolved_model}): {exc}") from exc
 
-    log.info("grok.generate.response_received", chars=len(raw))
+    log.info("llm.generate.response_received", chars=len(raw))
 
     # Parse the top-level JSON object
     try:
         data = _parse_json_from_llm(raw, array=False)
     except Exception as exc:
-        raise HTTPException(502, f"Failed to parse Grok JSON response: {exc}\nRaw: {raw[:300]}") from exc
+        raise HTTPException(502, f"Failed to parse LLM JSON response: {exc}\nRaw: {raw[:300]}") from exc
 
     raw_events: list[dict] = data.get("events", [])
     raw_edges:  list[dict] = data.get("edges",  [])
 
     if not raw_events:
-        raise HTTPException(502, "Grok returned no events for the given topic.")
+        raise HTTPException(502, f"LLM ({provider}/{resolved_model}) returned no events for the given topic.")
 
     # Build validated EventNode list
     events: list[GeneratedEventNode] = []
     for e in raw_events:
         src_url = str(e.get("source_url", "")).strip() or f"https://en.wikipedia.org/wiki/{topic.replace(' ', '_')}"
-        # Enrich summary with key actors if available
         actors = str(e.get("key_actors", "")).strip()
         summary = str(e.get("summary", ""))[:4000]
         if actors:
@@ -577,7 +680,7 @@ async def _run_graph_generation(topic: str, mode: str = "minimal", event_count: 
                 relationship_type = _coerce_relationship_type(str(re_dict.get("relationship_type", "ContributedTo"))),
                 strength          = float(max(0.0, min(1.0, re_dict.get("strength", 0.5)))),
                 perspective       = _coerce_perspective(str(re_dict.get("perspective", "Mainstream"))),
-                explanation       = (str(re_dict.get("explanation", "Causal link inferred by Grok."))[:2000]
+                explanation       = (str(re_dict.get("explanation", "Causal link inferred by LLM."))[:2000]
                                  + (f" Opposing: {str(re_dict.get('opposing_view', ''))}"
                                     if re_dict.get("is_contested") and re_dict.get("opposing_view")
                                     else "")),
@@ -594,7 +697,7 @@ async def _run_graph_generation(topic: str, mode: str = "minimal", event_count: 
             seen.add(ev.source_url)
             source_urls.append(ev.source_url)
 
-    log.info("grok.generate.done", events=len(events), edges=len(edges), sources=len(source_urls))
+    log.info("llm.generate.done", provider=provider, model=resolved_model, events=len(events), edges=len(edges))
 
     payload = {
         "topic":       topic,
@@ -605,18 +708,32 @@ async def _run_graph_generation(topic: str, mode: str = "minimal", event_count: 
     _cache_set(topic, payload)
     return GenerateGraphResponse(**payload, from_cache=False)
 
+
 # ── Async job runner ───────────────────────────────────────────────────────────
 
-async def _job_worker(job_id: str, topic: str, mode: str, event_count: int) -> None:
+async def _job_worker(
+    job_id: str,
+    topic: str,
+    mode: str,
+    event_count: int,
+    provider: str = "grok",
+    model: str = "",
+    api_key: str = "",
+    user_id: str | None = None,
+) -> None:
     _JOB_STORE[job_id]["status"] = "running"
     try:
-        result = await _run_graph_generation(topic, mode=mode, event_count=event_count)
+        result = await _run_graph_generation(
+            topic, mode=mode, event_count=event_count,
+            provider=provider, model=model, api_key=api_key, user_id=user_id,
+        )
         _JOB_STORE[job_id]["status"] = "done"
         _JOB_STORE[job_id]["result"] = result
     except Exception as exc:
         log.error("graph.job.failed", job_id=job_id, error=str(exc))
         _JOB_STORE[job_id]["status"] = "error"
         _JOB_STORE[job_id]["error"]  = str(exc)
+
 
 # ── Endpoints ──────────────────────────────────────────────────────────────────
 
@@ -628,7 +745,14 @@ async def health() -> dict:
         "grok_model":      _GROK_PROFILE["model"],
         "grok_key_set":    bool(GROK_API_KEY),
         "embed_model":     EMBED_MODEL,
+        "providers":       list(PROVIDERS.keys()),
     }
+
+
+@app.get("/api/providers", tags=["ops"])
+async def get_providers_list() -> list[dict]:
+    """Return the list of available LLM providers and their models."""
+    return list_providers()
 
 
 @app.post("/api/embeddings", response_model=EmbeddingResponse, tags=["embeddings"])
@@ -640,7 +764,9 @@ async def get_embedding(body: EmbeddingRequest, request: Request) -> EmbeddingRe
 
 @app.post("/api/events/extract", response_model=ExtractEventsResponse, tags=["events"])
 async def extract_events(body: ExtractEventsRequest, request: Request) -> ExtractEventsResponse:
-    """Extract structured events from free text using Grok."""
+    """Extract structured events from free text using any LLM provider."""
+    ai = _resolve_ai_params(request, body.provider, body.model)
+
     prompt = (
         f'You are an expert causal analyst. Extract all significant causal events from the text below.\n\n'
         f'For each event, identify: what happened, when it happened, who was involved, and why it matters.\n\n'
@@ -651,14 +777,20 @@ async def extract_events(body: ExtractEventsRequest, request: Request) -> Extrac
         f'  domain      : one of Geopolitics|Economics|Technology|Social|Environmental|Military|Cultural\n\n'
         f'No markdown. Raw JSON array only.\n\nText:\n{body.text}\n\nJSON:'
     )
-    raw    = await _grok_generate(prompt, endpoint="extract_events")
+    raw    = await _llm_generate(
+        prompt,
+        provider=ai["provider"], model=ai["model"], api_key=ai["api_key"],
+        endpoint="extract_events",
+    )
     events = _parse_json_from_llm(raw, array=True)
     return ExtractEventsResponse(events=[ExtractedEventItem(**e) for e in events])
 
 
 @app.post("/api/causal/generate", response_model=CausalLinkResponse, tags=["causal"])
 async def generate_causal_link(body: GenerateCausalLinkRequest, request: Request) -> CausalLinkResponse:
-    """Analyse the causal relationship between two events using Grok."""
+    """Analyse the causal relationship between two events using any LLM provider."""
+    ai = _resolve_ai_params(request, body.provider, body.model)
+
     prompt = (
         f'You are an expert causal analyst. Analyse the causal relationship from event '
         f'{body.from_event_id} to event {body.to_event_id}.\n\n'
@@ -669,15 +801,20 @@ async def generate_causal_link(body: GenerateCausalLinkRequest, request: Request
         f'"strength": 0.0-1.0, "is_contested": true|false}}\n\n'
         f'No markdown. Raw JSON only.'
     )
-    raw  = await _grok_generate(prompt, endpoint="generate_causal_link")
+    raw  = await _llm_generate(
+        prompt,
+        provider=ai["provider"], model=ai["model"], api_key=ai["api_key"],
+        endpoint="generate_causal_link",
+    )
     data = _parse_json_from_llm(raw, array=False)
     return CausalLinkResponse(**data)
 
 
 @app.post("/api/chain/expand", response_model=ExpandChainResponse, tags=["chain"])
 async def expand_chain_node(body: ExpandChainRequest, request: Request) -> ExpandChainResponse:
-    """Suggest connected causal events for chain expansion using Grok."""
-    # If the title contains a question mark or is longer than 80 chars, treat it as the user's original query
+    """Suggest connected causal events for chain expansion using any LLM provider."""
+    ai = _resolve_ai_params(request, body.provider, body.model)
+
     is_question = "?" in body.node_title or len(body.node_title) > 80
     context = (
         f'ANSWER THIS QUESTION: "{body.node_title}"'
@@ -697,7 +834,11 @@ async def expand_chain_node(body: ExpandChainRequest, request: Request) -> Expan
         f'  "direction"         : either "outgoing" (this event causes/suggests the new event) or "incoming" (the new event causes/leads to this event)\n\n'
         f'No markdown. Raw JSON array only.'
     )
-    raw   = await _grok_generate(prompt, endpoint="expand_chain")
+    raw   = await _llm_generate(
+        prompt,
+        provider=ai["provider"], model=ai["model"], api_key=ai["api_key"],
+        endpoint="expand_chain",
+    )
     nodes = _parse_json_from_llm(raw, array=True)
     return ExpandChainResponse(suggested_nodes=[SuggestedNode(**n) for n in nodes])
 
@@ -742,13 +883,22 @@ async def generate_knowledge_graph(
     background_tasks: BackgroundTasks,
 ) -> GraphJobSubmittedResponse:
     """
-    Submit an async knowledge-graph generation job (Grok-powered).
+    Submit an async knowledge-graph generation job (multi-provider LLM-powered).
     Returns job_id immediately (HTTP 202). Poll GET /api/graph/jobs/{job_id}.
     Cache hits resolve synchronously.
     """
-    log.info("graph.generate.submit", topic=body.topic, mode=body.mode, event_count=body.event_count)
+    ai = _resolve_ai_params(request, body.provider, body.model)
+    user_id = (request.headers.get("X-User-Id") or "").strip() or None
 
-    cached = _cache_get(body.topic)
+    log.info(
+        "graph.generate.submit",
+        topic=body.topic, mode=body.mode, event_count=body.event_count,
+        provider=ai["provider"], model=ai["model"],
+    )
+
+    # Use cache key that includes provider for multi-provider cache isolation
+    cache_topic = f"{ai['provider']}:{body.topic}"
+    cached = _cache_get(cache_topic) or _cache_get(body.topic)  # fall back to provider-agnostic cache
     if cached:
         job_id = str(uuid.uuid4())
         result = GenerateGraphResponse(**cached, from_cache=True)
@@ -758,8 +908,13 @@ async def generate_knowledge_graph(
 
     job_id = str(uuid.uuid4())
     _JOB_STORE[job_id] = {"status": "pending", "result": None, "error": None}
-    background_tasks.add_task(_job_worker, job_id, body.topic, body.mode, body.event_count)
-    log.info("graph.generate.job_queued", topic=body.topic, job_id=job_id)
+    background_tasks.add_task(
+        _job_worker,
+        job_id, body.topic, body.mode, body.event_count,
+        provider=ai["provider"], model=ai["model"], api_key=ai["api_key"],
+        user_id=user_id,
+    )
+    log.info("graph.generate.job_queued", topic=body.topic, job_id=job_id, provider=ai["provider"])
     return GraphJobSubmittedResponse(job_id=job_id, status="pending")
 
 
@@ -792,6 +947,7 @@ class PromptLogEntry(BaseModel):
     input_tokens: int | None = None
     output_tokens: int | None = None
     cost_usd: float | None = None
+    provider: str | None = None
     created_at: str
 
 
@@ -803,18 +959,31 @@ async def get_prompt_logs(
     """Return recent AI prompt/response logs for debugging."""
     pool = await _ensure_pool()
     async with pool.acquire() as conn:
+        # Check if provider column exists (added in migration v3)
+        has_provider = False
+        try:
+            col_check = await conn.fetch(
+                "SELECT column_name FROM information_schema.columns WHERE table_name='ai_prompt_logs' AND column_name='provider'"
+            )
+            has_provider = len(col_check) > 0
+        except Exception:
+            pass
+
+        cols = "id::text, endpoint, prompt, response, model, max_tokens, temperature, duration_ms, error, input_tokens, output_tokens, cost_usd"
+        if has_provider:
+            cols += ", COALESCE(provider, 'grok') as provider"
+        else:
+            cols += ", 'grok' as provider"
+        cols += ", created_at::text"
+
         if endpoint:
             rows = await conn.fetch(
-                """SELECT id::text, endpoint, prompt, response, model, max_tokens, temperature, duration_ms, error, input_tokens, output_tokens, cost_usd, created_at::text
-                   FROM ai_prompt_logs WHERE endpoint = $1
-                   ORDER BY created_at DESC LIMIT $2""",
+                f"SELECT {cols} FROM ai_prompt_logs WHERE endpoint = $1 ORDER BY created_at DESC LIMIT $2",
                 endpoint, limit,
             )
         else:
             rows = await conn.fetch(
-                """SELECT id::text, endpoint, prompt, response, model, max_tokens, temperature, duration_ms, error, input_tokens, output_tokens, cost_usd, created_at::text
-                   FROM ai_prompt_logs
-                   ORDER BY created_at DESC LIMIT $1""",
+                f"SELECT {cols} FROM ai_prompt_logs ORDER BY created_at DESC LIMIT $1",
                 limit,
             )
     return [PromptLogEntry(**dict(r)) for r in rows]

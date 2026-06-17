@@ -3,11 +3,13 @@ using CausalExplorer.Domain.Interfaces;
 using CausalExplorer.Infrastructure.AI;
 using CausalExplorer.Infrastructure.Analytics;
 using CausalExplorer.Infrastructure.Cache;
+using CausalExplorer.Infrastructure.Encryption;
 using CausalExplorer.Infrastructure.Graph;
 using CausalExplorer.Infrastructure.Identity;
 using CausalExplorer.Infrastructure.Persistence;
 using CausalExplorer.Infrastructure.Persistence.Repositories;
 using CausalExplorer.Infrastructure.Search;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -38,6 +40,8 @@ public static class DependencyInjection
             .AddPersistence(configuration)
             .AddNeo4j(configuration)
             .AddRedis(configuration)
+            .AddEncryption(configuration)
+            .AddAiKeyContext()
             .AddAiService(configuration)
             .AddAnalyticsService(configuration)
             .AddVectorSearch(configuration)
@@ -70,6 +74,7 @@ public static class DependencyInjection
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<ICausalChainRepository, CausalChainRepository>();
         services.AddScoped<IUserSavedChainRepository, UserSavedChainRepository>();
+        services.AddScoped<IUserApiKeyRepository, UserApiKeyRepository>();
 
         services.AddScoped<RefreshTokenStore>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();
@@ -221,6 +226,29 @@ public static class DependencyInjection
         services.AddScoped<TokenService>();
         services.AddScoped<ITokenService, TokenService>();
 
+        return services;
+    }
+
+    // ── Encryption ────────────────────────────────────────────────────────────
+
+    private static IServiceCollection AddEncryption(
+        this IServiceCollection services,
+        IConfiguration configuration)
+    {
+        services.AddDataProtection()
+            .SetApplicationName("CausalExplorer");
+
+        services.AddScoped<IApiKeyEncryptionService, ApiKeyEncryptionService>();
+
+        return services;
+    }
+
+    // ── AI Key Context (scoped per-request) ───────────────────────────────────
+
+    private static IServiceCollection AddAiKeyContext(
+        this IServiceCollection services)
+    {
+        services.AddScoped<IAiKeyContext, AiKeyContext>();
         return services;
     }
 }

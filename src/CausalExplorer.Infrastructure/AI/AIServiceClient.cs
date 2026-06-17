@@ -10,11 +10,13 @@ namespace CausalExplorer.Infrastructure.AI;
 
 /// <summary>
 /// HTTP client adapter that calls the Python FastAPI AI sidecar to implement <see cref="IAIService"/>.
+/// Forwards per-user API keys and provider/model selection via custom headers.
 /// </summary>
 public sealed class AIServiceClient : IAIService
 {
     private readonly HttpClient _http;
     private readonly ILogger<AIServiceClient> _logger;
+    private readonly IAiKeyContext _aiKeyContext;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -24,10 +26,11 @@ public sealed class AIServiceClient : IAIService
     };
 
     /// <summary>Initialises the client with the named <see cref="HttpClient"/> injected by DI.</summary>
-    public AIServiceClient(HttpClient http, ILogger<AIServiceClient> logger)
+    public AIServiceClient(HttpClient http, ILogger<AIServiceClient> logger, IAiKeyContext aiKeyContext)
     {
-        _http   = http;
-        _logger = logger;
+        _http         = http;
+        _logger       = logger;
+        _aiKeyContext = aiKeyContext;
     }
 
     /// <inheritdoc />
@@ -122,6 +125,24 @@ public sealed class AIServiceClient : IAIService
             Content = JsonContent.Create(payload, options: JsonOptions)
         };
         request.Headers.Add("X-Correlation-ID", correlationId);
+
+        // Forward per-user BYOK headers when configured
+        if (_aiKeyContext.HasPerUserKey)
+        {
+            request.Headers.Add("X-User-Api-Key", _aiKeyContext.ApiKey);
+        }
+        if (!string.IsNullOrEmpty(_aiKeyContext.Provider))
+        {
+            request.Headers.Add("X-Provider", _aiKeyContext.Provider);
+        }
+        if (!string.IsNullOrEmpty(_aiKeyContext.Model))
+        {
+            request.Headers.Add("X-Model", _aiKeyContext.Model);
+        }
+        if (_aiKeyContext.UserId.HasValue)
+        {
+            request.Headers.Add("X-User-Id", _aiKeyContext.UserId.Value.ToString());
+        }
 
         var response = await _http.SendAsync(request, ct);
 
