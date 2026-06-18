@@ -85,7 +85,7 @@ export default function TokenUsageCard({ data }: Props) {
       </div>
 
       {/* Chart */}
-      <div style={{ flex: 1, minHeight: 224, position: "relative", marginBottom: 24 }}>
+      <div style={{ flex: 1, minWidth: 0, minHeight: 224, position: "relative", marginBottom: 24 }}>
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={data} margin={{ top: 4, right: 4, left: -12, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--dash-border-light)" vertical={false} />

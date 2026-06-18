@@ -1,6 +1,7 @@
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using CausalExplorer.Application.Common.Exceptions;
 using CausalExplorer.Application.Common.Interfaces;
 using Microsoft.Extensions.Logging;
 

@@ -276,8 +276,9 @@ async def generate_with_provider(
 
     if provider.requires_key and not api_key:
         raise ValueError(
-            f"Provider '{provider.display_name}' requires an API key. "
-            f"Add your key in Settings or set the {provider.env_key_name} environment variable."
+            f"No API key available for {provider.display_name}. "
+            f"Add your {provider.display_name} API key in Settings → API Keys, "
+            f"or set the {provider.env_key_name} environment variable on the server."
         )
 
     # Validate model exists for this provider

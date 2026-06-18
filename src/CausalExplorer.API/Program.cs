@@ -3,6 +3,9 @@ using CausalExplorer.Infrastructure;
 using CausalExplorer.API.Extensions;
 using Serilog;
 
+// Ensure Npgsql reads/writes timestamp with time zone as UTC (required by BYOK key encryption + PostgreSQL)
+AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+
 // ── Bootstrap Serilog early so startup errors are captured ────────────────────
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Override("Microsoft", Serilog.Events.LogEventLevel.Warning)

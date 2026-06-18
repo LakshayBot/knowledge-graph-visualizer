@@ -12,8 +12,13 @@ namespace CausalExplorer.API.Middleware;
 public sealed class AiKeyResolutionMiddleware
 {
     private readonly RequestDelegate _next;
+    private readonly ILogger<AiKeyResolutionMiddleware> _logger;
 
-    public AiKeyResolutionMiddleware(RequestDelegate next) => _next = next;
+    public AiKeyResolutionMiddleware(RequestDelegate next, ILogger<AiKeyResolutionMiddleware> logger)
+    {
+        _next   = next;
+        _logger = logger;
+    }
 
     public async Task InvokeAsync(HttpContext context)
     {
@@ -52,15 +57,22 @@ public sealed class AiKeyResolutionMiddleware
                                 {
                                     var decrypted = encrypt.Decrypt(key.KeyEncrypted);
                                     aiKeyContext.Configure(provider, model, decrypted, userId.Value);
+                                    _logger.LogDebug(
+                                        "BYOK key resolved for user {UserId}, provider {Provider}",
+                                        userId.Value, provider);
                                 }
-                                catch
+                                catch (Exception ex)
                                 {
-                                    // Key decryption failed — leave context empty, fallback to server key
+                                    _logger.LogWarning(ex,
+                                        "BYOK key decryption failed for user {UserId}, provider {Provider}",
+                                        userId.Value, provider);
                                 }
                             }
                             else
                             {
-                                // No key configured or inactive — still set provider/model for logging
+                                _logger.LogDebug(
+                                    "No BYOK key found for user {UserId}, provider {Provider}",
+                                    userId.Value, provider);
                                 aiKeyContext.Configure(provider, model, null, userId.Value);
                             }
                         }

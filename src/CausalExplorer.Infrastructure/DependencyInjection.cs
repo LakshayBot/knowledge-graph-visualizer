@@ -235,8 +235,12 @@ public static class DependencyInjection
         this IServiceCollection services,
         IConfiguration configuration)
     {
+        var keyRingPath = configuration.GetValue<string>("DataProtection:KeyRingPath");
         services.AddDataProtection()
-            .SetApplicationName("CausalExplorer");
+            .SetApplicationName("CausalExplorer")
+            .PersistKeysToFileSystem(string.IsNullOrEmpty(keyRingPath)
+                ? new DirectoryInfo(Path.Combine(Directory.GetCurrentDirectory(), "keys"))
+                : new DirectoryInfo(keyRingPath));
 
         services.AddScoped<IApiKeyEncryptionService, ApiKeyEncryptionService>();
 

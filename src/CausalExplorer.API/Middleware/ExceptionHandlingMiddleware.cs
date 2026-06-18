@@ -83,14 +83,59 @@ public sealed class ExceptionHandlingMiddleware
                 _logger.LogInformation("Conflict: {Message}", ce.Message);
                 break;
 
-            case AIServiceException:
+            case AIServiceException aise:
+            // Extract the actual error message from the AI service.
+            // The AI service returns a JSON body with a "detail" field, or plain text.
+            var aiDetail = aise.Message;
+            // Try to extract detail from JSON response body
+            try
+            {
+                var startIdx = aise.Message.LastIndexOf(": ");
+                if (startIdx > 0)
+                {
+                    var responseBody = aise.Message[(startIdx + 2)..];
+                    if (responseBody.StartsWith('{'))
+                    {
+                        using var doc = JsonDocument.Parse(responseBody);
+                        if (doc.RootElement.TryGetProperty("detail", out var detailProp))
+                            aiDetail = detailProp.GetString() ?? aiDetail;
+                    }
+                }
+            }
+            catch { /* keep original message if parsing fails */ }
+
+            if (aise.Message.Contains("400") || aise.Message.Contains("API key required") || aise.Message.Contains("requires an API key"))
+            {
+                // User-configurable issue (e.g. missing API key)
+                statusCode = StatusCodes.Status400BadRequest;
+                title      = "Configuration Required";
+                detail     = aiDetail;
+                _logger.LogWarning("AI service configuration error: {Message}", aise.Message);
+            }
+            else if (aise.Message.Contains("401") || aise.Message.Contains("Incorrect API key") || aise.Message.Contains("Invalid API key"))
+            {
+                statusCode = StatusCodes.Status401Unauthorized;
+                title      = "Invalid API Key";
+                detail     = aiDetail;
+                _logger.LogWarning("AI service auth error: {Message}", aise.Message);
+            }
+            else if (aise.Message.Contains("429") || aise.Message.Contains("Rate limit"))
+            {
+                statusCode = StatusCodes.Status429TooManyRequests;
+                title      = "Rate Limited";
+                detail     = aiDetail;
+                _logger.LogWarning("AI service rate limit: {Message}", aise.Message);
+            }
+            else
+            {
                 statusCode = StatusCodes.Status502BadGateway;
                 title      = "AI Service Unavailable";
                 detail     = "The AI service is temporarily unavailable. Please try again later.";
                 _logger.LogError(exception,
                     "AI service error for {Method} {Path}",
                     context.Request.Method, context.Request.Path);
-                break;
+            }
+            break;
 
             default:
                 statusCode = StatusCodes.Status500InternalServerError;

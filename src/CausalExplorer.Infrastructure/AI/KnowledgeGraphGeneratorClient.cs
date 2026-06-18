@@ -2,6 +2,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using CausalExplorer.Application.Common.DTOs;
+using CausalExplorer.Application.Common.Exceptions;
 using CausalExplorer.Application.Common.Interfaces;
 using Microsoft.Extensions.Logging;
 
@@ -80,12 +81,12 @@ public sealed class KnowledgeGraphGeneratorClient : IKnowledgeGraphGenerator
             _logger.LogError(
                 "KnowledgeGraphGenerator: sidecar returned {Status} on submit for topic '{Topic}': {Body}",
                 (int)submitResponse.StatusCode, topic, body);
-            throw new InvalidOperationException(
-                $"AI service graph generation failed ({(int)submitResponse.StatusCode}): {body}");
+            throw new AIServiceException(
+                $"AI service returned {(int)submitResponse.StatusCode} for /api/graph/generate: {body}");
         }
 
         var submitted = await submitResponse.Content.ReadFromJsonAsync<RawJobSubmittedResponse>(JsonOptions, ct)
-            ?? throw new InvalidOperationException("AI service returned empty job submission response.");
+            ?? throw new AIServiceException("AI service returned empty job submission response for /api/graph/generate");
 
         _logger.LogInformation(
             "KnowledgeGraphGenerator: job {JobId} submitted (status={Status}) for topic '{Topic}'",
@@ -143,7 +144,7 @@ public sealed class KnowledgeGraphGeneratorClient : IKnowledgeGraphGenerator
                     return MapToDto(status.Result);
 
                 case "error":
-                    throw new InvalidOperationException(
+                    throw new AIServiceException(
                         $"AI service graph generation failed: {status.Error ?? "unknown error"}");
 
                 default:
@@ -153,8 +154,8 @@ public sealed class KnowledgeGraphGeneratorClient : IKnowledgeGraphGenerator
             }
         }
 
-        throw new TimeoutException(
-            $"KnowledgeGraphGenerator: job {jobId} did not complete within {MaxWait.TotalMinutes} minutes.");
+        throw new AIServiceException(
+            $"AI service graph generation job {jobId} did not complete within {MaxWait.TotalMinutes} minutes.");
     }
 
     private static GeneratedGraphDto MapToDto(RawGenerateGraphResponse raw)

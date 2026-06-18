@@ -103,7 +103,7 @@ export default function TotalRequestsCard({ data }: Props) {
       </div>
 
       {/* Chart */}
-      <div style={{ flex: 1, minHeight: 200, position: "relative" }}>
+      <div style={{ flex: 1, minWidth: 0, minHeight: 200, position: "relative" }}>
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} margin={{ top: 8, right: 4, left: -12, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--dash-border-light)" vertical={false} />

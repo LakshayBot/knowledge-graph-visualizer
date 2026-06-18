@@ -48,6 +48,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends wget && rm -rf 
 
 # Non-root user for security
 RUN groupadd --system appgroup && useradd --system --gid appgroup appuser
+# Pre-create key ring directory with correct ownership (for Data Protection persistence)
+RUN mkdir -p /app/keys && chown appuser:appgroup /app/keys
 USER appuser
 
 COPY --from=publish /app/publish .

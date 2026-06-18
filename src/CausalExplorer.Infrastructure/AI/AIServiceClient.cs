@@ -2,6 +2,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using CausalExplorer.Application.AI.Interfaces;
+using CausalExplorer.Application.Common.Exceptions;
 using CausalExplorer.Application.Common.Interfaces;
 using CausalExplorer.Application.EventNodes.DTOs;
 using Microsoft.Extensions.Logging;
@@ -203,14 +204,3 @@ public sealed class AIServiceClient : IAIService
         DateTime CreatedAt);
 }
 
-/// <summary>
-/// Exception thrown when the AI sidecar service returns a non-success response.
-/// </summary>
-public sealed class AIServiceException : Exception
-{
-    /// <summary>Initialises the exception with a descriptive message.</summary>
-    public AIServiceException(string message) : base(message) { }
-
-    /// <summary>Initialises the exception with a message and inner cause.</summary>
-    public AIServiceException(string message, Exception inner) : base(message, inner) { }
-}

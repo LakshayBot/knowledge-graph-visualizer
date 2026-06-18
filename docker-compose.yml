@@ -223,6 +223,9 @@ services:
       Jwt__Issuer:                  ${JWT_ISSUER:-CausalExplorer}
       Jwt__Audience:                ${JWT_AUDIENCE:-CausalExplorerClient}
       Cors__AllowedOrigins__0:      ${CORS_ORIGINS:-http://localhost:3000}
+      DataProtection__KeyRingPath:  /app/keys
+    volumes:
+      - ./docker/keys:/app/keys
     ports:
       - "5001:5001"
     networks:

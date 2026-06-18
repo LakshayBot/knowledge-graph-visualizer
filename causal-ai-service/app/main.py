@@ -106,6 +106,9 @@ def _resolve_ai_params(request: Request, body_provider: str | None = None, body_
     """
     Resolve provider, model, and API key from request headers + body.
     Priority: request headers (BYOK) > body fields > server defaults (Grok).
+
+    Raises HTTPException(400) if the provider requires an API key and none is
+    available — this gives the user an actionable error before any LLM call.
     """
     # 1. Determine provider
     provider = (
@@ -130,12 +133,37 @@ def _resolve_ai_params(request: Request, body_provider: str | None = None, body_
 
     # 3. Determine API key
     api_key = (request.headers.get("X-User-Api-Key") or "").strip()
-    if not api_key and request.headers.get("X-User-Id"):
+    has_user_context = bool((request.headers.get("X-User-Id") or "").strip())
+
+    if not api_key and has_user_context:
         # User is authenticated but didn't provide a key — use server fallback
         api_key = _get_server_key(provider)
     if not api_key:
         # No user context — use server fallback
         api_key = _get_server_key(provider)
+
+    # 4. Validate: if provider requires a key and we don't have one, fail early
+    provider_config = get_provider(provider)
+    if provider_config and provider_config.requires_key and not api_key:
+        if has_user_context:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    f"API key required for {provider_config.display_name}. "
+                    f"Please add your {provider_config.display_name} API key in "
+                    f"Settings → API Keys, or ask your administrator to configure "
+                    f"a server-wide key."
+                ),
+            )
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    f"No API key available for {provider_config.display_name}. "
+                    f"The server-wide {provider_config.env_key_name} environment variable "
+                    f"is not configured. Please add your own API key in Settings → API Keys."
+                ),
+            )
 
     return {"provider": provider, "model": model, "api_key": api_key}
 
@@ -529,16 +557,31 @@ async def _llm_generate(
     async def _log_cb(**kwargs) -> None:
         await _log_prompt(**kwargs)
 
-    result = await generate_with_provider(
-        prompt=prompt,
-        provider_name=provider,
-        model=model,
-        temperature=temperature,
-        max_tokens=max_tokens,
-        api_key=api_key,
-        endpoint=endpoint,
-        log_prompt_cb=_log_cb,
-    )
+    try:
+        result = await generate_with_provider(
+            prompt=prompt,
+            provider_name=provider,
+            model=model,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            api_key=api_key,
+            endpoint=endpoint,
+            log_prompt_cb=_log_cb,
+        )
+    except ValueError as exc:
+        # Missing or invalid configuration (e.g. unknown provider, missing key)
+        raise HTTPException(status_code=400, detail=str(exc))
+    except RuntimeError as exc:
+        # Provider API error (e.g. invalid/incorrect key, rate limit, timeout)
+        msg = str(exc)
+        if "Incorrect API key" in msg or "Invalid API key" in msg or "401" in msg:
+            raise HTTPException(status_code=401, detail=msg)
+        elif "Rate limit" in msg or "429" in msg:
+            raise HTTPException(status_code=429, detail=msg)
+        elif "timed out" in msg.lower() or "timeout" in msg.lower():
+            raise HTTPException(status_code=504, detail=msg)
+        else:
+            raise HTTPException(status_code=502, detail=msg)
     return result["text"]
 
 
