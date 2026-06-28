@@ -25,8 +25,8 @@ services:
     container_name: casual-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB:       ${POSTGRES_DB:-CasualExplorerDb}
-      POSTGRES_USER:     ${POSTGRES_USER:-casual}
+      POSTGRES_DB:       ${POSTGRES_DB:-CausalExplorerDb}
+      POSTGRES_USER:     ${POSTGRES_USER:-causal}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -35,7 +35,7 @@ services:
     networks:
       - casual-net
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-casual} -d ${POSTGRES_DB:-CasualExplorerDb}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-causal} -d ${POSTGRES_DB:-CausalExplorerDb}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -210,8 +210,8 @@ services:
       ASPNETCORE_ENVIRONMENT:       Production
       ASPNETCORE_URLS:              http://+:5001
       ConnectionStrings__DefaultConnection: >-
-        Host=postgres;Port=5432;Database=${POSTGRES_DB:-CasualExplorerDb};
-        Username=${POSTGRES_USER:-casual};Password=${POSTGRES_PASSWORD}
+        Host=postgres;Port=5432;Database=${POSTGRES_DB:-CausalExplorerDb};
+        Username=${POSTGRES_USER:-causal};Password=${POSTGRES_PASSWORD}
       ConnectionStrings__Redis:     redis:6379,password=${REDIS_PASSWORD:-redis_secret},abortConnect=false
       Neo4j__Uri:                   bolt://neo4j:7687
       Neo4j__Username:              ${NEO4J_USERNAME:-neo4j}
