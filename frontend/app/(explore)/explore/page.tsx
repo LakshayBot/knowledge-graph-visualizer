@@ -11,6 +11,8 @@ import GraphCanvas from "@/components/explore/GraphCanvas";
 import GraphBackground from "@/components/explore/GraphBackground";
 import NodeDetailPanel from "@/components/explore/NodeDetailPanel";
 import ProviderModelSelector from "@/components/explore/ProviderModelSelector";
+import TimelineBar from "@/components/explore/TimelineBar";
+import { useTimeline } from "@/hooks/useTimeline";
 import type { GraphNode, GraphEdge } from "@/types/graph";
 
 /* ── Animations ──────────────────────────────────────────── */
@@ -57,6 +59,9 @@ function ExploreContent() {
   const [rootNodeId, setRootNodeId] = useState<string | null>(null);
   const [expanding, setExpanding] = useState(false);
   const [saved, setSaved] = useState(false);
+
+  // ── Timeline ────────────────────────────────────────────────────────
+  const timeline = useTimeline({ nodes, edges });
 
   useEffect(() => {
     const cid = searchParams.get("chainId");
@@ -281,6 +286,9 @@ function ExploreContent() {
               rootId={rootNodeId}
               onNodeClick={handleNodeClick}
               loading={loading}
+              visibleNodeIds={timeline.visibleNodeIds}
+              visibleEdgeIds={timeline.visibleEdgeIds}
+              timelineActive={timeline.hasTimeline}
             />
           </GraphBackground>
         </div>
@@ -335,6 +343,9 @@ function ExploreContent() {
               rootId={rootNodeId}
               onNodeClick={handleNodeClick}
               loading={loading}
+              visibleNodeIds={timeline.visibleNodeIds}
+              visibleEdgeIds={timeline.visibleEdgeIds}
+              timelineActive={timeline.hasTimeline}
             />
           </GraphBackground>
 
@@ -588,6 +599,22 @@ function ExploreContent() {
             gap: 8,
           }}
         >
+          {/* Timeline bar */}
+          <TimelineBar
+            currentYear={timeline.currentYear}
+            isPlaying={timeline.isPlaying}
+            playbackSpeed={timeline.playbackSpeed}
+            yearRange={timeline.yearRange}
+            visibleCount={timeline.visibleCount}
+            totalWithYears={timeline.totalWithYears}
+            hasTimeline={timeline.hasTimeline}
+            onTogglePlay={timeline.togglePlay}
+            onSpeedChange={timeline.setSpeed}
+            onSeek={timeline.seek}
+            onJumpToStart={timeline.jumpToStart}
+            onJumpToEnd={timeline.jumpToEnd}
+          />
+
           {/* Mode selector */}
           <ProviderModelSelector
             provider={provider}

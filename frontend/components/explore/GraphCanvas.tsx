@@ -10,6 +10,12 @@ interface Props {
   rootId?: string | null;
   onNodeClick?: (nodeId: string) => void;
   loading?: boolean;
+  /** Timeline visibility filter — only these node IDs are rendered (if set) */
+  visibleNodeIds?: Set<string>;
+  /** Timeline visibility filter — only these edge IDs are rendered (if set) */
+  visibleEdgeIds?: Set<string>;
+  /** Whether timeline playback is active (enables enter/exit animations) */
+  timelineActive?: boolean;
 }
 
 const R = 28;
@@ -74,6 +80,9 @@ export default function GraphCanvas({
   rootId,
   onNodeClick,
   loading,
+  visibleNodeIds,
+  visibleEdgeIds,
+  timelineActive,
 }: Props) {
   const [hovered, setHovered] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
@@ -371,6 +380,16 @@ export default function GraphCanvas({
           to = positions.get(edge.toId);
         if (!from || !to) return null;
 
+        // Timeline visibility filter
+        const edgeHidden = timelineActive && visibleEdgeIds && !visibleEdgeIds.has(edge.id);
+        const edgeAnimStyle: React.CSSProperties | undefined = timelineActive
+          ? {
+              opacity: edgeHidden ? 0 : 1,
+              pointerEvents: (edgeHidden ? "none" : "auto") as React.CSSProperties["pointerEvents"],
+              transition: "opacity 0.3s ease",
+            }
+          : undefined;
+
         const rFrom = nodeRadius(
           nodes.find((n) => n.id === edge.fromId)!
         );
@@ -392,7 +411,7 @@ export default function GraphCanvas({
         const { mx: qx, my: qy } = edgeMidpoint(sx, sy, ex, ey);
 
         return (
-          <g key={edge.id}>
+          <g key={edge.id} style={edgeAnimStyle}>
             <path
               d={d}
               fill="none"
@@ -439,6 +458,17 @@ export default function GraphCanvas({
         const pos = positions.get(node.id);
         if (!pos) return null;
 
+        // Timeline visibility filter
+        const nodeHidden = timelineActive && visibleNodeIds && !visibleNodeIds.has(node.id);
+        const nodeAnimStyle: React.CSSProperties = timelineActive
+          ? {
+              opacity: nodeHidden ? 0 : 1,
+              transform: nodeHidden ? "scale(0.8)" : "scale(1)",
+              pointerEvents: nodeHidden ? "none" : undefined,
+              transition: "opacity 0.3s ease, transform 0.3s ease",
+            }
+          : {};
+
         const isHovered = hovered === node.id;
         const isSelected = selected === node.id;
         const isRoot = isRootNode(node.id);
@@ -453,7 +483,7 @@ export default function GraphCanvas({
         return (
           <g
             key={node.id}
-            style={{ cursor: "pointer" }}
+            style={{ cursor: "pointer", ...nodeAnimStyle }}
             onMouseEnter={() => setHovered(node.id)}
             onMouseLeave={() => setHovered(null)}
             onClick={() => {
@@ -644,12 +674,20 @@ export default function GraphCanvas({
         );
       })}
 
-      {/* Float animation keyframes */}
+      {/* Float animation keyframes + reduced-motion support */}
       <style>{`
         @keyframes float {
           0% { transform: translateY(0px); }
           50% { transform: translateY(-6px); }
           100% { transform: translateY(0px); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          g[style*="transition"] {
+            transition: none !important;
+          }
+          .no-motion * {
+            animation: none !important;
+          }
         }
       `}</style>
     </svg>

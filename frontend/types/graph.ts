@@ -30,3 +30,16 @@ export interface SavedChain {
   savedAt: string;
   notes: string | null;
 }
+
+export interface TimelineState {
+  currentYear: number;
+  isPlaying: boolean;
+  playbackSpeed: number; // 0.5 | 1 | 2
+  yearRange: { min: number; max: number };
+}
+
+export interface TimelineSnapshot {
+  currentYear: number;
+  playbackSpeed: number;
+  yearRange: { min: number; max: number };
+}
