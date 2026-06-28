@@ -7,20 +7,20 @@ RUN apt-get update && apt-get install -y --no-install-recommends wget && rm -rf 
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
-COPY ["src/CausalExplorer.API/CausalExplorer.API.csproj", "src/CausalExplorer.API/"]
-COPY ["src/CausalExplorer.Application/CausalExplorer.Application.csproj", "src/CausalExplorer.Application/"]
-COPY ["src/CausalExplorer.Infrastructure/CausalExplorer.Infrastructure.csproj", "src/CausalExplorer.Infrastructure/"]
-COPY ["src/CausalExplorer.Domain/CausalExplorer.Domain.csproj", "src/CausalExplorer.Domain/"]
+COPY ["src/CasualExplorer.API/CasualExplorer.API.csproj", "src/CasualExplorer.API/"]
+COPY ["src/CasualExplorer.Application/CasualExplorer.Application.csproj", "src/CasualExplorer.Application/"]
+COPY ["src/CasualExplorer.Infrastructure/CasualExplorer.Infrastructure.csproj", "src/CasualExplorer.Infrastructure/"]
+COPY ["src/CasualExplorer.Domain/CasualExplorer.Domain.csproj", "src/CasualExplorer.Domain/"]
 
-RUN dotnet restore "src/CausalExplorer.API/CausalExplorer.API.csproj"
+RUN dotnet restore "src/CasualExplorer.API/CasualExplorer.API.csproj"
 
 COPY . .
 
-WORKDIR "/src/src/CausalExplorer.API"
-RUN dotnet build "CausalExplorer.API.csproj" -c Release -o /app/build
+WORKDIR "/src/src/CasualExplorer.API"
+RUN dotnet build "CasualExplorer.API.csproj" -c Release -o /app/build
 
 FROM build AS publish
-RUN dotnet publish "CausalExplorer.API.csproj" -c Release -o /app/publish /p:UseAppHost=false
+RUN dotnet publish "CasualExplorer.API.csproj" -c Release -o /app/publish /p:UseAppHost=false
 
 FROM base AS final
 WORKDIR /app
@@ -30,4 +30,4 @@ COPY --from=publish /app/publish .
 RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser
 USER appuser
 
-ENTRYPOINT ["dotnet", "CausalExplorer.API.dll"]
+ENTRYPOINT ["dotnet", "CasualExplorer.API.dll"]

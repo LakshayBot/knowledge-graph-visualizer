@@ -7,12 +7,12 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app
 
 FROM base AS builder
-COPY src/CausalExplorer.AI/requirements.txt .
+COPY src/CasualExplorer.AI/requirements.txt .
 RUN pip install --upgrade pip && pip install --prefix=/install -r requirements.txt
 
 FROM base AS final
 COPY --from=builder /install /usr/local
-COPY src/CausalExplorer.AI/ .
+COPY src/CasualExplorer.AI/ .
 
 # Non-root user
 RUN addgroup --system aigroup && adduser --system --ingroup aigroup aiuser

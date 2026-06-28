@@ -1,10 +1,10 @@
 // ============================================================
-// CausalExplorer – Neo4j Initialisation Script
+// CasualExplorer – Neo4j Initialisation Script
 // Run after the database is first started to create constraints,
-// indexes, and seed data (US-China trade war causal chain).
+// indexes, and seed data (US-China trade war casual chain).
 //
 // Execute from the Neo4j container:
-//   docker exec causal-neo4j cypher-shell -u neo4j -p <password> --file /var/lib/neo4j/import/init.cypher
+//   docker exec casual-neo4j cypher-shell -u neo4j -p <password> --file /var/lib/neo4j/import/init.cypher
 // ============================================================
 
 // ── Idempotency guard ─────────────────────────────────────────────────────────
@@ -16,11 +16,11 @@
 CREATE CONSTRAINT event_node_id_unique IF NOT EXISTS
   FOR (n:EventNode) REQUIRE n.id IS UNIQUE;
 
-CREATE CONSTRAINT causal_edge_id_unique IF NOT EXISTS
-  FOR (e:CausalEdge) REQUIRE e.id IS UNIQUE;
+CREATE CONSTRAINT casual_edge_id_unique IF NOT EXISTS
+  FOR (e:CasualEdge) REQUIRE e.id IS UNIQUE;
 
-CREATE CONSTRAINT causal_chain_id_unique IF NOT EXISTS
-  FOR (c:CausalChain) REQUIRE c.id IS UNIQUE;
+CREATE CONSTRAINT casual_chain_id_unique IF NOT EXISTS
+  FOR (c:CasualChain) REQUIRE c.id IS UNIQUE;
 
 // ── Indexes ───────────────────────────────────────────────────────────────────
 
@@ -33,13 +33,13 @@ CREATE INDEX event_node_event_date IF NOT EXISTS
 CREATE INDEX event_node_is_verified IF NOT EXISTS
   FOR (n:EventNode) ON (n.isVerified);
 
-CREATE INDEX causal_edge_perspective IF NOT EXISTS
+CREATE INDEX casual_edge_perspective IF NOT EXISTS
   FOR ()-[r:CAUSES]-() ON (r.perspective);
 
-CREATE INDEX causal_edge_relationship_type IF NOT EXISTS
+CREATE INDEX casual_edge_relationship_type IF NOT EXISTS
   FOR ()-[r:CAUSES]-() ON (r.relationshipType);
 
-// ── Seed Data: US-China Trade War Causal Chain ───────────────────────────────
+// ── Seed Data: US-China Trade War Casual Chain ───────────────────────────────
 // This demonstrates the graph structure and provides working data for
 // development and demos. Safe to re-run (MERGE is idempotent).
 
@@ -123,7 +123,7 @@ ON CREATE SET
   decoupling.createdAt        = datetime('2024-01-01T00:00:00Z'),
   decoupling.updatedAt        = datetime('2024-01-01T00:00:00Z');
 
-// Seed CausalEdges (CAUSES relationships)
+// Seed CasualEdges (CAUSES relationships)
 
 MERGE (wto)-[r1:CAUSES {id: '10000000-0000-0000-0000-000000000001'}]->(mfg)
 ON CREATE SET
@@ -170,9 +170,9 @@ ON CREATE SET
   r5.isContested      = true,
   r5.createdAt        = datetime('2024-01-01T00:00:00Z');
 
-// Seed CausalChain metadata node
+// Seed CasualChain metadata node
 
-MERGE (chain:CausalChain {id: 'c0000000-0000-0000-0000-000000000001'})
+MERGE (chain:CasualChain {id: 'c0000000-0000-0000-0000-000000000001'})
 ON CREATE SET
   chain.name        = 'US-China Trade War (2001-2022)',
   chain.description = 'From China WTO accession through the 2018 tariff war and into the technology decoupling era.',

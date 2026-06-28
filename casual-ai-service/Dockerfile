@@ -1,4 +1,4 @@
-# causal-ai-service – Multi-stage Dockerfile
+# casual-ai-service – Multi-stage Dockerfile
 # Build context: repository root
 
 # ── Stage 1: dependency installation ──────────────────────────────────────────
@@ -12,21 +12,21 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app
 
 FROM base AS builder
-COPY causal-ai-service/requirements.txt .
+COPY casual-ai-service/requirements.txt .
 RUN pip install --upgrade pip && \
     pip install --prefix=/install -r requirements.txt
 
 # ── Stage 2: development (used by docker-compose.dev.yml) ─────────────────────
 FROM base AS development
 COPY --from=builder /install /usr/local
-COPY causal-ai-service/ .
+COPY casual-ai-service/ .
 EXPOSE 8000 5678
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
 
 # ── Stage 3: production runtime ───────────────────────────────────────────────
 FROM base AS production
 COPY --from=builder /install /usr/local
-COPY causal-ai-service/ .
+COPY casual-ai-service/ .
 
 # Non-root user
 RUN groupadd --system aigroup && useradd --system --gid aigroup aiuser

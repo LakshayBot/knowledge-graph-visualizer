@@ -1,4 +1,4 @@
-# CausalExplorer.API – Multi-stage Dockerfile
+# CasualExplorer.API – Multi-stage Dockerfile
 # Build context: repository root (docker compose build context: .)
 
 # ── Stage 1: restore + build (also used as the dev watch stage) ───────────────
@@ -14,26 +14,26 @@ RUN dotnet tool install --global dotnet-ef --version 8.0.0
 # Copy csproj files first so NuGet restore is cached as a separate layer.
 # All four projects are copied together so that ProjectReference chains are
 # fully resolved during restore (prevents NETSDK1064 on transitive analyzer packages).
-COPY src/CausalExplorer.Domain/CausalExplorer.Domain.csproj             src/CausalExplorer.Domain/
-COPY src/CausalExplorer.Application/CausalExplorer.Application.csproj   src/CausalExplorer.Application/
-COPY src/CausalExplorer.Infrastructure/CausalExplorer.Infrastructure.csproj src/CausalExplorer.Infrastructure/
-COPY src/CausalExplorer.API/CausalExplorer.API.csproj                   src/CausalExplorer.API/
+COPY src/CasualExplorer.Domain/CasualExplorer.Domain.csproj             src/CasualExplorer.Domain/
+COPY src/CasualExplorer.Application/CasualExplorer.Application.csproj   src/CasualExplorer.Application/
+COPY src/CasualExplorer.Infrastructure/CasualExplorer.Infrastructure.csproj src/CasualExplorer.Infrastructure/
+COPY src/CasualExplorer.API/CasualExplorer.API.csproj                   src/CasualExplorer.API/
 
 # Restore via the API project — dotnet restore walks the full ProjectReference
 # graph so all transitive packages land in the NuGet cache.
-RUN dotnet restore src/CausalExplorer.API/CausalExplorer.API.csproj \
+RUN dotnet restore src/CasualExplorer.API/CasualExplorer.API.csproj \
       --locked-mode false
 
 # Copy the full source and build (restore is skipped automatically because
 # the packages are already in the cache from the step above).
 COPY src/ src/
 
-WORKDIR /repo/src/CausalExplorer.API
-RUN dotnet build CausalExplorer.API.csproj -c Release
+WORKDIR /repo/src/CasualExplorer.API
+RUN dotnet build CasualExplorer.API.csproj -c Release
 
 # ── Stage 2: publish ──────────────────────────────────────────────────────────
 FROM build AS publish
-RUN dotnet publish CausalExplorer.API.csproj \
+RUN dotnet publish CasualExplorer.API.csproj \
       -c Release \
       --no-build \
       -o /app/publish \
@@ -59,4 +59,4 @@ EXPOSE 5001
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
     CMD wget -q --spider http://localhost:5001/health/live || exit 1
 
-ENTRYPOINT ["dotnet", "CausalExplorer.API.dll"]
+ENTRYPOINT ["dotnet", "CasualExplorer.API.dll"]
