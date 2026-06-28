@@ -12,7 +12,7 @@ internal sealed class CasualEdgeConfiguration : IEntityTypeConfiguration<CasualE
     /// <inheritdoc />
     public void Configure(EntityTypeBuilder<CasualEdge> builder)
     {
-        builder.ToTable("casual_edges");
+        builder.ToTable("causal_edges");
 
         builder.HasKey(e => e.Id);
 
@@ -59,8 +59,8 @@ internal sealed class CasualEdgeConfiguration : IEntityTypeConfiguration<CasualE
             sourceBuilder.Property(s => s.SourceType).HasColumnName("source_type").HasConversion<string>().HasMaxLength(50);
         });
 
-        builder.HasIndex(e => e.FromEventId).HasDatabaseName("ix_casual_edges_from_event_id");
-        builder.HasIndex(e => e.ToEventId).HasDatabaseName("ix_casual_edges_to_event_id");
-        builder.HasIndex(e => new { e.FromEventId, e.ToEventId }).HasDatabaseName("ix_casual_edges_from_to");
+        builder.HasIndex(e => e.FromEventId).HasDatabaseName("ix_causal_edges_from_event_id");
+        builder.HasIndex(e => e.ToEventId).HasDatabaseName("ix_causal_edges_to_event_id");
+        builder.HasIndex(e => new { e.FromEventId, e.ToEventId }).HasDatabaseName("ix_causal_edges_from_to");
     }
 }

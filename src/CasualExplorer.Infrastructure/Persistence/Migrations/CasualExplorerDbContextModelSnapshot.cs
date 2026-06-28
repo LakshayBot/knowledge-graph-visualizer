@@ -35,9 +35,9 @@ namespace CasualExplorer.Infrastructure.Persistence.Migrations
                 b.Property<DateTime>("UpdatedAt").HasColumnType("timestamp with time zone").HasColumnName("updated_at");
                 b.Property<int>("ViewCount").HasColumnType("integer").HasColumnName("view_count");
                 b.HasKey("Id");
-                b.HasIndex("Domain").HasDatabaseName("ix_casual_chains_domain");
-                b.HasIndex("ViewCount").HasDatabaseName("ix_casual_chains_view_count");
-                b.ToTable("casual_chains");
+                b.HasIndex("Domain").HasDatabaseName("ix_causal_chains_domain");
+                b.HasIndex("ViewCount").HasDatabaseName("ix_causal_chains_view_count");
+                b.ToTable("causal_chains");
             });
 
             // ── CasualEdge ────────────────────────────────────────────────────
@@ -54,10 +54,10 @@ namespace CasualExplorer.Infrastructure.Persistence.Migrations
                 b.Property<Guid>("ToEventId").HasColumnType("uuid").HasColumnName("to_event_id");
                 b.Property<DateTime>("UpdatedAt").HasColumnType("timestamp with time zone").HasColumnName("updated_at");
                 b.HasKey("Id");
-                b.HasIndex("FromEventId").HasDatabaseName("ix_casual_edges_from_event_id");
-                b.HasIndex("ToEventId").HasDatabaseName("ix_casual_edges_to_event_id");
-                b.HasIndex("FromEventId", "ToEventId").HasDatabaseName("ix_casual_edges_from_to");
-                b.ToTable("casual_edges");
+                b.HasIndex("FromEventId").HasDatabaseName("ix_causal_edges_from_event_id");
+                b.HasIndex("ToEventId").HasDatabaseName("ix_causal_edges_to_event_id");
+                b.HasIndex("FromEventId", "ToEventId").HasDatabaseName("ix_causal_edges_from_to");
+                b.ToTable("causal_edges");
 
                 b.OwnsMany("CasualExplorer.Domain.ValueObjects.Source", "Sources", b1 =>
                 {
@@ -165,14 +165,14 @@ namespace CasualExplorer.Infrastructure.Persistence.Migrations
                 b.HasOne("CasualExplorer.Domain.Entities.EventNode", null)
                     .WithMany()
                     .HasForeignKey("FromEventId")
-                    .HasConstraintName("FK_casual_edges_event_nodes_from_event_id")
+                    .HasConstraintName("FK_causal_edges_event_nodes_from_event_id")
                     .OnDelete(DeleteBehavior.Cascade)
                     .IsRequired();
 
                 b.HasOne("CasualExplorer.Domain.Entities.EventNode", null)
                     .WithMany()
                     .HasForeignKey("ToEventId")
-                    .HasConstraintName("FK_casual_edges_event_nodes_to_event_id")
+                    .HasConstraintName("FK_causal_edges_event_nodes_to_event_id")
                     .OnDelete(DeleteBehavior.Cascade)
                     .IsRequired();
             });
@@ -199,7 +199,7 @@ namespace CasualExplorer.Infrastructure.Persistence.Migrations
                 b.HasOne("CasualExplorer.Domain.Entities.CasualChain", null)
                     .WithMany()
                     .HasForeignKey("ChainId")
-                    .HasConstraintName("FK_user_saved_chains_casual_chains_chain_id")
+                    .HasConstraintName("FK_user_saved_chains_causal_chains_chain_id")
                     .OnDelete(DeleteBehavior.Cascade)
                     .IsRequired();
             });

@@ -78,9 +78,9 @@ namespace CasualExplorer.Infrastructure.Persistence.Migrations
                 table: "refresh_tokens",
                 column: "user_id");
 
-            // ── casual_chains ──────────────────────────────────────────────────
+            // ── causal_chains ──────────────────────────────────────────────────
             migrationBuilder.CreateTable(
-                name: "casual_chains",
+                name: "causal_chains",
                 columns: table => new
                 {
                     id              = table.Column<Guid>(type: "uuid", nullable: false),
@@ -95,17 +95,17 @@ namespace CasualExplorer.Infrastructure.Persistence.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_casual_chains", x => x.id);
+                    table.PrimaryKey("PK_causal_chains", x => x.id);
                 });
 
             migrationBuilder.CreateIndex(
-                name: "ix_casual_chains_domain",
-                table: "casual_chains",
+                name: "ix_causal_chains_domain",
+                table: "causal_chains",
                 column: "domain");
 
             migrationBuilder.CreateIndex(
-                name: "ix_casual_chains_view_count",
-                table: "casual_chains",
+                name: "ix_causal_chains_view_count",
+                table: "causal_chains",
                 column: "view_count");
 
             // ── user_saved_chains ──────────────────────────────────────────────
@@ -128,9 +128,9 @@ namespace CasualExplorer.Infrastructure.Persistence.Migrations
                         principalColumn: "id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_user_saved_chains_casual_chains_chain_id",
+                        name: "FK_user_saved_chains_causal_chains_chain_id",
                         column: x => x.chain_id,
-                        principalTable: "casual_chains",
+                        principalTable: "causal_chains",
                         principalColumn: "id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -178,9 +178,9 @@ namespace CasualExplorer.Infrastructure.Persistence.Migrations
                 table: "event_nodes",
                 column: "is_verified");
 
-            // ── casual_edges ───────────────────────────────────────────────────
+            // ── causal_edges ───────────────────────────────────────────────────
             migrationBuilder.CreateTable(
-                name: "casual_edges",
+                name: "causal_edges",
                 columns: table => new
                 {
                     id                = table.Column<Guid>(type: "uuid", nullable: false),
@@ -197,15 +197,15 @@ namespace CasualExplorer.Infrastructure.Persistence.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_casual_edges", x => x.id);
+                    table.PrimaryKey("PK_causal_edges", x => x.id);
                     table.ForeignKey(
-                        name: "FK_casual_edges_event_nodes_from_event_id",
+                        name: "FK_causal_edges_event_nodes_from_event_id",
                         column: x => x.from_event_id,
                         principalTable: "event_nodes",
                         principalColumn: "id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_casual_edges_event_nodes_to_event_id",
+                        name: "FK_causal_edges_event_nodes_to_event_id",
                         column: x => x.to_event_id,
                         principalTable: "event_nodes",
                         principalColumn: "id",
@@ -213,27 +213,27 @@ namespace CasualExplorer.Infrastructure.Persistence.Migrations
                 });
 
             migrationBuilder.CreateIndex(
-                name: "ix_casual_edges_from_event_id",
-                table: "casual_edges",
+                name: "ix_causal_edges_from_event_id",
+                table: "causal_edges",
                 column: "from_event_id");
 
             migrationBuilder.CreateIndex(
-                name: "ix_casual_edges_to_event_id",
-                table: "casual_edges",
+                name: "ix_causal_edges_to_event_id",
+                table: "causal_edges",
                 column: "to_event_id");
 
             migrationBuilder.CreateIndex(
-                name: "ix_casual_edges_from_to",
-                table: "casual_edges",
+                name: "ix_causal_edges_from_to",
+                table: "causal_edges",
                 columns: new[] { "from_event_id", "to_event_id" });
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropTable(name: "casual_edges");
+            migrationBuilder.DropTable(name: "causal_edges");
             migrationBuilder.DropTable(name: "user_saved_chains");
-            migrationBuilder.DropTable(name: "casual_chains");
+            migrationBuilder.DropTable(name: "causal_chains");
             migrationBuilder.DropTable(name: "refresh_tokens");
             migrationBuilder.DropTable(name: "event_nodes");
             migrationBuilder.DropTable(name: "users");

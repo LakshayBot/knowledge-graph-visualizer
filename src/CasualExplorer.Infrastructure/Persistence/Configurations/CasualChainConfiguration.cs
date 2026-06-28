@@ -12,7 +12,7 @@ internal sealed class CasualChainConfiguration : IEntityTypeConfiguration<Casual
     /// <inheritdoc />
     public void Configure(EntityTypeBuilder<CasualChain> builder)
     {
-        builder.ToTable("casual_chains");
+        builder.ToTable("causal_chains");
 
         builder.HasKey(e => e.Id);
 
@@ -37,7 +37,7 @@ internal sealed class CasualChainConfiguration : IEntityTypeConfiguration<Casual
         builder.Property(e => e.LastUpdatedAt).HasColumnName("last_updated_at").IsRequired();
         builder.Property(e => e.GraphSnapshot).HasColumnName("graph_snapshot").HasColumnType("jsonb");
 
-        builder.HasIndex(e => e.Domain).HasDatabaseName("ix_casual_chains_domain");
-        builder.HasIndex(e => e.ViewCount).HasDatabaseName("ix_casual_chains_view_count");
+        builder.HasIndex(e => e.Domain).HasDatabaseName("ix_causal_chains_domain");
+        builder.HasIndex(e => e.ViewCount).HasDatabaseName("ix_causal_chains_view_count");
     }
 }
