@@ -12,7 +12,9 @@ import GraphBackground from "@/components/explore/GraphBackground";
 import NodeDetailPanel from "@/components/explore/NodeDetailPanel";
 import ProviderModelSelector from "@/components/explore/ProviderModelSelector";
 import TimelineBar from "@/components/explore/TimelineBar";
+import SimulationPanel from "@/components/explore/SimulationPanel";
 import { useTimeline } from "@/hooks/useTimeline";
+import { useSimulation } from "@/hooks/useSimulation";
 import type { GraphNode, GraphEdge } from "@/types/graph";
 
 /* ── Animations ──────────────────────────────────────────── */
@@ -62,6 +64,9 @@ function ExploreContent() {
 
   // ── Timeline ────────────────────────────────────────────────────────
   const timeline = useTimeline({ nodes, edges });
+
+  // ── Simulation ──────────────────────────────────────────────────────
+  const simulation = useSimulation({ nodes, edges });
 
   useEffect(() => {
     const cid = searchParams.get("chainId");
@@ -161,9 +166,13 @@ function ExploreContent() {
 
   const handleNodeClick = useCallback(
     (nodeId: string) => {
+      if (simulation.active) {
+        simulation.removeNode(nodeId);
+        return;
+      }
       setSelectedNode(nodes.find((n) => n.id === nodeId) ?? null);
     },
-    [nodes]
+    [nodes, simulation.active, simulation.removeNode]
   );
 
   async function handleExpand(nodeId: string) {
@@ -281,8 +290,8 @@ function ExploreContent() {
         <div style={{ flex: 1, minHeight: 0, position: "relative" }}>
           <GraphBackground>
             <GraphCanvas
-              nodes={nodes}
-              edges={edges}
+              nodes={simulation.active ? simulation.simulatedNodes : nodes}
+              edges={simulation.active ? simulation.simulatedEdges : edges}
               rootId={rootNodeId}
               onNodeClick={handleNodeClick}
               loading={loading}
@@ -304,7 +313,7 @@ function ExploreContent() {
           >
             <NodeDetailPanel
               node={selectedNode}
-              edges={edges}
+              edges={simulation.active ? simulation.simulatedEdges : edges}
               saved={saved}
               onExpand={chainId ? handleExpand : undefined}
               expanding={expanding}
@@ -338,8 +347,8 @@ function ExploreContent() {
         <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
           <GraphBackground>
             <GraphCanvas
-              nodes={nodes}
-              edges={edges}
+              nodes={simulation.active ? simulation.simulatedNodes : nodes}
+              edges={simulation.active ? simulation.simulatedEdges : edges}
               rootId={rootNodeId}
               onNodeClick={handleNodeClick}
               loading={loading}
@@ -438,37 +447,53 @@ function ExploreContent() {
               }}
             >
               {[
-                { icon: <ZoomIn size={16} />, last: false },
-                { icon: <ZoomOut size={16} />, last: false },
-                { icon: <Maximize size={16} />, last: true },
-              ].map(({ icon, last }, i) => (
+                { icon: <ZoomIn size={16} />, last: false, key: "zoom-in" },
+                { icon: <ZoomOut size={16} />, last: false, key: "zoom-out" },
+                { icon: <Maximize size={16} />, last: false, key: "fit" },
+                { icon: <span style={{ fontSize: 10, fontWeight: 800 }}>¿?</span>, last: true, key: "sim", isSim: true },
+              ].map(({ icon, last, key, isSim }) => (
                 <button
-                  key={i}
+                  key={key}
+                  onClick={isSim ? () => simulation.toggleActive() : undefined}
                   style={{
                     padding: "8px 10px",
                     border: "none",
                     borderBottom: last ? "none" : "1px solid rgba(0,0,0,0.05)",
-                    background: "transparent",
-                    color: "var(--text-3)",
+                    background: isSim && simulation.active ? "var(--brand)" : "transparent",
+                    color: isSim && simulation.active ? "var(--brand-fg)" : "var(--text-3)",
                     cursor: "pointer",
                     display: "flex",
                     fontFamily: "inherit",
                     transition: "background 0.15s, color 0.15s",
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.background = "var(--surface)";
-                    e.currentTarget.style.color = "var(--brand)";
+                    e.currentTarget.style.background = isSim && simulation.active ? "var(--brand)" : "var(--surface)";
+                    e.currentTarget.style.color = isSim && simulation.active ? "var(--brand-fg)" : "var(--brand)";
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.background = "transparent";
-                    e.currentTarget.style.color = "var(--text-3)";
+                    e.currentTarget.style.background = isSim && simulation.active ? "var(--brand)" : "transparent";
+                    e.currentTarget.style.color = isSim && simulation.active ? "var(--brand-fg)" : "var(--text-3)";
                   }}
+                  title={isSim ? "Toggle What-If Simulation" : undefined}
                 >
                   {icon}
                 </button>
               ))}
             </div>
           </motion.div>
+
+          {/* Simulation panel */}
+          <SimulationPanel
+            active={simulation.active}
+            removedNodeId={simulation.removedNodeId}
+            impact={simulation.impact}
+            canUndo={simulation.canUndo}
+            canRedo={simulation.canRedo}
+            onToggleActive={simulation.toggleActive}
+            onUndo={simulation.undo}
+            onRedo={simulation.redo}
+            onReset={simulation.reset}
+          />
         </div>
 
         {/* Spacer for command bar */}
@@ -553,7 +578,7 @@ function ExploreContent() {
             </div>
             <NodeDetailPanel
               node={selectedNode}
-              edges={edges}
+              edges={simulation.active ? simulation.simulatedEdges : edges}
               saved={saved}
               onExpand={chainId ? handleExpand : undefined}
               expanding={expanding}

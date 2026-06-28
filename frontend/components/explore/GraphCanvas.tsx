@@ -390,28 +390,48 @@ export default function GraphCanvas({
             }
           : undefined;
 
+        // ── Strength-based visual encoding ─────────────────────────
+        const strength = edge.strength ?? 0.5;
+        const strengthPct = Math.round(strength * 100);
+        const isActive =
+          hovered === edge.fromId ||
+          hovered === edge.toId ||
+          selected === edge.fromId ||
+          selected === edge.toId;
+
+        // Strength tiers → stroke width + color
+        let strengthStroke: string;
+        let strengthWidth: number;
+        if (strength < 0.25) {
+          strengthStroke = "var(--text-4)"; strengthWidth = 0.8;
+        } else if (strength < 0.5) {
+          strengthStroke = "#f0a060"; strengthWidth = 1.2;
+        } else if (strength < 0.75) {
+          strengthStroke = "#e88040"; strengthWidth = 1.8;
+        } else {
+          strengthStroke = "#d06020"; strengthWidth = 2.4;
+        }
+        const strengthOpacity = 0.35 + strength * 0.5;
+
         const rFrom = nodeRadius(
           nodes.find((n) => n.id === edge.fromId)!
         );
         const rTo = nodeRadius(nodes.find((n) => n.id === edge.toId)!);
         const { sx, sy, ex, ey } = trimEdge(from.x, from.y, to.x, to.y, Math.max(rFrom, rTo));
         const d = quadPath(sx, sy, ex, ey);
-        const isActive =
-          hovered === edge.fromId ||
-          hovered === edge.toId ||
-          selected === edge.fromId ||
-          selected === edge.toId;
-        const isWeak = edge.strength && edge.strength < 0.3;
+        const isWeak = strength < 0.3;
         const markerEnd = isActive
           ? "url(#ge-arr-active)"
           : isWeak
             ? "url(#ge-arr-dashed)"
             : "url(#ge-arr-solid)";
-        const label = edge.explanation || edge.perspective || "";
+        // Edge label: relationship type or perspective, with strength %
+        const edgeLabelText = edge.explanation || edge.perspective || "";
         const { mx: qx, my: qy } = edgeMidpoint(sx, sy, ex, ey);
 
         return (
           <g key={edge.id} style={edgeAnimStyle}>
+            {/* Edge path — strength-encoded */}
             <path
               d={d}
               fill="none"
@@ -420,34 +440,81 @@ export default function GraphCanvas({
                   ? "url(#edgeGradActive)"
                   : edge.isContested
                     ? "var(--destructive)"
-                    : "var(--text-3)"
+                    : strengthStroke
               }
-              strokeWidth={isActive ? 2 : isWeak ? 1 : 1.3}
+              strokeWidth={isActive ? 2.2 : strengthWidth}
               strokeDasharray={
-                isWeak ? "5,4" : isActive ? undefined : "2,0"
+                isWeak && !isActive ? "5,4" : undefined
               }
-              strokeOpacity={isActive ? 1 : isWeak ? 0.4 : 0.55}
+              strokeOpacity={isActive ? 1 : edge.isContested ? 0.5 : strengthOpacity}
               markerEnd={markerEnd}
               style={{ transition: "stroke 0.2s, stroke-width 0.2s, stroke-opacity 0.2s" }}
             />
-            {label && (
+            {/* Strength badge */}
+            <text
+              x={qx}
+              y={qy - 5}
+              textAnchor="middle"
+              style={{
+                fontSize: 6.5,
+                fontWeight: 700,
+                fill: isActive ? "var(--text-1)" : "var(--text-4)",
+                fontFamily: "'JetBrains Mono', monospace",
+                pointerEvents: "none",
+                transition: "fill 0.2s",
+              }}
+            >
+              {strengthPct}%
+            </text>
+            {edgeLabelText && (
               <text
                 x={qx}
-                y={qy - 6}
+                y={qy + 8}
                 textAnchor="middle"
                 style={{
-                  fontSize: 7,
-                  fontWeight: 700,
-                  letterSpacing: "0.06em",
+                  fontSize: 6.5,
+                  fontWeight: 600,
+                  letterSpacing: "0.04em",
                   textTransform: "uppercase",
                   fill: isActive ? "var(--text-1)" : "var(--text-4)",
                   fontFamily: "'JetBrains Mono', monospace",
                   pointerEvents: "none",
                   transition: "fill 0.2s",
+                  opacity: isActive ? 1 : 0.65,
                 }}
               >
-                {label.length > 14 ? label.slice(0, 14) + "…" : label}
+                {edgeLabelText.length > 16 ? edgeLabelText.slice(0, 16) + "…" : edgeLabelText}
               </text>
+            )}
+            {/* Hover tooltip with full explanation */}
+            {isActive && edge.explanation && (
+              <foreignObject
+                x={qx - 140}
+                y={qy + 12}
+                width={280}
+                height={40}
+                style={{ pointerEvents: "none", overflow: "visible" }}
+              >
+                <div
+                  style={{
+                    background: "var(--text-1)",
+                    color: "var(--bg)",
+                    fontSize: 9,
+                    fontWeight: 500,
+                    fontFamily: "'Hanken Grotesk', system-ui, sans-serif",
+                    lineHeight: 1.4,
+                    padding: "6px 10px",
+                    borderRadius: 6,
+                    whiteSpace: "normal",
+                    wordBreak: "break-word",
+                    opacity: 0.95,
+                    boxShadow: "0 4px 16px rgba(0,0,0,0.15)",
+                    textAlign: "center",
+                  }}
+                >
+                  {edge.explanation.length > 150 ? edge.explanation.slice(0, 150) + "…" : edge.explanation}
+                </div>
+              </foreignObject>
             )}
           </g>
         );
@@ -673,6 +740,41 @@ export default function GraphCanvas({
           </g>
         );
       })}
+
+      {/* ── Strength legend (top-left) ─────────────────── */}
+      {nodes.length > 0 && (
+        <foreignObject x={viewBox.x + 12} y={viewBox.y + 12} width={160} height={90} style={{ pointerEvents: "none" }}>
+          <div
+            style={{
+              background: "rgba(255,255,255,0.88)",
+              backdropFilter: "blur(8px)",
+              borderRadius: 8,
+              border: "1px solid var(--border)",
+              padding: "8px 10px",
+              fontSize: 9,
+              fontFamily: "'JetBrains Mono', monospace",
+              color: "var(--text-3)",
+              lineHeight: 1.5,
+              boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+            }}
+          >
+            <div style={{ fontWeight: 700, color: "var(--text-1)", marginBottom: 4, fontSize: 10 }}>
+              Edge Strength
+            </div>
+            {[
+              { label: "0–25%", color: "var(--text-4)", w: 0.8 },
+              { label: "25–50%", color: "#f0a060", w: 1.2 },
+              { label: "50–75%", color: "#e88040", w: 1.8 },
+              { label: "75–100%", color: "#d06020", w: 2.4 },
+            ].map((tier) => (
+              <div key={tier.label} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <svg width={20} height={8}><line x1={0} y1={4} x2={20} y2={4} stroke={tier.color} strokeWidth={tier.w} /></svg>
+                <span>{tier.label}</span>
+              </div>
+            ))}
+          </div>
+        </foreignObject>
+      )}
 
       {/* Float animation keyframes + reduced-motion support */}
       <style>{`
