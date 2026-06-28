@@ -32,7 +32,7 @@ const steps = [
   {
     n: "03",
     title: "Grok Builds the Graph",
-    desc: "A structured prompt to xAI's Grok returns a validated causal JSON graph — event nodes with dates, domains, confidence scores, source URLs, and directed edges with perspectives.",
+    desc: "A structured prompt to xAI's Grok returns a validated casual JSON graph — event nodes with dates, domains, confidence scores, source URLs, and directed edges with perspectives.",
     detail: "minimal · balanced · quality",
     color: "#ffdbcd",
     icon: (

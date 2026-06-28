@@ -6,20 +6,20 @@
 # Requires:
 #   - POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB set (or defaults used)
 #   - dotnet SDK available on PATH
-#   - Run from the repository root (CausalExplorer/)
+#   - Run from the repository root (CasualExplorer/)
 
 set -euo pipefail
 
 # ── Configuration ─────────────────────────────────────────────────────────────
 POSTGRES_HOST="${POSTGRES_HOST:-localhost}"
 POSTGRES_PORT="${POSTGRES_PORT:-5432}"
-POSTGRES_USER="${POSTGRES_USER:-causal}"
-POSTGRES_DB="${POSTGRES_DB:-CausalExplorerDb}"
+POSTGRES_USER="${POSTGRES_USER:-casual}"
+POSTGRES_DB="${POSTGRES_DB:-CasualExplorerDb}"
 MAX_RETRIES=30
 RETRY_INTERVAL=2
 
-MIGRATIONS_PROJECT="src/CausalExplorer.Infrastructure/CausalExplorer.Infrastructure.csproj"
-STARTUP_PROJECT="src/CausalExplorer.API/CausalExplorer.API.csproj"
+MIGRATIONS_PROJECT="src/CasualExplorer.Infrastructure/CasualExplorer.Infrastructure.csproj"
+STARTUP_PROJECT="src/CasualExplorer.API/CasualExplorer.API.csproj"
 
 # ── Wait for PostgreSQL ───────────────────────────────────────────────────────
 echo "[apply-migrations] Waiting for PostgreSQL at ${POSTGRES_HOST}:${POSTGRES_PORT}..."

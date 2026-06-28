@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/CasualExplorer.API/CasualExplorer.API.csproj" />
+    <Project Path="src/CasualExplorer.Application/CasualExplorer.Application.csproj" />
+    <Project Path="src/CasualExplorer.Domain/CasualExplorer.Domain.csproj" />
+    <Project Path="src/CasualExplorer.Infrastructure/CasualExplorer.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/CasualExplorer.API.Tests/CasualExplorer.API.Tests.csproj" />
+    <Project Path="tests/CasualExplorer.Application.Tests/CasualExplorer.Application.Tests.csproj" />
+    <Project Path="tests/CasualExplorer.Domain.Tests/CasualExplorer.Domain.Tests.csproj" />
+  </Folder>
+</Solution>

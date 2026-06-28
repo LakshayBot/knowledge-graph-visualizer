@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # setup.sh
-# Full first-run orchestration for CausalExplorer.
+# Full first-run orchestration for CasualExplorer.
 # Copies .env, builds images, starts infrastructure, applies migrations,
 # seeds Neo4j, and starts all application services.
 #
@@ -9,7 +9,7 @@
 # Flags:
 #   --dev   Use docker-compose.dev.yml overlay (hot-reload, pgAdmin, Redis Insight)
 #
-# Run from the repository root (CausalExplorer/).
+# Run from the repository root (CasualExplorer/).
 
 set -euo pipefail
 
@@ -40,7 +40,7 @@ cd "${REPO_ROOT}"
 
 echo ""
 echo "╔══════════════════════════════════════════════════════════╗"
-echo "║           CausalExplorer – First-Run Setup               ║"
+echo "║           CasualExplorer – First-Run Setup               ║"
 if [ "${DEV_MODE}" = true ]; then
 echo "║                    [ DEV MODE ]                          ║"
 fi
@@ -86,7 +86,7 @@ echo "  Waiting for all infrastructure health checks to pass..."
 # Poll using 'docker inspect' — works regardless of compose output format version.
 MAX_WAIT=180
 elapsed=0
-INFRA_CONTAINERS=("causal-postgres" "causal-neo4j" "causal-redis" "causal-qdrant")
+INFRA_CONTAINERS=("casual-postgres" "casual-neo4j" "casual-redis" "casual-qdrant")
 
 while true; do
   all_healthy=true
@@ -126,7 +126,7 @@ set +a
 NEO4J_USER="${NEO4J_USERNAME:-neo4j}"
 NEO4J_PASS="${NEO4J_PASSWORD:-ChangeMe123!}"
 
-docker exec causal-neo4j cypher-shell \
+docker exec casual-neo4j cypher-shell \
   -u "${NEO4J_USER}" \
   -p "${NEO4J_PASS}" \
   --file /var/lib/neo4j/import/init.cypher \
@@ -147,38 +147,38 @@ if command -v dotnet &> /dev/null && command -v pg_isready &> /dev/null; then
 else
   echo "  dotnet SDK or pg_isready not found on host — running migrations inside a temporary SDK container..."
 
-  MIGRATIONS_IMAGE="causal-explorer-api-migrations:local"
-  ${COMPOSE_CMD} ${COMPOSE_FILES} build causal-api
+  MIGRATIONS_IMAGE="casual-explorer-api-migrations:local"
+  ${COMPOSE_CMD} ${COMPOSE_FILES} build casual-api
   docker build \
     --target build \
     --tag "${MIGRATIONS_IMAGE}" \
-    --file src/CausalExplorer.API/Dockerfile \
+    --file src/CasualExplorer.API/Dockerfile \
     .
 
   if [ "${DEV_MODE}" = true ]; then
     MIGRATIONS_ENVIRONMENT="Development"
-    MIGRATIONS_DB="CausalExplorerDb_Dev"
-    MIGRATIONS_USER="causal_dev"
+    MIGRATIONS_DB="CasualExplorerDb_Dev"
+    MIGRATIONS_USER="casual_dev"
     MIGRATIONS_PASSWORD="dev_password"
     MIGRATIONS_REDIS="redis:6379,abortConnect=false"
     MIGRATIONS_NEO4J_PASSWORD="devpassword123"
     MIGRATIONS_JWT_SECRET="dev-jwt-secret-min-32-characters-long!!"
-    MIGRATIONS_JWT_ISSUER="CausalExplorer-Dev"
-    MIGRATIONS_JWT_AUDIENCE="CausalExplorerClient-Dev"
+    MIGRATIONS_JWT_ISSUER="CasualExplorer-Dev"
+    MIGRATIONS_JWT_AUDIENCE="CasualExplorerClient-Dev"
   else
     MIGRATIONS_ENVIRONMENT="Production"
-    MIGRATIONS_DB="${POSTGRES_DB:-CausalExplorerDb}"
-    MIGRATIONS_USER="${POSTGRES_USER:-causal}"
+    MIGRATIONS_DB="${POSTGRES_DB:-CasualExplorerDb}"
+    MIGRATIONS_USER="${POSTGRES_USER:-casual}"
     MIGRATIONS_PASSWORD="${POSTGRES_PASSWORD}"
     MIGRATIONS_REDIS="redis:6379,password=${REDIS_PASSWORD:-redis_secret},abortConnect=false"
     MIGRATIONS_NEO4J_PASSWORD="${NEO4J_PASSWORD:-ChangeMe123!}"
     MIGRATIONS_JWT_SECRET="${JWT_SECRET}"
-    MIGRATIONS_JWT_ISSUER="${JWT_ISSUER:-CausalExplorer}"
-    MIGRATIONS_JWT_AUDIENCE="${JWT_AUDIENCE:-CausalExplorerClient}"
+    MIGRATIONS_JWT_ISSUER="${JWT_ISSUER:-CasualExplorer}"
+    MIGRATIONS_JWT_AUDIENCE="${JWT_AUDIENCE:-CasualExplorerClient}"
   fi
 
   docker run --rm \
-    --network causal-explorer_causal-net \
+    --network casual-explorer_casual-net \
     --env-file .env \
     -e ASPNETCORE_ENVIRONMENT="${MIGRATIONS_ENVIRONMENT}" \
     -e "ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=${MIGRATIONS_DB};Username=${MIGRATIONS_USER};Password=${MIGRATIONS_PASSWORD}" \
@@ -186,7 +186,7 @@ else
     -e Neo4j__Uri=bolt://neo4j:7687 \
     -e Neo4j__Username=neo4j \
     -e "Neo4j__Password=${MIGRATIONS_NEO4J_PASSWORD}" \
-    -e AIService__BaseUrl=http://causal-ai-service:8000 \
+    -e AIService__BaseUrl=http://casual-ai-service:8000 \
     -e VectorSearch__QdrantUrl=http://qdrant:6333 \
     -e "Jwt__Secret=${MIGRATIONS_JWT_SECRET}" \
     -e "Jwt__Issuer=${MIGRATIONS_JWT_ISSUER}" \
@@ -194,8 +194,8 @@ else
     -w /repo \
     "${MIGRATIONS_IMAGE}" \
     dotnet ef database update \
-      --project src/CausalExplorer.Infrastructure/CausalExplorer.Infrastructure.csproj \
-      --startup-project src/CausalExplorer.API/CausalExplorer.API.csproj \
+      --project src/CasualExplorer.Infrastructure/CasualExplorer.Infrastructure.csproj \
+      --startup-project src/CasualExplorer.API/CasualExplorer.API.csproj \
       --configuration Release \
       --no-build
 fi
@@ -212,7 +212,7 @@ echo "  Ollama models ready."
 # ── Step 7: Start all application services ────────────────────────────────────
 echo ""
 echo "▶ Step 7/7: Starting all remaining services..."
-stale_api_containers="$(docker ps -aq --filter "name=causal-explorer-causal-api-run-" || true)"
+stale_api_containers="$(docker ps -aq --filter "name=casual-explorer-casual-api-run-" || true)"
 if [ -n "${stale_api_containers}" ]; then
   echo "  Removing stale one-off API containers from older setup runs..."
   # shellcheck disable=SC2086
@@ -235,6 +235,6 @@ echo "║  Redis Insight → http://localhost:5540                   ║"
 fi
 echo "╚══════════════════════════════════════════════════════════╝"
 echo ""
-echo "  Tail logs:  docker compose logs -f causal-api causal-ai-service"
+echo "  Tail logs:  docker compose logs -f casual-api casual-ai-service"
 echo "  Stop all:   docker compose ${COMPOSE_FILES} down"
 echo ""

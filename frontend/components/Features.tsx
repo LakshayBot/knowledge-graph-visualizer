@@ -40,7 +40,7 @@ export default function Features() {
         }}
       >
         <span className="eyebrow">Features</span>
-        <h2 className="section-title">Everything needed to map causality.</h2>
+        <h2 className="section-title">Everything needed to map casuality.</h2>
       </div>
 
       {/* Bento grid */}
@@ -73,7 +73,7 @@ export default function Features() {
             Grok AI Graph Generation
           </h3>
           <p style={{ fontSize: 13, lineHeight: 1.7, color: "rgba(255,255,255,0.5)", maxWidth: 480 }}>
-            A single structured prompt to xAI&apos;s Grok produces a complete causal knowledge graph — nodes with dates, domains, confidence scores, source URLs, and directed edges. No Wikipedia scraping.
+            A single structured prompt to xAI&apos;s Grok produces a complete casual knowledge graph — nodes with dates, domains, confidence scores, source URLs, and directed edges. No Wikipedia scraping.
           </p>
           <div style={{ marginTop: 20, display: "flex", gap: 6, flexWrap: "wrap" }}>
             {["grok-3-mini", "grok-3", "JSON validated", "Directed edges"].map((t) => (
@@ -127,7 +127,7 @@ export default function Features() {
           },
           {
             tag: "Rich Metadata",
-            title: "Causal Perspectives",
+            title: "Casual Perspectives",
             desc: "Edges carry perspective labels and an is_contested flag. See who says what, and how disputed it is.",
             extra: (
               <div style={{ marginTop: 14, display: "flex", flexWrap: "wrap" as const, gap: 4 }}>

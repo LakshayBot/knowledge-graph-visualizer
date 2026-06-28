@@ -89,7 +89,7 @@ function LoginContent() {
             letterSpacing: "-0.01em",
           }}
         >
-          Sign in to your CausalExplorer account
+          Sign in to your CasualExplorer account
         </p>
 
         <LoginForm />

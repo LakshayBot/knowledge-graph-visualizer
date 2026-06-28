@@ -1,25 +1,25 @@
-# CausalExplorer
+# CasualExplorer
 
-**AI-powered causal event graph system** — understand *why* complex world events happen through interactive cause-and-effect chains.
+**AI-powered casual event graph system** — understand *why* complex world events happen through interactive cause-and-effect chains.
 
 ## Overview
 
-CausalExplorer ingests historical and current events, links them via directed causal edges, and exposes a graph API. A local AI sidecar (Ollama + Qdrant) generates causal chain suggestions and event summaries — no external API keys required.
+CasualExplorer ingests historical and current events, links them via directed casual edges, and exposes a graph API. A local AI sidecar (Ollama + Qdrant) generates casual chain suggestions and event summaries — no external API keys required.
 
 ## Architecture
 
 ```
-CausalExplorer/
+CasualExplorer/
 ├── src/
-│   ├── CausalExplorer.Domain/          # Entities, Value Objects, Domain Events
-│   ├── CausalExplorer.Application/     # Commands, Queries, MediatR, Validators
-│   ├── CausalExplorer.Infrastructure/  # EF Core + PostgreSQL, Neo4j, Redis
-│   └── CausalExplorer.API/             # ASP.NET Core 8 REST API
-├── causal-ai-service/                  # Python FastAPI + Ollama + Qdrant
+│   ├── CasualExplorer.Domain/          # Entities, Value Objects, Domain Events
+│   ├── CasualExplorer.Application/     # Commands, Queries, MediatR, Validators
+│   ├── CasualExplorer.Infrastructure/  # EF Core + PostgreSQL, Neo4j, Redis
+│   └── CasualExplorer.API/             # ASP.NET Core 8 REST API
+├── casual-ai-service/                  # Python FastAPI + Ollama + Qdrant
 ├── tests/
-│   ├── CausalExplorer.Domain.Tests/
-│   ├── CausalExplorer.Application.Tests/
-│   └── CausalExplorer.API.Tests/
+│   ├── CasualExplorer.Domain.Tests/
+│   ├── CasualExplorer.Application.Tests/
+│   └── CasualExplorer.API.Tests/
 ├── docker/
 │   ├── neo4j/init.cypher               # Constraints, indexes, seed data
 │   └── scripts/
@@ -34,10 +34,10 @@ CausalExplorer/
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│                        causal-net                            │
+│                        casual-net                            │
 │                                                              │
 │  ┌─────────────┐     ┌──────────────────┐                   │
-│  │  causal-api │────▶│ causal-ai-service│                   │
+│  │  casual-api │────▶│ casual-ai-service│                   │
 │  │ (ASP.NET 8) │     │   (FastAPI)      │                   │
 │  └──────┬──────┘     └────────┬─────────┘                   │
 │         │                     │                              │
@@ -54,8 +54,8 @@ CausalExplorer/
 
 | Store | Purpose |
 |-------|---------|
-| PostgreSQL 16 | Users, RefreshTokens, CausalChains (EF Core) |
-| Neo4j 5.18 | EventNodes, CausalEdges (graph traversal via APOC) |
+| PostgreSQL 16 | Users, RefreshTokens, CasualChains (EF Core) |
+| Neo4j 5.18 | EventNodes, CasualEdges (graph traversal via APOC) |
 | Redis 7.2 | Response cache, refresh-token store |
 | Qdrant | Vector embeddings for RAG (nomic-embed-text) |
 | Ollama | Local LLM inference (mixtral:8x7b prod / mistral dev) |
@@ -94,8 +94,8 @@ CausalExplorer/
 ### 1. Clone
 
 ```bash
-git clone https://github.com/your-org/causal-explorer.git
-cd causal-explorer/CausalExplorer
+git clone https://github.com/your-org/casual-explorer.git
+cd casual-explorer/CasualExplorer
 ```
 
 ### 2. First-run setup (recommended)
@@ -142,7 +142,7 @@ docker compose up -d
 
 ## How to Use the API — End-to-End Flow
 
-This section walks through the complete journey: from registering an account to asking a causal question and drilling into the AI-generated answer.
+This section walks through the complete journey: from registering an account to asking a casual question and drilling into the AI-generated answer.
 
 ---
 
@@ -181,12 +181,12 @@ Pick the node that best represents the root cause you want to explore — note i
 
 ---
 
-### Step 3 — Create a causal chain rooted at that event
+### Step 3 — Create a casual chain rooted at that event
 
-A **CausalChain** is your named investigation — it anchors the graph traversal to a specific starting event.
+A **CasualChain** is your named investigation — it anchors the graph traversal to a specific starting event.
 
 ```
-POST /api/v1/causal-chains
+POST /api/v1/casual-chains
 Authorization: Bearer <token>
 {
   "title": "Why did the 2008 financial crisis happen?",
@@ -195,7 +195,7 @@ Authorization: Bearer <token>
 }
 ```
 
-Returns a `CausalChainSummaryDto` including the new chain's `id`.
+Returns a `CasualChainSummaryDto` including the new chain's `id`.
 
 ---
 
@@ -204,10 +204,10 @@ Returns a `CausalChainSummaryDto` including the new chain's `id`.
 Fetch the 3–5 most relevant nodes around the root for a quick overview:
 
 ```
-GET /api/v1/causal-chains/{chainId}/initial
+GET /api/v1/casual-chains/{chainId}/initial
 ```
 
-Returns `CausalGraphDto` — a list of nodes and directed edges showing the immediate causes and effects.  
+Returns `CasualGraphDto` — a list of nodes and directed edges showing the immediate causes and effects.  
 Each node has a `confidenceScore`, `freshnessScore`, and one or more `perspectives`  
 (Mainstream / Geopolitical / Structural / Economic / Revisionist).
 
@@ -220,7 +220,7 @@ Each node has a `confidenceScore`, `freshnessScore`, and one or more `perspectiv
 Load the complete chain up to a configurable traversal depth:
 
 ```
-GET /api/v1/causal-chains/{chainId}?depth=4
+GET /api/v1/casual-chains/{chainId}?depth=4
 ```
 
 Each edge has a `relationshipType`:
@@ -230,7 +230,7 @@ Each edge has a `relationshipType`:
 | `DirectlyCaused` | A is the direct cause of B |
 | `ContributedTo` | A was a contributing factor to B |
 | `Enabled` | A created conditions for B |
-| `Contested` | The causal link between A and B is disputed |
+| `Contested` | The casual link between A and B is disputed |
 | `Prevented` | A stopped B from occurring |
 
 ---
@@ -241,7 +241,7 @@ Pick any node in the graph that you want the AI to investigate further.
 This calls the Ollama LLM sidecar and returns newly suggested connected nodes:
 
 ```
-POST /api/v1/causal-chains/{chainId}/expand/{nodeId}?perspective=Geopolitical
+POST /api/v1/casual-chains/{chainId}/expand/{nodeId}?perspective=Geopolitical
 Authorization: Bearer <token>
 ```
 
@@ -260,16 +260,16 @@ Get the full detail of any node (sources, confidence, all perspectives):
 GET /api/v1/event-nodes/{nodeId}
 ```
 
-Inspect all causal edges connected to a node:
+Inspect all casual edges connected to a node:
 
 ```
-GET /api/v1/causal-edges/node/{nodeId}
+GET /api/v1/casual-edges/node/{nodeId}
 ```
 
-Check whether a direct causal link exists between two specific nodes:
+Check whether a direct casual link exists between two specific nodes:
 
 ```
-GET /api/v1/causal-edges/between/{fromNodeId}/{toNodeId}
+GET /api/v1/casual-edges/between/{fromNodeId}/{toNodeId}
 ```
 
 ---
@@ -279,7 +279,7 @@ GET /api/v1/causal-edges/between/{fromNodeId}/{toNodeId}
 Bookmark the chain to your personal library with optional notes:
 
 ```
-POST /api/v1/causal-chains/{chainId}/save
+POST /api/v1/casual-chains/{chainId}/save
 Authorization: Bearer <token>
 { "notes": "Focus on the deregulation angle" }
 ```
@@ -302,22 +302,22 @@ register / login
 search event-nodes          ← "What event am I investigating?"
       │
       ▼
-POST causal-chains          ← "Create my investigation"
+POST casual-chains          ← "Create my investigation"
       │
       ▼
-GET  causal-chains/{id}/initial   ← quick first render
+GET  casual-chains/{id}/initial   ← quick first render
       │
       ▼
-GET  causal-chains/{id}?depth=N   ← full graph
+GET  casual-chains/{id}?depth=N   ← full graph
       │
       ▼
-POST causal-chains/{id}/expand/{nodeId}   ← AI deepens a node  ⟵ repeat as needed
+POST casual-chains/{id}/expand/{nodeId}   ← AI deepens a node  ⟵ repeat as needed
       │
       ▼
-GET  causal-edges/node/{nodeId}   ← inspect individual connections
+GET  casual-edges/node/{nodeId}   ← inspect individual connections
       │
       ▼
-POST causal-chains/{id}/save      ← bookmark investigation
+POST casual-chains/{id}/save      ← bookmark investigation
 ```
 
 ---
@@ -336,10 +336,10 @@ POST causal-chains/{id}/save      ← bookmark investigation
 
 ## Key Features
 
-- **Causal Graph Model** — directed EventNodes connected by typed CausalEdges (`DirectlyCaused`, `ContributedTo`, `Contested`, `Enabled`, `Prevented`)
+- **Casual Graph Model** — directed EventNodes connected by typed CasualEdges (`DirectlyCaused`, `ContributedTo`, `Contested`, `Enabled`, `Prevented`)
 - **Multi-Perspective Analysis** — Mainstream, Geopolitical, Structural, Economic, Revisionist lenses
 - **Confidence Scoring** — Established / WidelyAccepted / Debated / Speculative classification
-- **Local AI** — Ollama LLM generates causal suggestions; Qdrant vector search enables semantic retrieval — no external API dependency
+- **Local AI** — Ollama LLM generates casual suggestions; Qdrant vector search enables semantic retrieval — no external API dependency
 - **Role-Based Access** — Guest → User → Contributor → Moderator → Admin
 - **CQRS + Domain Events** — full event-driven audit trail via MediatR
 
@@ -367,10 +367,10 @@ See `.env.example` for all variables with descriptions. Key secrets:
 
 ```bash
 # Tail application logs
-docker compose logs -f causal-api causal-ai-service
+docker compose logs -f casual-api casual-ai-service
 
 # Rebuild a single service
-docker compose build causal-api
+docker compose build casual-api
 
 # Apply migrations manually (host machine, dotnet SDK required)
 ./docker/scripts/apply-migrations.sh

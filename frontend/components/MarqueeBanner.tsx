@@ -1,6 +1,6 @@
 export default function MarqueeBanner() {
   const items = [
-    "Causal Knowledge Graphs",
+    "Casual Knowledge Graphs",
     "Powered by Grok AI",
     "Three-Phase Retrieval",
     "Neo4j · Qdrant · Redis",

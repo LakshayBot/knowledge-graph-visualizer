@@ -126,7 +126,7 @@ export default function AppNav() {
               </svg>
             </span>
             <span style={{ fontSize: 16, fontWeight: 700, letterSpacing: "-0.03em", color: "var(--text-1)" }}>
-              CausalExplorer
+              CasualExplorer
             </span>
           </div>
           <nav style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 2 }}>
@@ -193,7 +193,7 @@ export default function AppNav() {
                 <path d="M5 12h14M12 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </span>
-            <span className="hidden sm:inline">CausalExplorer</span>
+            <span className="hidden sm:inline">CasualExplorer</span>
           </Link>
         </div>
 

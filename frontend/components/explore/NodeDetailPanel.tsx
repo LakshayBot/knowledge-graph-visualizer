@@ -36,7 +36,7 @@ export default function NodeDetailPanel({ node, edges, saved, onExpand, expandin
           Click a node to inspect
         </p>
         <p style={{ fontSize: 11, color: "var(--text-4)", textAlign: "center", margin: 0, maxWidth: 200 }}>
-          Select any event node to view its properties and expand the causal graph
+          Select any event node to view its properties and expand the casual graph
         </p>
       </div>
     );
@@ -132,7 +132,7 @@ export default function NodeDetailPanel({ node, edges, saved, onExpand, expandin
                 letterSpacing: "0.06em",
               }}
             >
-              Causal Confidence
+              Casual Confidence
             </span>
             <span
               style={{

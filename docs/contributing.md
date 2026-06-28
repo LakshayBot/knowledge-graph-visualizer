@@ -1,4 +1,4 @@
-# Contributing to CausalExplorer
+# Contributing to CasualExplorer
 
 Thank you for your interest in contributing.
 
@@ -18,11 +18,11 @@ Thank you for your interest in contributing.
 docker compose -f docker/docker-compose.dev.yml up postgres -d
 
 # Run the .NET API
-cd src/CausalExplorer.API
+cd src/CasualExplorer.API
 dotnet run
 
 # Run the Python AI service
-cd src/CausalExplorer.AI
+cd src/CasualExplorer.AI
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env   # fill in OPENAI_API_KEY

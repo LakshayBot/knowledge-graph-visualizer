@@ -1,27 +1,27 @@
-# Architecture — CausalExplorer
+# Architecture — CasualExplorer
 
 ## Overview
 
-CausalExplorer follows **Clean Architecture** (Uncle Bob), ensuring the domain model
+CasualExplorer follows **Clean Architecture** (Uncle Bob), ensuring the domain model
 has no outward dependencies and all cross-cutting concerns are pushed to the outer rings.
 
 ```
 ┌──────────────────────────────────────────────────────────┐
-│  Presentation  │  CausalExplorer.API  (ASP.NET Core 8)   │
+│  Presentation  │  CasualExplorer.API  (ASP.NET Core 8)   │
 ├──────────────────────────────────────────────────────────┤
-│  Application   │  CausalExplorer.Application              │
+│  Application   │  CasualExplorer.Application              │
 │                │  (MediatR, CQRS, FluentValidation)       │
 ├──────────────────────────────────────────────────────────┤
-│  Domain        │  CausalExplorer.Domain                   │
+│  Domain        │  CasualExplorer.Domain                   │
 │                │  (Entities, Value Objects, Domain Events) │
 ├──────────────────────────────────────────────────────────┤
-│  Infrastructure│  CausalExplorer.Infrastructure           │
+│  Infrastructure│  CasualExplorer.Infrastructure           │
 │                │  (EF Core / PostgreSQL, Repositories)    │
 └──────────────────────────────────────────────────────────┘
         ↕  HTTP / gRPC (future)
 ┌──────────────────────────────────────────────────────────┐
-│  AI Service    │  CausalExplorer.AI  (Python FastAPI)     │
-│                │  (OpenAI integration, causal analysis)   │
+│  AI Service    │  CasualExplorer.AI  (Python FastAPI)     │
+│                │  (OpenAI integration, casual analysis)   │
 └──────────────────────────────────────────────────────────┘
 ```
 
@@ -39,19 +39,19 @@ The Domain project has **zero** external package dependencies.
 
 | Project | Layer | Responsibility |
 |---------|-------|----------------|
-| `CausalExplorer.Domain` | Domain | Entities, Value Objects, Domain Events, Repository Interfaces |
-| `CausalExplorer.Application` | Application | Commands, Queries, Handlers, Validators, Pipeline Behaviours |
-| `CausalExplorer.Infrastructure` | Infrastructure | EF Core DbContext, Repository implementations, Unit of Work |
-| `CausalExplorer.API` | Presentation | ASP.NET Core controllers, middleware, DI wiring, Swagger |
-| `CausalExplorer.AI` | External Service | FastAPI, OpenAI integration, causal graph generation |
+| `CasualExplorer.Domain` | Domain | Entities, Value Objects, Domain Events, Repository Interfaces |
+| `CasualExplorer.Application` | Application | Commands, Queries, Handlers, Validators, Pipeline Behaviours |
+| `CasualExplorer.Infrastructure` | Infrastructure | EF Core DbContext, Repository implementations, Unit of Work |
+| `CasualExplorer.API` | Presentation | ASP.NET Core controllers, middleware, DI wiring, Swagger |
+| `CasualExplorer.AI` | External Service | FastAPI, OpenAI integration, casual graph generation |
 
 ## Domain Model
 
 ### Entities
 
 - **EventNode** — a single historical event in the knowledge graph.
-- **CausalEdge** — a directed causal relationship between two EventNodes.
-- **CausalChain** — a curated, named path through the graph rooted at one event.
+- **CasualEdge** — a directed casual relationship between two EventNodes.
+- **CasualChain** — a curated, named path through the graph rooted at one event.
 - **User** — a registered platform user with role-based access.
 - **UserSavedChain** — join table recording a user's saved chains.
 
@@ -65,7 +65,7 @@ The Domain project has **zero** external package dependencies.
 | Enum | Values |
 |------|--------|
 | `EventDomain` | Geopolitics, Economics, Technology, Social, Environmental, Military, Cultural |
-| `CausalRelationshipType` | DirectlyCaused, EnabledConditionsFor, ContributedTo, Contested, Correlated |
+| `CasualRelationshipType` | DirectlyCaused, EnabledConditionsFor, ContributedTo, Contested, Correlated |
 | `Perspective` | Mainstream, Geopolitical, Structural, Economic, Revisionist |
 | `UserRole` | Guest, User, Contributor, Moderator, Admin |
 | `SourceType` | News, Academic, Government, ThinkTank |
@@ -76,8 +76,8 @@ The Domain project has **zero** external package dependencies.
 |-------|---------|
 | `EventNodeCreatedDomainEvent` | `EventNode.Create(...)` |
 | `EventNodeVerifiedDomainEvent` | `EventNode.Verify(...)` |
-| `CausalEdgeAddedDomainEvent` | `CausalEdge.Create(...)` |
-| `ChainUpdatedDomainEvent` | `CausalChain.IncrementNodeCount()` / `DecrementNodeCount()` |
+| `CasualEdgeAddedDomainEvent` | `CasualEdge.Create(...)` |
+| `ChainUpdatedDomainEvent` | `CasualChain.IncrementNodeCount()` / `DecrementNodeCount()` |
 
 ## CQRS Pattern
 
@@ -102,7 +102,7 @@ Pipeline behaviours run in order:
 
 The Python FastAPI service is a sidecar that communicates with OpenAI:
 
-- `POST /api/v1/causal-analysis/` — generates a causal graph from an event description.
+- `POST /api/v1/casual-analysis/` — generates a casual graph from an event description.
 - `POST /api/v1/events/summarise` — summarises raw event text.
 
 It is deployed independently and called by the .NET API or directly from the frontend.

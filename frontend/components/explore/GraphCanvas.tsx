@@ -264,7 +264,7 @@ export default function GraphCanvas({
             maxWidth: 260,
           }}
         >
-          Type a question to generate a causal graph
+          Type a question to generate a casual graph
         </p>
         <p
           style={{

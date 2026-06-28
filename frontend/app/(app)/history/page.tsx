@@ -98,7 +98,7 @@ function NewGraphButton() {
         >
           <PlusIcon />
         </span>
-        New Causal Graph
+        New Casual Graph
       </button>
     </Link>
   );
@@ -341,7 +341,7 @@ function HistoryContent() {
                 fontFamily: "'Hanken Grotesk', system-ui, -apple-system, sans-serif",
               }}
             >
-              All your saved causal graphs and structural models.
+              All your saved casual graphs and structural models.
             </p>
           </div>
 

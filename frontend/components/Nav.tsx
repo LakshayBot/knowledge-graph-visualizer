@@ -128,7 +128,7 @@ export default function Nav() {
               <path d="M5 12h14M12 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </span>
-          CausalExplorer
+          CasualExplorer
         </span>
         <div style={{ display: "flex", gap: 28, alignItems: "center" }}>
           {landingLinks.map((l) => (
@@ -164,7 +164,7 @@ export default function Nav() {
               <path d="M5 12h14M12 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </span>
-          CausalExplorer
+          CasualExplorer
         </a>
 
         {!narrow && (

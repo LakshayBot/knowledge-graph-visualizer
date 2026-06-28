@@ -1,11 +1,11 @@
-# CausalExplorer – Production Compose
+# CasualExplorer – Production Compose
 # Note: PostgreSQL is used (not SQL Server) to match the Npgsql/EF Core configuration.
 # All sensitive values are sourced from .env — copy .env.example to .env before first run.
 
-name: causal-explorer
+name: casual-explorer
 
 networks:
-  causal-net:
+  casual-net:
     driver: bridge
 
 volumes:
@@ -19,32 +19,32 @@ volumes:
 
 services:
 
-  # ── PostgreSQL (relational store: Users, RefreshTokens, CausalChains) ────────
+  # ── PostgreSQL (relational store: Users, RefreshTokens, CasualChains) ────────
   postgres:
     image: postgres:16-alpine
-    container_name: causal-postgres
+    container_name: casual-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB:       ${POSTGRES_DB:-CausalExplorerDb}
-      POSTGRES_USER:     ${POSTGRES_USER:-causal}
+      POSTGRES_DB:       ${POSTGRES_DB:-CasualExplorerDb}
+      POSTGRES_USER:     ${POSTGRES_USER:-casual}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
     networks:
-      - causal-net
+      - casual-net
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-causal} -d ${POSTGRES_DB:-CausalExplorerDb}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-casual} -d ${POSTGRES_DB:-CasualExplorerDb}"]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 20s
 
-  # ── Neo4j (graph store: EventNodes, CausalEdges) ──────────────────────────────
+  # ── Neo4j (graph store: EventNodes, CasualEdges) ──────────────────────────────
   neo4j:
     image: neo4j:5.18-community
-    container_name: causal-neo4j
+    container_name: casual-neo4j
     restart: unless-stopped
     environment:
       NEO4J_AUTH:                             ${NEO4J_AUTH:-neo4j/ChangeMe123!}
@@ -62,7 +62,7 @@ services:
       - "7474:7474"   # Neo4j Browser
       - "7687:7687"   # Bolt
     networks:
-      - causal-net
+      - casual-net
     healthcheck:
       test: ["CMD-SHELL", "wget -q --spider http://localhost:7474 || exit 1"]
       interval: 15s
@@ -73,7 +73,7 @@ services:
   # ── Redis (cache + refresh-token store) ───────────────────────────────────────
   redis:
     image: redis:7.2-alpine
-    container_name: causal-redis
+    container_name: casual-redis
     restart: unless-stopped
     command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD:-redis_secret}"]
     volumes:
@@ -81,7 +81,7 @@ services:
     ports:
       - "6379:6379"
     networks:
-      - causal-net
+      - casual-net
     healthcheck:
       test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-redis_secret}", "ping"]
       interval: 10s
@@ -92,7 +92,7 @@ services:
   # ── Qdrant (vector search for RAG) ────────────────────────────────────────────
   qdrant:
     image: qdrant/qdrant:latest
-    container_name: causal-qdrant
+    container_name: casual-qdrant
     restart: unless-stopped
     volumes:
       - qdrant_storage:/qdrant/storage
@@ -100,7 +100,7 @@ services:
       - "6333:6333"   # REST + gRPC
       - "6334:6334"   # gRPC (internal)
     networks:
-      - causal-net
+      - casual-net
     healthcheck:
       test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/6333' || exit 1"]
       interval: 15s
@@ -111,7 +111,7 @@ services:
   # ── Ollama (local LLM inference) ──────────────────────────────────────────────
   ollama:
     image: ollama/ollama:latest
-    container_name: causal-ollama
+    container_name: casual-ollama
     restart: unless-stopped
     # GPU passthrough is configured in docker-compose.gpu.yml.
     # On Mac or CPU-only Linux, run without that override file.
@@ -121,7 +121,7 @@ services:
     ports:
       - "11434:11434"
     networks:
-      - causal-net
+      - casual-net
     healthcheck:
       test: ["CMD-SHELL", "ollama list || exit 1"]
       interval: 30s
@@ -132,7 +132,7 @@ services:
   # ── Pull Ollama models after the daemon is healthy ────────────────────────────
   ollama-pull:
     image: ollama/ollama:latest
-    container_name: causal-ollama-pull
+    container_name: casual-ollama-pull
     restart: "no"
     depends_on:
       ollama:
@@ -147,15 +147,15 @@ services:
     environment:
       OLLAMA_HOST: http://ollama:11434
     networks:
-      - causal-net
+      - casual-net
 
   # ── pgAdmin (PostgreSQL web UI) ───────────────────────────────────────────────
   pgadmin:
     image: dpage/pgadmin4:latest
-    container_name: causal-pgadmin
+    container_name: casual-pgadmin
     restart: unless-stopped
     environment:
-      PGADMIN_DEFAULT_EMAIL:    admin@causalexplorer.dev
+      PGADMIN_DEFAULT_EMAIL:    admin@casualexplorer.dev
       PGADMIN_DEFAULT_PASSWORD: admin
       PGADMIN_CONFIG_SERVER_MODE: "False"
     volumes:
@@ -163,17 +163,17 @@ services:
     ports:
       - "5050:80"
     networks:
-      - causal-net
+      - casual-net
     depends_on:
       postgres:
         condition: service_healthy
 
   # ── Python AI sidecar (FastAPI + Ollama + Qdrant) ─────────────────────────────
-  causal-ai-service:
+  casual-ai-service:
     build:
       context: .
-      dockerfile: causal-ai-service/Dockerfile
-    container_name: causal-ai-service
+      dockerfile: casual-ai-service/Dockerfile
+    container_name: casual-ai-service
     restart: unless-stopped
     env_file: .env
     environment:
@@ -181,11 +181,11 @@ services:
       QDRANT_URL:       http://qdrant:6333
       GROK_API_KEY:     ${GROK_API_KEY}
       GENERATION_MODE:  ${GENERATION_MODE:-minimal}
-      POSTGRES_URL:     postgresql://causal:postgres@causal-postgres:5432/CausalExplorerDb
+      POSTGRES_URL:     postgresql://casual:postgres@casual-postgres:5432/CasualExplorerDb
     ports:
       - "8000:8000"
     networks:
-      - causal-net
+      - casual-net
     depends_on:
       ollama:
         condition: service_healthy
@@ -199,29 +199,29 @@ services:
       start_period: 60s
 
   # ── .NET API (ASP.NET Core 8) ─────────────────────────────────────────────────
-  causal-api:
+  casual-api:
     build:
       context: .
-      dockerfile: src/CausalExplorer.API/Dockerfile
-    container_name: causal-api
+      dockerfile: src/CasualExplorer.API/Dockerfile
+    container_name: casual-api
     restart: unless-stopped
     env_file: .env
     environment:
       ASPNETCORE_ENVIRONMENT:       Production
       ASPNETCORE_URLS:              http://+:5001
       ConnectionStrings__DefaultConnection: >-
-        Host=postgres;Port=5432;Database=${POSTGRES_DB:-CausalExplorerDb};
-        Username=${POSTGRES_USER:-causal};Password=${POSTGRES_PASSWORD}
+        Host=postgres;Port=5432;Database=${POSTGRES_DB:-CasualExplorerDb};
+        Username=${POSTGRES_USER:-casual};Password=${POSTGRES_PASSWORD}
       ConnectionStrings__Redis:     redis:6379,password=${REDIS_PASSWORD:-redis_secret},abortConnect=false
       Neo4j__Uri:                   bolt://neo4j:7687
       Neo4j__Username:              ${NEO4J_USERNAME:-neo4j}
       Neo4j__Password:              ${NEO4J_PASSWORD}
-      AIService__BaseUrl:           http://causal-ai-service:8000
+      AIService__BaseUrl:           http://casual-ai-service:8000
       AIService__ApiKey:            ${AI_SERVICE_API_KEY}
       VectorSearch__QdrantUrl:      http://qdrant:6333
       Jwt__Secret:                  ${JWT_SECRET}
-      Jwt__Issuer:                  ${JWT_ISSUER:-CausalExplorer}
-      Jwt__Audience:                ${JWT_AUDIENCE:-CausalExplorerClient}
+      Jwt__Issuer:                  ${JWT_ISSUER:-CasualExplorer}
+      Jwt__Audience:                ${JWT_AUDIENCE:-CasualExplorerClient}
       Cors__AllowedOrigins__0:      ${CORS_ORIGINS:-http://localhost:3000}
       DataProtection__KeyRingPath:  /app/keys
     volumes:
@@ -229,7 +229,7 @@ services:
     ports:
       - "5001:5001"
     networks:
-      - causal-net
+      - casual-net
     depends_on:
       postgres:
         condition: service_healthy
@@ -237,7 +237,7 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      causal-ai-service:
+      casual-ai-service:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget -q --spider http://localhost:5001/health/live || exit 1"]

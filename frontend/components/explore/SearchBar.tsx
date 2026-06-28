@@ -24,7 +24,7 @@ export default function SearchBar({ value, onChange, onSubmit, loading }: Props)
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={handleKeyDown}
-        placeholder="Ask a causal question... (e.g. Why is the rupee falling?)"
+        placeholder="Ask a casual question... (e.g. Why is the rupee falling?)"
         disabled={loading}
         style={{
           flex: 1,

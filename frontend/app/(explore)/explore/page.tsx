@@ -68,7 +68,7 @@ function ExploreContent() {
       nodes?: GraphNode[];
       edges?: GraphEdge[];
       chainMetadata?: { title?: string };
-    }>(`/causalchains/${cid}/scoped?perspective=Mainstream`)
+    }>(`/casualchains/${cid}/scoped?perspective=Mainstream`)
       .then((data) => {
         const n = data?.nodes ?? [];
         const e = data?.edges ?? [];
@@ -85,7 +85,7 @@ function ExploreContent() {
 
   async function autoSave(cid: string) {
     try {
-      await apiFetch(`/causalchains/${cid}/save`, {
+      await apiFetch(`/casualchains/${cid}/save`, {
         method: "POST",
         body: '{"notes":""}',
       });
@@ -105,7 +105,7 @@ function ExploreContent() {
     setSaved(false);
     try {
       const rootEventId = crypto.randomUUID();
-      const cd = await apiFetch<{ id: string }>("/causalchains", {
+      const cd = await apiFetch<{ id: string }>("/casualchains", {
         method: "POST",
         provider,
         model,
@@ -122,13 +122,13 @@ function ExploreContent() {
       setRootNodeId(rootEventId);
       autoSave(cid);
       const gd = await apiFetch<{ nodes?: GraphNode[]; edges?: GraphEdge[] }>(
-        `/causalchains/${cid}/scoped?perspective=Mainstream`,
+        `/casualchains/${cid}/scoped?perspective=Mainstream`,
         { provider, model }
       );
       setNodes(gd.nodes ?? []);
       setEdges(gd.edges ?? []);
       const ed = await apiFetch<{ nodes?: GraphNode[]; edges?: GraphEdge[] }>(
-        `/causalchains/${cid}/expand/${rootEventId}?perspective=Mainstream`,
+        `/casualchains/${cid}/expand/${rootEventId}?perspective=Mainstream`,
         { method: "POST", provider, model, body: JSON.stringify({ provider, model }) }
       );
       if (ed.nodes)
@@ -166,7 +166,7 @@ function ExploreContent() {
     setExpanding(true);
     try {
       const d = await apiFetch<{ nodes?: GraphNode[]; edges?: GraphEdge[] }>(
-        `/causalchains/${chainId}/expand/${nodeId}?perspective=Mainstream`,
+        `/casualchains/${chainId}/expand/${nodeId}?perspective=Mainstream`,
         { method: "POST", provider, model, body: JSON.stringify({ provider, model }) }
       );
       setNodes((p) => {
@@ -384,7 +384,7 @@ function ExploreContent() {
                     pointerEvents: "auto",
                   }}
                 >
-                  Type a question to generate a causal graph
+                  Type a question to generate a casual graph
                 </p>
                 <p
                   style={{

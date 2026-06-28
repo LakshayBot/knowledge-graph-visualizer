@@ -61,12 +61,12 @@ export default function Footer() {
                 <path d="M5 12h14M12 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </span>
-            CausalExplorer
+            CasualExplorer
           </div>
           <p style={{ fontSize: 12, color: "var(--text-3)", lineHeight: 1.6, maxWidth: 220 }}>
             Understand why events happen.
             <br />
-            Causal graphs. Not just answers.
+            Casual graphs. Not just answers.
           </p>
         </div>
 
@@ -134,7 +134,7 @@ export default function Footer() {
         }}
       >
         <p style={{ fontSize: 11, color: "var(--text-4)" }}>
-          © {new Date().getFullYear()} CausalExplorer. Open source.
+          © {new Date().getFullYear()} CasualExplorer. Open source.
         </p>
         <div style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap" }}>
           <span style={{ fontSize: 11, color: "var(--text-4)" }}>Built with</span>

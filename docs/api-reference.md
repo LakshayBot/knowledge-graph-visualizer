@@ -1,4 +1,4 @@
-# API Reference — CausalExplorer
+# API Reference — CasualExplorer
 
 Base URL: `http://localhost:5001/api/v1`
 
@@ -105,11 +105,11 @@ Marks an event node as verified. Requires role `Moderator` or `Admin`.
 
 ---
 
-## Causal Edges
+## Casual Edges
 
-### `POST /causal-edges`
+### `POST /casual-edges`
 
-Adds a directed causal edge. Requires role `Contributor` or higher.
+Adds a directed casual edge. Requires role `Contributor` or higher.
 
 **Request body**
 
@@ -125,7 +125,7 @@ Adds a directed causal edge. Requires role `Contributor` or higher.
 }
 ```
 
-**Response `201`** — CausalEdgeDto  
+**Response `201`** — CasualEdgeDto  
 **Response `400`** — Validation error
 
 ---
@@ -142,9 +142,9 @@ Liveness probe.
 
 ## AI Service (`http://localhost:8000/api/v1`)
 
-### `POST /causal-analysis/`
+### `POST /casual-analysis/`
 
-Generates a causal graph using OpenAI.
+Generates a casual graph using OpenAI.
 
 **Request body**
 
@@ -157,7 +157,7 @@ Generates a causal graph using OpenAI.
 }
 ```
 
-**Response `200`** — CausalAnalysisResponse with `root_event`, `related_nodes`, `suggested_edges`.
+**Response `200`** — CasualAnalysisResponse with `root_event`, `related_nodes`, `suggested_edges`.
 
 ---
 

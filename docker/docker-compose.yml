@@ -3,7 +3,7 @@ services:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_DB: causalexplorer
+      POSTGRES_DB: casualexplorer
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
     volumes:
@@ -25,7 +25,7 @@ services:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: http://+:5001
       ConnectionStrings__DefaultConnection: >-
-        Host=postgres;Port=5432;Database=causalexplorer;Username=postgres;Password=${POSTGRES_PASSWORD:-postgres}
+        Host=postgres;Port=5432;Database=casualexplorer;Username=postgres;Password=${POSTGRES_PASSWORD:-postgres}
     ports:
       - "5001:5001"
     depends_on:

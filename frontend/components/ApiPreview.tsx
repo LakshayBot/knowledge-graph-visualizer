@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { useBreakpoint } from "@/hooks/useBreakpoint";
 
 const requestLines = [
-  { t: "comment", text: "# Causal graph search — semantic fallback + Grok generation" },
+  { t: "comment", text: "# Casual graph search — semantic fallback + Grok generation" },
   { t: "blank" },
   { t: "method",  method: "GET", path: " /api/v1/EventNodes/search" },
   { t: "blank" },
@@ -149,7 +149,7 @@ export default function ApiPreview() {
           API Preview
         </span>
         <h2 style={{ fontSize: isMobile ? "clamp(20px,6vw,28px)" : "clamp(24px, 3vw, 38px)", fontWeight: 800, letterSpacing: "-0.03em", color: "#fff", lineHeight: 1 }}>
-          One endpoint. Full causal graph.
+          One endpoint. Full casual graph.
         </h2>
       </div>
 

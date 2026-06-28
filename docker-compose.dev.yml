@@ -1,32 +1,32 @@
-# CausalExplorer – Development Compose Override
+# CasualExplorer – Development Compose Override
 # Usage: docker compose -f docker-compose.yml -f docker-compose.dev.yml up
 # All services run with hot-reload, debug ports exposed, and dev tooling enabled.
 
-name: causal-explorer
+name: casual-explorer
 
 services:
 
   # ── PostgreSQL + pgAdmin ───────────────────────────────────────────────────────
   postgres:
     environment:
-      POSTGRES_DB:       CausalExplorerDb_Dev
-      POSTGRES_USER:     causal_dev
+      POSTGRES_DB:       CasualExplorerDb_Dev
+      POSTGRES_USER:     casual_dev
       POSTGRES_PASSWORD: dev_password
     ports:
       - "5432:5432"
 
   pgadmin:
     image: dpage/pgadmin4:latest
-    container_name: causal-pgadmin
+    container_name: casual-pgadmin
     restart: unless-stopped
     environment:
-      PGADMIN_DEFAULT_EMAIL:    admin@causalexplorer.local
+      PGADMIN_DEFAULT_EMAIL:    admin@casualexplorer.local
       PGADMIN_DEFAULT_PASSWORD: admin
       PGADMIN_CONFIG_SERVER_MODE: "False"
     ports:
       - "5050:80"
     networks:
-      - causal-net
+      - casual-net
     depends_on:
       postgres:
         condition: service_healthy
@@ -44,12 +44,12 @@ services:
 
   redis-insight:
     image: redis/redisinsight:latest
-    container_name: causal-redis-insight
+    container_name: casual-redis-insight
     restart: unless-stopped
     ports:
       - "5540:5540"
     networks:
-      - causal-net
+      - casual-net
     depends_on:
       - redis
 
@@ -73,13 +73,13 @@ services:
       "
 
   # ── Python AI service with hot reload ─────────────────────────────────────────
-  causal-ai-service:
+  casual-ai-service:
     build:
       context: .
-      dockerfile: causal-ai-service/Dockerfile
+      dockerfile: casual-ai-service/Dockerfile
       target: development
     volumes:
-      - ./causal-ai-service:/app
+      - ./casual-ai-service:/app
     environment:
       OLLAMA_URL: http://ollama:11434
       QDRANT_URL: http://qdrant:6333
@@ -91,10 +91,10 @@ services:
       - "5678:5678"   # debugpy port
 
   # ── .NET API with dotnet watch (hot reload) ───────────────────────────────────
-  causal-api:
+  casual-api:
     build:
       context: .
-      dockerfile: src/CausalExplorer.API/Dockerfile
+      dockerfile: src/CasualExplorer.API/Dockerfile
       target: build           # stop at the SDK build stage — no publish step
     volumes:
       - ./src:/repo/src:ro    # mount source for watch
@@ -102,19 +102,19 @@ services:
       ASPNETCORE_ENVIRONMENT:       Development
       ASPNETCORE_URLS:              http://+:5001
       ConnectionStrings__DefaultConnection: >-
-        Host=postgres;Port=5432;Database=CausalExplorerDb_Dev;Username=causal_dev;Password=dev_password
+        Host=postgres;Port=5432;Database=CasualExplorerDb_Dev;Username=casual_dev;Password=dev_password
       ConnectionStrings__Redis:     redis:6379,abortConnect=false
       Neo4j__Uri:                   bolt://neo4j:7687
       Neo4j__Username:              neo4j
       Neo4j__Password:              devpassword123
-      AIService__BaseUrl:           http://causal-ai-service:8000
+      AIService__BaseUrl:           http://casual-ai-service:8000
       AIService__ApiKey:            dev-api-key
       VectorSearch__QdrantUrl:      http://qdrant:6333
       Jwt__Secret:                  dev-jwt-secret-min-32-characters-long!!
-      Jwt__Issuer:                  CausalExplorer-Dev
-      Jwt__Audience:                CausalExplorerClient-Dev
+      Jwt__Issuer:                  CasualExplorer-Dev
+      Jwt__Audience:                CasualExplorerClient-Dev
       Cors__AllowedOrigins__0:      http://localhost:3000
-    working_dir: /repo/src/CausalExplorer.API
+    working_dir: /repo/src/CasualExplorer.API
     command: ["dotnet", "watch", "run", "--no-launch-profile"]
     ports:
       - "5001:5001"

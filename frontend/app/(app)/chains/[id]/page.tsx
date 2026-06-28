@@ -64,8 +64,8 @@ function ChainContent() {
       setLoading(true);
       try {
         const [initialData, fullData] = await Promise.all([
-          apiFetch<ChainGraphResponse>(`/causalchains/${id}/initial?perspective=Mainstream`),
-          apiFetch<ChainGraphResponse>(`/causalchains/${id}?depth=6`).catch(() => null),
+          apiFetch<ChainGraphResponse>(`/casualchains/${id}/initial?perspective=Mainstream`),
+          apiFetch<ChainGraphResponse>(`/casualchains/${id}?depth=6`).catch(() => null),
         ]);
         const { nodes: chainNodes, edges: chainEdges } = chooseSavedGraph(initialData, fullData);
         const metadata = fullData?.chainMetadata ?? initialData.chainMetadata;
@@ -90,7 +90,7 @@ function ChainContent() {
     if (expanding) return;
     setExpanding(true);
     try {
-      const graphData = await apiFetch<{ nodes?: GraphNode[]; edges?: GraphEdge[] }>(`/causalchains/${id}/expand/${nodeId}?perspective=Mainstream`, { method: "POST" });
+      const graphData = await apiFetch<{ nodes?: GraphNode[]; edges?: GraphEdge[] }>(`/casualchains/${id}/expand/${nodeId}?perspective=Mainstream`, { method: "POST" });
       const newNodes: GraphNode[] = graphData.nodes ?? [];
       const newEdges: GraphEdge[] = graphData.edges ?? [];
       setNodes((prev) => {

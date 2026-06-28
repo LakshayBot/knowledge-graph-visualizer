@@ -29,7 +29,7 @@ export function useForceLayout(nodes: GraphNode[], edges: GraphEdge[], rootId?: 
     const nodeIds = new Set(nodes.map((n) => n.id));
     const start = rootId && nodeIds.has(rootId) ? rootId : nodes[0].id;
 
-    // Directed adjacency keeps causal direction readable as the graph expands.
+    // Directed adjacency keeps casual direction readable as the graph expands.
     const incoming = new Map<string, string[]>();
     const outgoing = new Map<string, string[]>();
     nodes.forEach((n) => {

@@ -67,8 +67,8 @@ function cubicPath(x1: number, y1: number, x2: number, y2: number, bow = 0.22) {
   return `M${x1},${y1} C${mx + nx},${my + ny} ${mx + nx},${my + ny} ${x2},${y2}`;
 }
 
-// ── Causal Graph ─────────────────────────────────────────────
-function CausalGraph() {
+// ── Casual Graph ─────────────────────────────────────────────
+function CasualGraph() {
   const [hovered, setHovered] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -304,7 +304,7 @@ export default function Hero() {
               transition={{ delay: 0.1, duration: 0.5 }}
               style={{ marginBottom: 18 }}
             >
-              <span className="chip">Grok AI · Causal Graphs</span>
+              <span className="chip">Grok AI · Casual Graphs</span>
             </motion.div>
 
             <motion.h1
@@ -356,7 +356,7 @@ export default function Hero() {
           {/* Graph half — takes remaining space */}
           <div style={{ flex: 1, position: "relative", background: "var(--bg-subtle)", minHeight: isMobile ? "clamp(240px, 35vh, 350px)" : 300, overflow: "hidden" }}>
             <div style={{ position: "absolute", inset: 0, backgroundImage: "radial-gradient(var(--border-med) 1px, transparent 1px)", backgroundSize: "24px 24px", opacity: 0.5, pointerEvents: "none" }} />
-            <div style={{ position: "absolute", inset: 0 }}><CausalGraph /></div>
+            <div style={{ position: "absolute", inset: 0 }}><CasualGraph /></div>
           </div>
         </div>
       ) : (
@@ -382,7 +382,7 @@ export default function Hero() {
             }}
           >
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1, duration: 0.5 }} style={{ marginBottom: 22 }}>
-              <span className="chip">Grok AI · Causal Graphs</span>
+              <span className="chip">Grok AI · Casual Graphs</span>
             </motion.div>
 
             <motion.h1
@@ -454,7 +454,7 @@ export default function Hero() {
           {/* Right graph */}
           <div style={{ position: "relative", overflow: "hidden", background: "var(--bg-subtle)" }}>
             <div style={{ position: "absolute", inset: 0, backgroundImage: "radial-gradient(var(--border-med) 1px, transparent 1px)", backgroundSize: "28px 28px", pointerEvents: "none", opacity: 0.6 }} />
-            <div style={{ position: "absolute", inset: 0 }}><CausalGraph /></div>
+            <div style={{ position: "absolute", inset: 0 }}><CasualGraph /></div>
           </div>
         </div>
       )}

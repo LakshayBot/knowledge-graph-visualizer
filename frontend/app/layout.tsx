@@ -4,9 +4,9 @@ import "./globals.css";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
-  title: "CausalExplorer — Understand Why Events Happen",
+  title: "CasualExplorer — Understand Why Events Happen",
   description:
-    "AI-powered causal knowledge graph system. Ask a question, get a structured cause-and-effect graph built by Grok AI. Causal graphs. Not just answers.",
+    "AI-powered casual knowledge graph system. Ask a question, get a structured cause-and-effect graph built by Grok AI. Casual graphs. Not just answers.",
 };
 
 export default function RootLayout({

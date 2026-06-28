@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# ── CausalExplorer — Full Rebuild ───────────────────────────
+# ── CasualExplorer — Full Rebuild ───────────────────────────
 # Usage: ./rebuild.sh [--frontend] [--no-cache]
 # Builds backend containers + optionally the frontend.
 
@@ -19,13 +19,13 @@ for arg in "$@"; do
 done
 
 echo "========================================"
-echo " CausalExplorer — Full Rebuild"
+echo " CasualExplorer — Full Rebuild"
 echo "========================================"
 
 # ── 1. Rebuild backend Docker containers ────────────────────
 echo ""
 echo "[1/3] Rebuilding backend containers..."
-docker compose build $NO_CACHE causal-api causal-ai-service
+docker compose build $NO_CACHE casual-api casual-ai-service
 
 # ── 2. Restart services ─────────────────────────────────────
 echo ""
