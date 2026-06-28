@@ -16,6 +16,7 @@ import SimulationPanel from "@/components/explore/SimulationPanel";
 import ModeSelectorBar from "@/components/explore/ModeSelectorBar";
 import type { ExploreMode } from "@/components/explore/ModeSelectorBar";
 import DiscoveryCards from "@/components/explore/DiscoveryCards";
+import InsightPanel from "@/components/explore/InsightPanel";
 import { useTimeline } from "@/hooks/useTimeline";
 import { useSimulation } from "@/hooks/useSimulation";
 import type { GraphNode, GraphEdge } from "@/types/graph";
@@ -490,6 +491,9 @@ function ExploreContent() {
               )})}
             </div>
           </motion.div>
+
+          {/* Insight cards */}
+          <InsightPanel nodes={nodes} edges={edges} />
 
           {/* Simulation panel */}
           <SimulationPanel
