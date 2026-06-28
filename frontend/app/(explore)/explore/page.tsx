@@ -13,6 +13,9 @@ import NodeDetailPanel from "@/components/explore/NodeDetailPanel";
 import ProviderModelSelector from "@/components/explore/ProviderModelSelector";
 import TimelineBar from "@/components/explore/TimelineBar";
 import SimulationPanel from "@/components/explore/SimulationPanel";
+import ModeSelectorBar from "@/components/explore/ModeSelectorBar";
+import type { ExploreMode } from "@/components/explore/ModeSelectorBar";
+import DiscoveryCards from "@/components/explore/DiscoveryCards";
 import { useTimeline } from "@/hooks/useTimeline";
 import { useSimulation } from "@/hooks/useSimulation";
 import type { GraphNode, GraphEdge } from "@/types/graph";
@@ -61,6 +64,8 @@ function ExploreContent() {
   const [rootNodeId, setRootNodeId] = useState<string | null>(null);
   const [expanding, setExpanding] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [exploreMode, setExploreMode] = useState<ExploreMode>("explain");
+  const [heatmapOn, setHeatmapOn] = useState(false);
 
   // ── Timeline ────────────────────────────────────────────────────────
   const timeline = useTimeline({ nodes, edges });
@@ -297,7 +302,7 @@ function ExploreContent() {
               loading={loading}
               visibleNodeIds={timeline.visibleNodeIds}
               visibleEdgeIds={timeline.visibleEdgeIds}
-              timelineActive={timeline.hasTimeline}
+              timelineActive={timeline.hasTimeline} heatmap={heatmapOn}
             />
           </GraphBackground>
         </div>
@@ -354,7 +359,7 @@ function ExploreContent() {
               loading={loading}
               visibleNodeIds={timeline.visibleNodeIds}
               visibleEdgeIds={timeline.visibleEdgeIds}
-              timelineActive={timeline.hasTimeline}
+              timelineActive={timeline.hasTimeline} heatmap={heatmapOn}
             />
           </GraphBackground>
 
@@ -450,35 +455,39 @@ function ExploreContent() {
                 { icon: <ZoomIn size={16} />, last: false, key: "zoom-in" },
                 { icon: <ZoomOut size={16} />, last: false, key: "zoom-out" },
                 { icon: <Maximize size={16} />, last: false, key: "fit" },
-                { icon: <span style={{ fontSize: 10, fontWeight: 800 }}>¿?</span>, last: true, key: "sim", isSim: true },
-              ].map(({ icon, last, key, isSim }) => (
+                { icon: <span style={{ fontSize: 10, fontWeight: 800 }}>¿?</span>, last: false, key: "sim", isSim: true },
+                { icon: <span style={{ fontSize: 9, fontWeight: 800 }}>🌡</span>, last: true, key: "heat", isHeat: true },
+              ].map(({ icon, last, key, isSim, isHeat }) => {
+                const active = isSim ? simulation.active : isHeat ? heatmapOn : false;
+                const onClick = isSim ? () => simulation.toggleActive() : isHeat ? () => setHeatmapOn((p: boolean) => !p) : undefined;
+                return (
                 <button
                   key={key}
-                  onClick={isSim ? () => simulation.toggleActive() : undefined}
+                  onClick={onClick}
                   style={{
                     padding: "8px 10px",
                     border: "none",
                     borderBottom: last ? "none" : "1px solid rgba(0,0,0,0.05)",
-                    background: isSim && simulation.active ? "var(--brand)" : "transparent",
-                    color: isSim && simulation.active ? "var(--brand-fg)" : "var(--text-3)",
+                    background: active ? "var(--brand)" : "transparent",
+                    color: active ? "var(--brand-fg)" : "var(--text-3)",
                     cursor: "pointer",
                     display: "flex",
                     fontFamily: "inherit",
                     transition: "background 0.15s, color 0.15s",
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.background = isSim && simulation.active ? "var(--brand)" : "var(--surface)";
-                    e.currentTarget.style.color = isSim && simulation.active ? "var(--brand-fg)" : "var(--brand)";
+                    e.currentTarget.style.background = active ? "var(--brand)" : "var(--surface)";
+                    e.currentTarget.style.color = active ? "var(--brand-fg)" : "var(--brand)";
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.background = isSim && simulation.active ? "var(--brand)" : "transparent";
-                    e.currentTarget.style.color = isSim && simulation.active ? "var(--brand-fg)" : "var(--text-3)";
+                    e.currentTarget.style.background = active ? "var(--brand)" : "transparent";
+                    e.currentTarget.style.color = active ? "var(--brand-fg)" : "var(--text-3)";
                   }}
-                  title={isSim ? "Toggle What-If Simulation" : undefined}
+                  title={isSim ? "Toggle What-If Simulation" : isHeat ? "Toggle Heatmap" : undefined}
                 >
                   {icon}
                 </button>
-              ))}
+              )})}
             </div>
           </motion.div>
 
@@ -640,6 +649,9 @@ function ExploreContent() {
             onJumpToEnd={timeline.jumpToEnd}
           />
 
+          {/* Exploration mode selector */}
+          <ModeSelectorBar mode={exploreMode} onModeChange={setExploreMode} hasGraph={nodes.length > 0} />
+
           {/* Mode selector */}
           <ProviderModelSelector
             provider={provider}
@@ -728,6 +740,11 @@ function ExploreContent() {
           </div>
         </div>
       </motion.div>
+
+      {/* Discovery cards (above command bar) */}
+      <div style={{ position: "absolute", bottom: "clamp(130px, 18vh, 180px)", left: 24, right: 24, maxWidth: 320, pointerEvents: "auto", zIndex: 10 }}>
+        <DiscoveryCards nodes={nodes} onQuerySelect={setQuery} />
+      </div>
 
       {/* ── Error toast ── */}
       <AnimatePresence>

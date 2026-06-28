@@ -16,6 +16,8 @@ interface Props {
   visibleEdgeIds?: Set<string>;
   /** Whether timeline playback is active (enables enter/exit animations) */
   timelineActive?: boolean;
+  /** Enable heatmap coloring for nodes and edges */
+  heatmap?: boolean;
 }
 
 const R = 28;
@@ -83,6 +85,7 @@ export default function GraphCanvas({
   visibleNodeIds,
   visibleEdgeIds,
   timelineActive,
+  heatmap,
 }: Props) {
   const [hovered, setHovered] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
@@ -608,7 +611,18 @@ export default function GraphCanvas({
               fill={
                 isRoot
                   ? "rgba(255, 233, 225, 0.95)"
-                  : NODE_COLORS[i % NODE_COLORS.length]
+                  : heatmap
+                    ? (() => {
+                        const incidentEdges = edges.filter((e) => e.fromId === node.id || e.toId === node.id);
+                        const impact = incidentEdges.length === 0 ? 0
+                          : incidentEdges.reduce((sum, e) => sum + (e.strength ?? 0), 0) / incidentEdges.length * 0.6
+                            + Math.min(1, incidentEdges.length / 10) * 0.4;
+                        if (impact < 0.25) return "#4caf50";
+                        if (impact < 0.5) return "#ffc107";
+                        if (impact < 0.75) return "#ff9800";
+                        return "#f44336";
+                      })()
+                    : NODE_COLORS[i % NODE_COLORS.length]
               }
               stroke={
                 isRoot
