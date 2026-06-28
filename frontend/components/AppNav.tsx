@@ -9,9 +9,8 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuGroup,
   DropdownMenuItem,
-  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
@@ -32,6 +31,34 @@ function MoonIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
       <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+    </svg>
+  );
+}
+
+function UserIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+      <circle cx="12" cy="7" r="4"/>
+    </svg>
+  );
+}
+
+function SettingsIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="3"/>
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+    </svg>
+  );
+}
+
+function LogOutIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+      <polyline points="16 17 21 12 16 7"/>
+      <line x1="21" y1="12" x2="9" y2="12"/>
     </svg>
   );
 }
@@ -298,62 +325,153 @@ export default function AppNav() {
             </DropdownMenuTrigger>
             <DropdownMenuContent
               align="end"
+              sideOffset={8}
               style={{
                 background: "var(--surface)",
                 border: "1px solid var(--border)",
-                borderRadius: 8,
-                padding: 4,
-                minWidth: 180,
-                boxShadow: "0 4px 24px rgba(0,0,0,0.08)",
+                borderRadius: 12,
+                padding: 8,
+                minWidth: 240,
+                boxShadow:
+                  "0 0 0 1px rgba(0,0,0,0.03), 0 2px 4px rgba(0,0,0,0.02), 0 8px 16px rgba(0,0,0,0.05), 0 16px 32px rgba(0,0,0,0.04)",
               }}
             >
               {isAuthenticated ? (
                 <>
-                  <DropdownMenuGroup>
-                    <DropdownMenuLabel style={{ padding: "8px 10px 4px" }}>
-                      <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
-                        <p
-                          style={{
-                            margin: 0,
-                            fontSize: 13,
-                            fontWeight: 600,
-                            color: "var(--text-1)",
-                            lineHeight: 1.3,
-                          }}
-                        >
-                          {user?.username}
-                        </p>
-                        <p
-                          style={{
-                            margin: 0,
-                            fontSize: 11,
-                            color: "var(--text-3)",
-                            lineHeight: 1.3,
-                          }}
-                        >
-                          {user?.email}
-                        </p>
-                      </div>
-                    </DropdownMenuLabel>
-                  </DropdownMenuGroup>
-                  <div style={{ height: 1, background: "var(--border)", margin: "4px 0" }} />
-                  <DropdownMenuItem onClick={() => router.push("/profile")}>
+                  {/* User info header */}
+                  <div style={{ padding: "10px 10px 6px" }}>
+                    <p
+                      style={{
+                        margin: 0,
+                        fontSize: 14,
+                        fontWeight: 600,
+                        color: "var(--text-1)",
+                        lineHeight: 1.4,
+                      }}
+                    >
+                      {user?.username}
+                    </p>
+                    <p
+                      style={{
+                        margin: 0,
+                        marginTop: 2,
+                        fontSize: 12,
+                        color: "var(--text-3)",
+                        lineHeight: 1.4,
+                      }}
+                    >
+                      {user?.email}
+                    </p>
+                  </div>
+
+                  <DropdownMenuSeparator style={{ margin: "6px 0" }} />
+
+                  {/* Navigation items */}
+                  <DropdownMenuItem
+                    onClick={() => router.push("/profile")}
+                    style={{
+                      padding: "10px 10px",
+                      borderRadius: 8,
+                      fontSize: 13,
+                      lineHeight: 1.3,
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 10,
+                      marginBottom: 2,
+                      transition: "background 0.12s ease",
+                    }}
+                  >
+                    <span style={{ display: "inline-flex", color: "var(--text-2)", flexShrink: 0 }}>
+                      <UserIcon />
+                    </span>
                     Profile
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => router.push("/settings")}>
+                  <DropdownMenuItem
+                    onClick={() => router.push("/settings")}
+                    style={{
+                      padding: "10px 10px",
+                      borderRadius: 8,
+                      fontSize: 13,
+                      lineHeight: 1.3,
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 10,
+                      marginBottom: 2,
+                      transition: "background 0.12s ease",
+                    }}
+                  >
+                    <span style={{ display: "inline-flex", color: "var(--text-2)", flexShrink: 0 }}>
+                      <SettingsIcon />
+                    </span>
                     Settings
                   </DropdownMenuItem>
-                  <div style={{ height: 1, background: "var(--border)", margin: "4px 0" }} />
-                  <DropdownMenuItem onClick={() => { logout(); router.push("/"); }}>
+
+                  <DropdownMenuSeparator style={{ margin: "6px 0" }} />
+
+                  <DropdownMenuItem
+                    onClick={() => {
+                      logout();
+                      router.push("/");
+                    }}
+                    style={{
+                      padding: "10px 10px",
+                      borderRadius: 8,
+                      fontSize: 13,
+                      lineHeight: 1.3,
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 10,
+                      transition: "background 0.12s ease",
+                    }}
+                  >
+                    <span style={{ display: "inline-flex", color: "var(--text-3)", flexShrink: 0 }}>
+                      <LogOutIcon />
+                    </span>
                     Sign out
                   </DropdownMenuItem>
                 </>
               ) : (
                 <>
-                  <DropdownMenuItem onClick={() => router.push("/login")}>
+                  <DropdownMenuItem
+                    onClick={() => router.push("/login")}
+                    style={{
+                      padding: "10px 10px",
+                      borderRadius: 8,
+                      fontSize: 13,
+                      lineHeight: 1.3,
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 10,
+                      marginBottom: 2,
+                      transition: "background 0.12s ease",
+                    }}
+                  >
+                    <span style={{ display: "inline-flex", color: "var(--text-2)", flexShrink: 0 }}>
+                      <LogOutIcon />
+                    </span>
                     Sign in
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => router.push("/register")}>
+                  <DropdownMenuItem
+                    onClick={() => router.push("/register")}
+                    style={{
+                      padding: "10px 10px",
+                      borderRadius: 8,
+                      fontSize: 13,
+                      lineHeight: 1.3,
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 10,
+                      transition: "background 0.12s ease",
+                    }}
+                  >
+                    <span style={{ display: "inline-flex", color: "var(--text-2)", flexShrink: 0 }}>
+                      <UserIcon />
+                    </span>
                     Create account
                   </DropdownMenuItem>
                 </>
