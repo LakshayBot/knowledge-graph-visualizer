@@ -66,7 +66,7 @@ _GROK_PROFILES: dict[str, dict] = {
 _GROK_PROFILE = _GROK_PROFILES.get(GENERATION_MODE, _GROK_PROFILES["minimal"])
 
 # PostgreSQL (for AI prompt/response audit logging)
-POSTGRES_URL    = os.getenv("POSTGRES_URL", "postgresql://casual:postgres@localhost:5432/CasualExplorerDb")
+POSTGRES_URL    = os.getenv("POSTGRES_URL", "postgresql://causal:postgres@localhost:5432/CausalExplorerDb")
 
 COLLECTION  = "casual_events"
 VECTOR_DIM  = 768   # nomic-embed-text output dimension
