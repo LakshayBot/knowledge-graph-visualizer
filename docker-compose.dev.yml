@@ -2,7 +2,7 @@
 # Usage: docker compose -f docker-compose.yml -f docker-compose.dev.yml up
 # All services run with hot-reload, debug ports exposed, and dev tooling enabled.
 
-name: casual-explorer
+name: causal-explorer
 
 services:
 

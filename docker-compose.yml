@@ -2,7 +2,7 @@
 # Note: PostgreSQL is used (not SQL Server) to match the Npgsql/EF Core configuration.
 # All sensitive values are sourced from .env — copy .env.example to .env before first run.
 
-name: casual-explorer
+name: causal-explorer
 
 networks:
   casual-net:
