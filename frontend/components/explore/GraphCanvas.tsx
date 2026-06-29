@@ -540,8 +540,8 @@ export default function GraphCanvas({
                 {edgeLabelText.length > 16 ? edgeLabelText.slice(0, 16) + "…" : edgeLabelText}
               </text>
             )}
-            {/* Hover tooltip with full explanation */}
-            {isActive && edge.explanation && (
+            {/* Edge tooltip — only on direct edge hover (not node selection) */}
+            {isEdgeHovered && edge.explanation && (
               <foreignObject
                 x={qx - 140}
                 y={qy + 12}
@@ -771,8 +771,8 @@ export default function GraphCanvas({
               {confPct}%
             </text>
 
-            {/* Tooltip on hover */}
-            {(isHovered || isSelected) && node.summary && (
+            {/* Tooltip — only on hover, not selection (sidebar shows full details) */}
+            {isHovered && node.summary && (
               <foreignObject
                 x={pos.x - 110}
                 y={pos.y - r - 56}
