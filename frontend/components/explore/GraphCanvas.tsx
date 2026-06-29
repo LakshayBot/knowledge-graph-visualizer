@@ -484,15 +484,8 @@ export default function GraphCanvas({
             onMouseEnter={() => setHoveredEdge(edge.id)}
             onMouseLeave={() => setHoveredEdge(null)}
           >
-            {/* Invisible wider hit area for easier edge hovering */}
-            <path
-              d={d}
-              fill="none"
-              stroke="transparent"
-              strokeWidth={14}
-              style={{ cursor: "pointer" }}
-            />
-            {/* Edge path — strength-encoded */}
+            {/* Edge path — strength-encoded. pointer-events: stroke allows
+                hovering the edge without blocking node hover/click events. */}
             <path
               d={d}
               fill="none"
@@ -509,7 +502,7 @@ export default function GraphCanvas({
               }
               strokeOpacity={isActive ? 1 : edge.isContested ? 0.5 : strengthOpacity}
               markerEnd={markerEnd}
-              style={{ transition: "stroke 0.2s, stroke-width 0.2s, stroke-opacity 0.2s" }}
+              style={{ transition: "stroke 0.2s, stroke-width 0.2s, stroke-opacity 0.2s", pointerEvents: "stroke" }}
             />
             {/* Strength badge */}
             <text
