@@ -17,6 +17,7 @@ import ModeSelectorBar from "@/components/explore/ModeSelectorBar";
 import type { ExploreMode } from "@/components/explore/ModeSelectorBar";
 import DiscoveryCards from "@/components/explore/DiscoveryCards";
 import InsightPanel from "@/components/explore/InsightPanel";
+import StrengthLegend from "@/components/explore/StrengthLegend";
 import { useTimeline } from "@/hooks/useTimeline";
 import { useSimulation } from "@/hooks/useSimulation";
 import type { GraphNode, GraphEdge } from "@/types/graph";
@@ -492,6 +493,9 @@ function ExploreContent() {
             </div>
           </motion.div>
 
+          {/* Strength legend (fixed position overlay) */}
+          <StrengthLegend hasEdges={edges.length > 0} />
+
           {/* Insight cards */}
           <InsightPanel nodes={nodes} edges={edges} />
 
@@ -747,7 +751,7 @@ function ExploreContent() {
 
       {/* Discovery cards (above command bar) */}
       <div style={{ position: "absolute", bottom: "clamp(130px, 18vh, 180px)", left: 24, right: 24, maxWidth: 320, pointerEvents: "auto", zIndex: 10 }}>
-        <DiscoveryCards nodes={nodes} onQuerySelect={setQuery} />
+        <DiscoveryCards nodes={nodes} query={query} onQuerySelect={setQuery} />
       </div>
 
       {/* ── Error toast ── */}

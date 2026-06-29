@@ -88,6 +88,7 @@ export default function GraphCanvas({
   heatmap,
 }: Props) {
   const [hovered, setHovered] = useState<string | null>(null);
+  const [hoveredEdge, setHoveredEdge] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
 
   const [viewBox, setViewBox] = useState(DEFAULT_VIEW_BOX);
@@ -396,7 +397,9 @@ export default function GraphCanvas({
         // ── Strength-based visual encoding ─────────────────────────
         const strength = edge.strength ?? 0.5;
         const strengthPct = Math.round(strength * 100);
+        const isEdgeHovered = hoveredEdge === edge.id;
         const isActive =
+          isEdgeHovered ||
           hovered === edge.fromId ||
           hovered === edge.toId ||
           selected === edge.fromId ||
@@ -433,7 +436,20 @@ export default function GraphCanvas({
         const { mx: qx, my: qy } = edgeMidpoint(sx, sy, ex, ey);
 
         return (
-          <g key={edge.id} style={edgeAnimStyle}>
+          <g
+            key={edge.id}
+            style={edgeAnimStyle}
+            onMouseEnter={() => setHoveredEdge(edge.id)}
+            onMouseLeave={() => setHoveredEdge(null)}
+          >
+            {/* Invisible wider hit area for easier edge hovering */}
+            <path
+              d={d}
+              fill="none"
+              stroke="transparent"
+              strokeWidth={14}
+              style={{ cursor: "pointer" }}
+            />
             {/* Edge path — strength-encoded */}
             <path
               d={d}
@@ -754,41 +770,6 @@ export default function GraphCanvas({
           </g>
         );
       })}
-
-      {/* ── Strength legend (top-left) ─────────────────── */}
-      {nodes.length > 0 && (
-        <foreignObject x={viewBox.x + 12} y={viewBox.y + 12} width={160} height={90} style={{ pointerEvents: "none" }}>
-          <div
-            style={{
-              background: "rgba(255,255,255,0.88)",
-              backdropFilter: "blur(8px)",
-              borderRadius: 8,
-              border: "1px solid var(--border)",
-              padding: "8px 10px",
-              fontSize: 9,
-              fontFamily: "'JetBrains Mono', monospace",
-              color: "var(--text-3)",
-              lineHeight: 1.5,
-              boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
-            }}
-          >
-            <div style={{ fontWeight: 700, color: "var(--text-1)", marginBottom: 4, fontSize: 10 }}>
-              Edge Strength
-            </div>
-            {[
-              { label: "0–25%", color: "var(--text-4)", w: 0.8 },
-              { label: "25–50%", color: "#f0a060", w: 1.2 },
-              { label: "50–75%", color: "#e88040", w: 1.8 },
-              { label: "75–100%", color: "#d06020", w: 2.4 },
-            ].map((tier) => (
-              <div key={tier.label} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <svg width={20} height={8}><line x1={0} y1={4} x2={20} y2={4} stroke={tier.color} strokeWidth={tier.w} /></svg>
-                <span>{tier.label}</span>
-              </div>
-            ))}
-          </div>
-        </foreignObject>
-      )}
 
       {/* Float animation keyframes + reduced-motion support */}
       <style>{`

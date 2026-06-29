@@ -5,50 +5,57 @@ import type { GraphNode } from "@/types/graph";
 
 interface DiscoveryCardsProps {
   nodes: GraphNode[];
+  query: string;
   onQuerySelect: (query: string) => void;
 }
 
-/** Generate follow-up questions based on graph content */
-function generateSuggestions(nodes: GraphNode[]): string[] {
+/** Generate follow-up questions relevant to the current query and graph */
+function generateSuggestions(nodes: GraphNode[], query: string): string[] {
   const suggestions: string[] = [];
+  const titles = nodes.map((n) => n.title);
   const domains = new Set(nodes.map((n) => n.domain).filter(Boolean));
 
-  if (domains.has("Economics")) {
-    suggestions.push("How did global trade policies evolve between 1990 and 2025?");
+  // Use the query topic to generate targeted follow-ups
+  const q = query.toLowerCase();
+  const hasDomain = (d: string) => domains.has(d);
+
+  // Identify key entities from node titles for specific suggestions
+  const nodeWords = titles.flatMap((t) => t.toLowerCase().split(/\s+/)).filter((w) => w.length > 4);
+  const uniqueWords = [...new Set(nodeWords)];
+
+  // Generate specific follow-ups based on actual node content
+  const topNodes = titles.slice(0, 3);
+  if (topNodes.length >= 1) {
+    const sample = topNodes[0];
+    suggestions.push(`What led to ${sample.toLowerCase()} and what were its consequences?`);
   }
-  if (domains.has("Geopolitics") || domains.has("Military")) {
-    suggestions.push("What were the key turning points in modern geopolitical conflicts?");
-  }
-  if (domains.has("Technology")) {
-    suggestions.push("How did AI development from 2010 to 2025 reshape global industries?");
-  }
-  if (domains.has("Social") || domains.has("Cultural")) {
-    suggestions.push("What social movements had the most impact between 2000 and 2025?");
+  if (topNodes.length >= 2) {
+    const a = topNodes[0].split(" ").slice(0, 3).join(" ");
+    const b = topNodes[1].split(" ").slice(0, 3).join(" ");
+    if (a !== b) {
+      suggestions.push(`How are "${a}" and "${b}" causally connected?`);
+    }
   }
 
-  // Add topic-specific suggestions based on node titles
-  const titles = nodes.map((n) => n.title.toLowerCase());
-  if (titles.some((t) => t.includes("crisis") || t.includes("financial"))) {
-    suggestions.push("Could the 2008 financial crisis have been prevented?");
-  }
-  if (titles.some((t) => t.includes("pandemic") || t.includes("covid"))) {
-    suggestions.push("How will pandemic preparedness change global health policy by 2030?");
-  }
-  if (titles.some((t) => t.includes("war") || t.includes("conflict"))) {
-    suggestions.push("What economic sanctions have been most effective since 2000?");
+  // Domain-aware suggestion
+  if (hasDomain("Economics")) {
+    suggestions.push(`What economic factors most influenced ${topNodes[0]?.toLowerCase() || "these events"}?`);
+  } else if (hasDomain("Geopolitics")) {
+    suggestions.push(`What geopolitical shifts enabled ${topNodes[0]?.toLowerCase() || "these developments"}?`);
+  } else if (hasDomain("Technology")) {
+    suggestions.push(`What technological breakthroughs drove ${topNodes[0]?.toLowerCase() || "this change"}?`);
+  } else if (topNodes[0]) {
+    suggestions.push(`What were the root causes of ${topNodes[0].toLowerCase()}?`);
   }
 
-  // Fill up to 4 suggestions
-  if (suggestions.length < 3) {
-    suggestions.push("What hidden connections exist in this knowledge graph?");
-    suggestions.push("How do these events connect to current global trends?");
-  }
+  // Contested/alternative perspective
+  suggestions.push(`Are there competing explanations for ${topNodes[0]?.toLowerCase() || "this pattern"}?`);
 
   return suggestions.slice(0, 4);
 }
 
-export default function DiscoveryCards({ nodes, onQuerySelect }: DiscoveryCardsProps) {
-  const suggestions = useMemo(() => generateSuggestions(nodes), [nodes]);
+export default function DiscoveryCards({ nodes, query, onQuerySelect }: DiscoveryCardsProps) {
+  const suggestions = useMemo(() => generateSuggestions(nodes, query), [nodes, query]);
 
   if (nodes.length === 0) return null;
 
