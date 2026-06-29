@@ -94,10 +94,12 @@ export default function GraphCanvas({
   const [hoveredEdge, setHoveredEdge] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
 
-  const [viewBox, setViewBox] = useState(DEFAULT_VIEW_BOX);
+  // User-controlled viewBox (set by pan/zoom). null = auto-fit to layoutBounds.
+  const [userViewBox, setUserViewBox] = useState<typeof DEFAULT_VIEW_BOX | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const dragging = useRef(false);
   const last = useRef({ x: 0, y: 0 });
+  const prevGraphSig = useRef("");
 
   const positions = useForceLayout(nodes, edges, rootId);
   const graphSignature = useMemo(
@@ -123,12 +125,38 @@ export default function GraphCanvas({
     };
   }, [positions]);
 
+  // ── Synchronous viewBox reset on graph change (not deferred to effect) ──
+  // When the graph structure changes, immediately snap to layoutBounds on THIS render
+  // so that tooltips and foreignObjects are positioned using the correct coordinate
+  // transform. The useEffect-based approach fires AFTER the DOM commit, causing
+  // a stale-frame where new node positions render through the old viewBox.
+  const graphChanged = prevGraphSig.current !== "" && prevGraphSig.current !== graphSignature;
+  if (graphChanged) {
+    // Reset during render — userViewBox is state, but we force the display value
+    // via the derived computation below. We'll sync state in the effect.
+    prevGraphSig.current = graphSignature;
+  } else if (prevGraphSig.current === "") {
+    prevGraphSig.current = graphSignature;
+  }
+
+  // Derived viewBox: auto-fit on graph change, user-controlled otherwise
+  const viewBox = graphChanged ? layoutBounds : (userViewBox ?? layoutBounds);
+
+  // Sync graph change to state (side-effect only — display is handled above)
   useEffect(() => {
-    setViewBox(layoutBounds);
-    setHovered(null);
-    setHoveredEdge(null);
-    setSelected(null);
-  }, [graphSignature, layoutBounds]);
+    if (graphChanged) {
+      if (process.env.NODE_ENV === "development") {
+        console.debug(
+          "[GraphCanvas] graph changed — resetting viewBox to layoutBounds",
+          { prevSig: prevGraphSig.current, graphSignature, layoutBounds }
+        );
+      }
+      setUserViewBox(null);        // reset to auto-fit
+      setHovered(null);
+      setHoveredEdge(null);
+      setSelected(null);
+    }
+  });
 
   // Clear hover/selection state when graph structure changes (expansion)
   useEffect(() => {
@@ -146,15 +174,16 @@ export default function GraphCanvas({
       const mx = e.clientX - rect.left,
         my = e.clientY - rect.top;
       const scale = e.deltaY > 0 ? 1.15 : 1 / 1.15;
-      setViewBox((vb) => {
-        const sx = vb.w / rect.width,
-          sy = vb.h / rect.height;
-        const cx = vb.x + mx * sx,
-          cy = vb.y + my * sy;
+      setUserViewBox((vb) => {
+        const current = vb ?? layoutBounds;
+        const sx = current.w / rect.width,
+          sy = current.h / rect.height;
+        const cx = current.x + mx * sx,
+          cy = current.y + my * sy;
         const maxW = Math.max(VW * 5, layoutBounds.w * 3);
         const maxH = Math.max(VH * 5, layoutBounds.h * 3);
-        const nw = Math.max(180, Math.min(maxW, vb.w * scale));
-        const nh = Math.max(120, Math.min(maxH, vb.h * scale));
+        const nw = Math.max(180, Math.min(maxW, current.w * scale));
+        const nh = Math.max(120, Math.min(maxH, current.h * scale));
         return {
           x: cx - (mx / rect.width) * nw,
           y: cy - (my / rect.height) * nh,
@@ -181,14 +210,15 @@ export default function GraphCanvas({
     const dx = e.clientX - last.current.x,
       dy = e.clientY - last.current.y;
     last.current = { x: e.clientX, y: e.clientY };
-    setViewBox((vb) => {
+    setUserViewBox((vb) => {
       const svg = svgRef.current;
-      if (!svg) return vb;
+      const current = vb ?? layoutBounds;
+      if (!svg) return current;
       const rect = svg.getBoundingClientRect();
       return {
-        ...vb,
-        x: vb.x - dx * (vb.w / rect.width),
-        y: vb.y - dy * (vb.h / rect.height),
+        ...current,
+        x: current.x - dx * (current.w / rect.width),
+        y: current.y - dy * (current.h / rect.height),
       };
     });
   }, []);
