@@ -8,9 +8,9 @@ interface Position {
   y: number;
 }
 
-const COLUMN_GAP = 230;
-const ROW_GAP = 132;
-const MIN_GAP = 112;
+const COLUMN_GAP = 260;
+const ROW_GAP = 148;
+const MIN_GAP = 140;
 
 function compareByTitle(nodesById: Map<string, GraphNode>) {
   return (a: string, b: string) => {
@@ -126,7 +126,7 @@ export function useForceLayout(nodes: GraphNode[], edges: GraphEdge[], rootId?: 
 
     // ── Local collision avoidance for same-column and cross-column collisions.
     const allPos = Array.from(positions.entries());
-    for (let pass = 0; pass < 6; pass++) {
+    for (let pass = 0; pass < 10; pass++) {
       for (let i = 0; i < allPos.length; i++) {
         for (let j = i + 1; j < allPos.length; j++) {
           const a = allPos[i][1];

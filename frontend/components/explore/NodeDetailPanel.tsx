@@ -10,9 +10,10 @@ interface Props {
   saved?: boolean;
   onExpand?: (nodeId: string) => void;
   expanding?: boolean;
+  isExpanded?: boolean;
 }
 
-export default function NodeDetailPanel({ node, edges, saved, onExpand, expanding }: Props) {
+export default function NodeDetailPanel({ node, edges, saved, onExpand, expanding, isExpanded }: Props) {
   if (!node) {
     return (
       <div
@@ -406,12 +407,13 @@ export default function NodeDetailPanel({ node, edges, saved, onExpand, expandin
       >
         {onExpand && (
           <Button
-            variant="outline"
+            variant={isExpanded ? "primary" : "outline"}
             onClick={() => onExpand(node.id)}
             loading={expanding}
+            disabled={isExpanded}
             style={{ width: "100%" }}
           >
-            Expand Node Network
+            {isExpanded ? "Expanded" : expanding ? "Expanding…" : "Expand Node Network"}
           </Button>
         )}
         {saved && (

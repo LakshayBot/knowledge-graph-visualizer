@@ -18,6 +18,8 @@ interface Props {
   timelineActive?: boolean;
   /** Enable heatmap coloring for nodes and edges */
   heatmap?: boolean;
+  /** Incremented on graph structure changes (expansion/search) to clear UI state */
+  graphVersion?: number;
 }
 
 const R = 28;
@@ -86,6 +88,7 @@ export default function GraphCanvas({
   visibleEdgeIds,
   timelineActive,
   heatmap,
+  graphVersion,
 }: Props) {
   const [hovered, setHovered] = useState<string | null>(null);
   const [hoveredEdge, setHoveredEdge] = useState<string | null>(null);
@@ -123,7 +126,16 @@ export default function GraphCanvas({
   useEffect(() => {
     setViewBox(layoutBounds);
     setHovered(null);
+    setHoveredEdge(null);
+    setSelected(null);
   }, [graphSignature, layoutBounds]);
+
+  // Clear hover/selection state when graph structure changes (expansion)
+  useEffect(() => {
+    setHovered(null);
+    setHoveredEdge(null);
+    setSelected(null);
+  }, [graphVersion]);
 
   const handleWheel = useCallback(
     (e: React.WheelEvent) => {

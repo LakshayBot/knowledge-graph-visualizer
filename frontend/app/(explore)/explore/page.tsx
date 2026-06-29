@@ -68,6 +68,7 @@ function ExploreContent() {
   const [saved, setSaved] = useState(false);
   const [exploreMode, setExploreMode] = useState<ExploreMode>("explain");
   const [heatmapOn, setHeatmapOn] = useState(false);
+  const [expandedNodeIds, setExpandedNodeIds] = useState<Set<string>>(new Set());
 
   // ── Timeline ────────────────────────────────────────────────────────
   const timeline = useTimeline({ nodes, edges });
@@ -120,6 +121,7 @@ function ExploreContent() {
     setChainId(null);
     setRootNodeId(null);
     setSaved(false);
+    setExpandedNodeIds(new Set());
     try {
       const rootEventId = crypto.randomUUID();
       const cd = await apiFetch<{ id: string }>("/casualchains", {
@@ -183,8 +185,11 @@ function ExploreContent() {
   );
 
   async function handleExpand(nodeId: string) {
-    if (!chainId || expanding) return;
+    // Prevent re-expanding the same node or concurrent expansions
+    if (!chainId || expanding || expandedNodeIds.has(nodeId)) return;
     setExpanding(true);
+    // Dismiss any open inspector/tooltips before expansion
+    setSelectedNode(null);
     try {
       const d = await apiFetch<{ nodes?: GraphNode[]; edges?: GraphEdge[] }>(
         `/casualchains/${chainId}/expand/${nodeId}?perspective=Mainstream`,
@@ -204,6 +209,8 @@ function ExploreContent() {
           ...((d.edges ?? []) as GraphEdge[]).filter((e) => !s.has(e.id)),
         ];
       });
+      // Mark this node as expanded
+      setExpandedNodeIds((prev) => new Set(prev).add(nodeId));
     } catch {} finally {
       setExpanding(false);
     }
@@ -304,7 +311,7 @@ function ExploreContent() {
               loading={loading}
               visibleNodeIds={timeline.visibleNodeIds}
               visibleEdgeIds={timeline.visibleEdgeIds}
-              timelineActive={timeline.hasTimeline} heatmap={heatmapOn}
+              timelineActive={timeline.hasTimeline} heatmap={heatmapOn} graphVersion={nodes.length + edges.length}
             />
           </GraphBackground>
         </div>
@@ -322,7 +329,7 @@ function ExploreContent() {
               node={selectedNode}
               edges={simulation.active ? simulation.simulatedEdges : edges}
               saved={saved}
-              onExpand={chainId ? handleExpand : undefined}
+              onExpand={chainId ? handleExpand : undefined} isExpanded={selectedNode ? expandedNodeIds.has(selectedNode.id) : false}
               expanding={expanding}
             />
           </div>
@@ -361,7 +368,7 @@ function ExploreContent() {
               loading={loading}
               visibleNodeIds={timeline.visibleNodeIds}
               visibleEdgeIds={timeline.visibleEdgeIds}
-              timelineActive={timeline.hasTimeline} heatmap={heatmapOn}
+              timelineActive={timeline.hasTimeline} heatmap={heatmapOn} graphVersion={nodes.length + edges.length}
             />
           </GraphBackground>
 
@@ -597,7 +604,7 @@ function ExploreContent() {
               node={selectedNode}
               edges={simulation.active ? simulation.simulatedEdges : edges}
               saved={saved}
-              onExpand={chainId ? handleExpand : undefined}
+              onExpand={chainId ? handleExpand : undefined} isExpanded={selectedNode ? expandedNodeIds.has(selectedNode.id) : false}
               expanding={expanding}
             />
           </motion.aside>
