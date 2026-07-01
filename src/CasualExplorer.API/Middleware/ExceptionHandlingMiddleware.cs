@@ -69,6 +69,13 @@ public sealed class ExceptionHandlingMiddleware
                 _logger.LogInformation("Not found: {Message}", nfe.Message);
                 break;
 
+            case AuthenticationException ae:
+                statusCode = StatusCodes.Status401Unauthorized;
+                title      = "Unauthorized";
+                detail     = ae.Message;
+                _logger.LogInformation("Unauthorized: {Message}", ae.Message);
+                break;
+
             case ForbiddenAccessException fae:
                 statusCode = StatusCodes.Status403Forbidden;
                 title      = "Forbidden";

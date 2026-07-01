@@ -76,10 +76,10 @@ public sealed class LoginCommandHandler : IRequestHandler<LoginCommand, AuthResu
         var user = await _userRepo.GetByEmailAsync(request.Email, cancellationToken);
 
         if (user is null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
-            throw new ForbiddenAccessException("Invalid email or password.");
+            throw new AuthenticationException("Invalid email or password.");
 
         if (!user.IsActive)
-            throw new ForbiddenAccessException("This account has been deactivated.");
+            throw new AuthenticationException("This account has been deactivated.");
 
         user.RecordLogin();
         _userRepo.Update(user);
