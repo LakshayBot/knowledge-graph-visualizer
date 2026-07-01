@@ -294,7 +294,13 @@ async def generate_with_provider(
         model_spec = ModelSpec(display_name=model, max_tokens=max_tokens)
 
     effective_max_tokens = min(max_tokens, model_spec.max_tokens)
-    api_timeout = max(90, int(effective_max_tokens * 0.04))
+
+    # Ollama runs locally on CPU — needs much longer timeouts than cloud APIs.
+    # Cloud APIs get 90 s minimum; Ollama gets 300 s (5 min) minimum.
+    if provider_name == "ollama":
+        api_timeout = max(300, int(effective_max_tokens * 0.3))
+    else:
+        api_timeout = max(90, int(effective_max_tokens * 0.04))
 
     # Build request — all providers use OpenAI-compatible format
     headers: dict[str, str] = {

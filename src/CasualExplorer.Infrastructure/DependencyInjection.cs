@@ -134,13 +134,13 @@ public static class DependencyInjection
         services.AddHttpClient<AIServiceClient>(client =>
         {
             client.BaseAddress = new Uri(baseUrl);
-            client.Timeout     = TimeSpan.FromMinutes(3);
+            client.Timeout     = TimeSpan.FromMinutes(10);
         })
         .AddStandardResilienceHandler(options =>
         {
-            options.Retry.MaxRetryAttempts = 2;
-            options.AttemptTimeout.Timeout  = TimeSpan.FromMinutes(2);
-            options.TotalRequestTimeout.Timeout = TimeSpan.FromMinutes(3);
+            options.Retry.MaxRetryAttempts = 1;
+            options.AttemptTimeout.Timeout  = TimeSpan.FromMinutes(8);
+            options.TotalRequestTimeout.Timeout = TimeSpan.FromMinutes(10);
             options.CircuitBreaker.SamplingDuration = TimeSpan.FromMinutes(5);
         });
 
