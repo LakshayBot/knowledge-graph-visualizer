@@ -15,6 +15,7 @@ with minimal per-provider quirks (auth headers, base URLs).
 
 from __future__ import annotations
 
+import os
 import time
 from dataclasses import dataclass, field
 from typing import Any
@@ -23,6 +24,10 @@ import httpx
 import structlog
 
 log = structlog.get_logger()
+
+# Ollama base URL — respects OLLAMA_URL env var so it works both
+# inside Docker (http://ollama:11434) and on bare metal (http://localhost:11434).
+_OLLAMA_BASE = os.getenv("OLLAMA_URL", "http://localhost:11434").rstrip("/")
 
 
 # ── Data structures ──────────────────────────────────────────────────────────
@@ -176,7 +181,7 @@ PROVIDERS: dict[str, ProviderConfig] = {
     "ollama": ProviderConfig(
         name="ollama",
         display_name="Ollama (Local)",
-        base_url="http://localhost:11434/v1",
+        base_url=f"{_OLLAMA_BASE}/v1",
         env_key_name="",
         description="Run models locally — free, private, no API key needed.",
         requires_key=False,
