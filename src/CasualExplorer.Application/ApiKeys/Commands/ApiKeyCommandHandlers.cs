@@ -28,6 +28,12 @@ internal sealed class ApiKeyCommandHandlers :
         "grok", "openai", "claude", "gemini", "copilot", "ollama"
     };
 
+    // Providers that are not yet available (Coming Soon)
+    private static readonly HashSet<string> ComingSoonProviders = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "openai", "claude", "gemini", "copilot"
+    };
+
     // Provider display names
     private static readonly Dictionary<string, string> ProviderDisplayNames = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -64,6 +70,13 @@ internal sealed class ApiKeyCommandHandlers :
                 new FluentValidation.Results.ValidationFailure(
                     nameof(request.Provider),
                     $"Unsupported provider: {provider}. Supported: {string.Join(", ", ValidProviders)}")
+            ]);
+
+        if (ComingSoonProviders.Contains(provider))
+            throw new ValidationException([
+                new FluentValidation.Results.ValidationFailure(
+                    nameof(request.Provider),
+                    $"{ProviderDisplayNames.GetValueOrDefault(provider, provider)} is coming soon — API keys are not yet accepted for this provider.")
             ]);
 
         if (string.IsNullOrWhiteSpace(request.ApiKey))
@@ -104,6 +117,7 @@ internal sealed class ApiKeyCommandHandlers :
             HasKey: true,
             KeyPrefix: keyPrefix,
             IsActive: true,
+            IsComingSoon: false,
             LastVerifiedAt: existing?.LastVerifiedAt
         );
     }
@@ -140,6 +154,7 @@ internal sealed class ApiKeyCommandHandlers :
                 HasKey: key is not null && key.IsActive,
                 KeyPrefix: key?.KeyPrefix,
                 IsActive: key?.IsActive ?? false,
+                IsComingSoon: ComingSoonProviders.Contains(p),
                 LastVerifiedAt: key?.LastVerifiedAt
             );
         }).ToList();

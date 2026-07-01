@@ -17,6 +17,7 @@ interface ProviderInfo {
   displayName: string;
   description: string;
   requiresKey: boolean;
+  isComingSoon: boolean;
   models: ModelInfo[];
 }
 
@@ -73,6 +74,7 @@ export default function ProviderModelSelector({
 
   const handleProviderSelect = (provName: string) => {
     const p = providers.find((pr) => pr.name === provName);
+    if (p?.isComingSoon) return; // prevent switching to coming-soon providers
     const defaultModel = p?.models[0]?.name || "";
     onProviderChange(provName, defaultModel);
   };
@@ -162,7 +164,7 @@ export default function ProviderModelSelector({
       >
         {providers.map((p) => (
           <option key={p.name} value={p.name}>
-            {p.displayName}
+            {p.displayName}{p.isComingSoon ? " (Coming Soon)" : ""}
           </option>
         ))}
       </select>
@@ -214,6 +216,7 @@ function getDefaultProviders(): ProviderInfo[] {
       displayName: "Grok (xAI)",
       description: "",
       requiresKey: true,
+      isComingSoon: false,
       models: [
         { name: "grok-3-mini", displayName: "Grok 3 Mini", maxTokens: 4000 },
         { name: "grok-3", displayName: "Grok 3", maxTokens: 8000 },
@@ -224,6 +227,7 @@ function getDefaultProviders(): ProviderInfo[] {
       displayName: "OpenAI",
       description: "",
       requiresKey: true,
+      isComingSoon: true,
       models: [
         { name: "gpt-4o", displayName: "GPT-4o", maxTokens: 4096 },
         { name: "gpt-4o-mini", displayName: "GPT-4o Mini", maxTokens: 4096 },
@@ -234,6 +238,7 @@ function getDefaultProviders(): ProviderInfo[] {
       displayName: "Anthropic Claude",
       description: "",
       requiresKey: true,
+      isComingSoon: true,
       models: [
         { name: "claude-sonnet-4-6", displayName: "Claude Sonnet 4.6", maxTokens: 4096 },
         { name: "claude-haiku-4-5", displayName: "Claude Haiku 4.5", maxTokens: 4096 },
@@ -244,6 +249,7 @@ function getDefaultProviders(): ProviderInfo[] {
       displayName: "Ollama (Local)",
       description: "",
       requiresKey: false,
+      isComingSoon: false,
       models: [
         { name: "llama3.2", displayName: "Llama 3.2", maxTokens: 4096 },
         { name: "mistral", displayName: "Mistral", maxTokens: 4096 },

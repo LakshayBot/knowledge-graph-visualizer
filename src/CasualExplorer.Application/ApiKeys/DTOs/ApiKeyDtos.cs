@@ -7,6 +7,7 @@ public sealed record ApiKeyStatusDto(
     bool HasKey,
     string? KeyPrefix,
     bool IsActive,
+    bool IsComingSoon,
     DateTime? LastVerifiedAt
 );
 

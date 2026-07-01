@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { apiFetch } from "@/lib/api-client";
-import { Key, Trash2, Eye, EyeOff, Check, X, Loader2 } from "lucide-react";
+import { Key, Trash2, Eye, EyeOff, Check, X, Loader2, Clock } from "lucide-react";
 
 /* ── Types ─────────────────────────────────────────────────── */
 
@@ -12,6 +12,7 @@ interface ApiKeyStatus {
   hasKey: boolean;
   keyPrefix: string | null;
   isActive: boolean;
+  isComingSoon: boolean;
   lastVerifiedAt: string | null;
 }
 
@@ -177,7 +178,17 @@ export default function ApiKeysSection() {
                   >
                     {k.providerDisplayName}
                   </p>
-                  {!k.hasKey && (
+                  {k.isComingSoon ? (
+                    <p
+                      style={{
+                        margin: "2px 0 0",
+                        fontSize: 12,
+                        color: "#d97706",
+                      }}
+                    >
+                      Available soon — stay tuned
+                    </p>
+                  ) : !k.hasKey ? (
                     <p
                       style={{
                         margin: "2px 0 0",
@@ -187,7 +198,7 @@ export default function ApiKeysSection() {
                     >
                       No key configured
                     </p>
-                  )}
+                  ) : null}
                   {k.hasKey && k.isActive && (
                     <p
                       style={{
@@ -208,7 +219,23 @@ export default function ApiKeysSection() {
 
             {/* Status badge */}
             <div style={{ flexShrink: 0 }}>
-              {k.hasKey && k.isActive ? (
+              {k.isComingSoon ? (
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 4,
+                    padding: "4px 10px",
+                    borderRadius: 20,
+                    fontSize: 11,
+                    fontWeight: 600,
+                    background: "rgba(245,158,11,0.1)",
+                    color: "#d97706",
+                  }}
+                >
+                  <Clock size={12} /> Coming Soon
+                </span>
+              ) : k.hasKey && k.isActive ? (
                 <span
                   style={{
                     display: "inline-flex",
@@ -245,7 +272,26 @@ export default function ApiKeysSection() {
 
             {/* Actions */}
             <div style={{ flexShrink: 0, display: "flex", gap: 6 }}>
-              {k.hasKey ? (
+              {k.isComingSoon ? (
+                <span
+                  style={{
+                    padding: "6px 14px",
+                    background: "transparent",
+                    border: "1px dashed var(--border)",
+                    borderRadius: 6,
+                    color: "var(--text-4)",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 4,
+                    fontSize: 12,
+                    fontWeight: 500,
+                    fontFamily: "inherit",
+                    cursor: "default",
+                  }}
+                >
+                  <Clock size={14} /> Coming Soon
+                </span>
+              ) : k.hasKey ? (
                 <button
                   onClick={() => handleRemove(k.provider)}
                   title="Remove key"

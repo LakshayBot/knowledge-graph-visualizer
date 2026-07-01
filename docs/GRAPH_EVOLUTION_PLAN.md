@@ -677,3 +677,5 @@ Do not skip planning.
 Do not redesign architecture midway.
 
 Do not introduce breaking changes.
+
+sk-proj-REPLACE_WITH_YOUR_OPENAI_KEY
