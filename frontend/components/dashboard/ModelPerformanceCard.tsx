@@ -1,6 +1,9 @@
 "use client";
 
+import { useState, useMemo, useCallback } from "react";
 import type { ModelHeatmap } from "./metrics-data";
+
+const LS_KEY = "dashboard-selected-model";
 
 interface Props {
   data: ModelHeatmap[];
@@ -34,6 +37,25 @@ const BR: Record<number, string> = {
 };
 
 const WEEKDAYS = ["", "Mon", "", "Wed", "", "Fri", ""];
+
+/* ── Dropdown styles (extracted for reuse) ───────── */
+const selectStyle: React.CSSProperties = {
+  padding: "4px 28px 4px 10px",
+  fontSize: 12,
+  fontWeight: 500,
+  fontFamily: "'JetBrains Mono', monospace",
+  color: "var(--dash-text)",
+  background: "var(--dash-surface-high)",
+  border: "1px solid var(--dash-border-light)",
+  borderRadius: 6,
+  cursor: "pointer",
+  outline: "none",
+  appearance: "none",
+  WebkitAppearance: "none",
+  MozAppearance: "none",
+  maxWidth: 180,
+  textOverflow: "ellipsis",
+};
 
 /* ── Build column-major cell matrix ──────────────── */
 type Cell = { date: Date; label: string; score: number } | null;
@@ -89,16 +111,245 @@ function buildGrid(scores: { day: string; score: number }[]) {
   return { cells, weeks, months };
 }
 
+/* ── Check if a model has any activity ───────────── */
+function hasActivity(model: ModelHeatmap): boolean {
+  return model.dailyScores.some((s) => s.score > 0);
+}
+
+/* ── Card header with dropdown ───────────────────── */
+function CardHeader({
+  models,
+  selected,
+  onChange,
+}: {
+  models: string[];
+  selected: string;
+  onChange: (model: string) => void;
+}) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "flex-start",
+        gap: 12,
+        marginBottom: 4,
+      }}
+    >
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <h3
+          style={{
+            fontFamily: "Manrope, sans-serif",
+            fontSize: 18,
+            fontWeight: 600,
+            color: "var(--dash-text)",
+            margin: "0 0 2px",
+          }}
+        >
+          Model Activity
+        </h3>
+        <p
+          style={{
+            fontFamily: "'Hanken Grotesk', sans-serif",
+            fontSize: 14,
+            color: "var(--dash-text-secondary)",
+            margin: 0,
+          }}
+        >
+          Daily token volume for {selected}
+        </p>
+      </div>
+
+      {/* Model selector dropdown */}
+      <div style={{ position: "relative", flexShrink: 0 }}>
+        <select
+          value={selected}
+          onChange={(e) => onChange(e.target.value)}
+          style={selectStyle}
+        >
+          {models.map((m) => (
+            <option key={m} value={m}>
+              {m}
+            </option>
+          ))}
+        </select>
+        {/* Custom chevron */}
+        <svg
+          style={{
+            position: "absolute",
+            right: 8,
+            top: "50%",
+            transform: "translateY(-50%)",
+            pointerEvents: "none",
+          }}
+          width={10}
+          height={10}
+          viewBox="0 0 10 10"
+          fill="none"
+          stroke="var(--dash-text-secondary)"
+          strokeWidth={1.5}
+        >
+          <path d="M2 3.5L5 6.5L8 3.5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </div>
+    </div>
+  );
+}
+
+/* ── Heatmap grid for a single model ─────────────── */
+function HeatmapGrid({ grid }: { grid: ReturnType<typeof buildGrid> }) {
+  const { cells, weeks, months } = grid;
+
+  return (
+    <>
+      {/* Grid row: weekday labels + cells */}
+      <div style={{ display: "flex", gap: 6, width: "100%" }}>
+        {/* Weekday labels */}
+        <div style={{ display: "grid", gridTemplateRows: "repeat(7, 1fr)", gap: 3, flexShrink: 0 }}>
+          {WEEKDAYS.map((l, i) => (
+            <div
+              key={i}
+              style={{
+                width: 28,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "flex-end",
+                fontSize: 10,
+                fontWeight: 500,
+                color: "var(--dash-text-secondary)",
+                fontFamily: "'JetBrains Mono', monospace",
+              }}
+            >
+              {l}
+            </div>
+          ))}
+        </div>
+
+        {/* Responsive cell grid */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div
+            style={{
+              display: "grid",
+              gridAutoFlow: "column",
+              gridTemplateRows: "repeat(7, 1fr)",
+              gridTemplateColumns: `repeat(${weeks}, minmax(10px, 1fr))`,
+              gap: 3,
+              width: "100%",
+            }}
+          >
+            {cells.map((cell, idx) => {
+              if (!cell)
+                return (
+                  <div
+                    key={`e-${idx}`}
+                    style={{ aspectRatio: "1 / 1", borderRadius: 3, background: "transparent" }}
+                  />
+                );
+              const lv = heatLevel(cell.score);
+              return (
+                <div
+                  key={`${cell.label}-${idx}`}
+                  title={`${cell.date.toLocaleDateString("en-US", { month: "short", day: "numeric" })}${cell.score > 0 ? ` · ${cell.score}% activity` : " · No activity"}`}
+                  style={{
+                    aspectRatio: "1 / 1",
+                    borderRadius: 3,
+                    background: BG[lv],
+                    opacity: OP[lv],
+                    border: BR[lv],
+                    cursor: cell.score > 0 ? "pointer" : "default",
+                    transition: "transform 0.12s ease, opacity 0.12s ease",
+                    position: "relative",
+                    minWidth: 0,
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.opacity = "1";
+                    e.currentTarget.style.transform = "scale(1.3)";
+                    e.currentTarget.style.zIndex = "1";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.opacity = String(OP[lv]);
+                    e.currentTarget.style.transform = "scale(1)";
+                    e.currentTarget.style.zIndex = "";
+                  }}
+                />
+              );
+            })}
+          </div>
+
+          {/* Month labels */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: `repeat(${weeks}, minmax(10px, 1fr))`,
+              gap: 3,
+              marginTop: 6,
+              width: "100%",
+            }}
+          >
+            {Array.from({ length: weeks }).map((_, col) => {
+              const m = months.find((x) => x.col === col);
+              return (
+                <div
+                  key={col}
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 500,
+                    color: "var(--dash-text-secondary)",
+                    fontFamily: "'JetBrains Mono', monospace",
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                  }}
+                >
+                  {m?.label ?? ""}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
 /* ── Component ───────────────────────────────────── */
 export default function ModelPerformanceCard({ data }: Props) {
-  if (data.length === 0) {
-    return (
-      <div style={{ background: "var(--dash-surface)", borderRadius: "0.75rem", border: "1px solid var(--dash-card-border)", boxShadow: "var(--dash-card-shadow)", padding: 24, height: "100%", transition: "background 0.3s ease" }}>
-        <h3 style={{ fontFamily: "Manrope, sans-serif", fontSize: 18, fontWeight: 600, color: "var(--dash-text)", margin: 0 }}>Model Activity</h3>
-        <p style={{ fontSize: 13, color: "var(--dash-text-secondary)", textAlign: "center", padding: "60px 0" }}>No model data recorded yet.</p>
-      </div>
-    );
-  }
+  // Derive model list from data — stable order, no duplicates
+  const models = useMemo(
+    () => [...new Set(data.map((m) => m.model))],
+    [data]
+  );
+
+  // Persist selected model in localStorage; default to first available
+  const [selected, setSelected] = useState<string>(() => {
+    if (typeof window === "undefined") return "";
+    const stored = localStorage.getItem(LS_KEY);
+    if (stored && models.includes(stored)) return stored;
+    return models[0] ?? "";
+  });
+
+  const handleModelChange = useCallback((model: string) => {
+    setSelected(model);
+    try { localStorage.setItem(LS_KEY, model); } catch { /* quota exceeded — ignore */ }
+  }, []);
+
+  // Sync selected when data loads (covers first render after fetch)
+  const effectiveModel = models.includes(selected) ? selected : (models[0] ?? "");
+
+  // Find the selected model's data
+  const modelData = useMemo(
+    () => data.find((m) => m.model === effectiveModel) ?? null,
+    [data, effectiveModel]
+  );
+
+  // Memoize the grid so changing models doesn't re-trigger unrelated renders
+  const grid = useMemo(
+    () => (modelData ? buildGrid(modelData.dailyScores) : null),
+    [modelData]
+  );
+
+  const empty = data.length === 0;
+  const noActivity = modelData && !hasActivity(modelData);
 
   return (
     <div
@@ -122,95 +373,109 @@ export default function ModelPerformanceCard({ data }: Props) {
         e.currentTarget.style.borderColor = "var(--dash-card-border)";
       }}
     >
-      <h3 style={{ fontFamily: "Manrope, sans-serif", fontSize: 18, fontWeight: 600, color: "var(--dash-text)", margin: "0 0 2px" }}>Model Activity</h3>
-      <p style={{ fontFamily: "'Hanken Grotesk', sans-serif", fontSize: 14, color: "var(--dash-text-secondary)", margin: "0 0 20px" }}>Daily token volume per model</p>
+      {/* Header with dropdown (hidden when no data at all) */}
+      {!empty && (
+        <CardHeader
+          models={models}
+          selected={effectiveModel}
+          onChange={handleModelChange}
+        />
+      )}
 
-      {/* Heatmap — fills card width */}
-      <div style={{ flex: 1, minHeight: 0 }}>
-        {data.map((model) => {
-          const { cells, weeks, months } = buildGrid(model.dailyScores);
+      {/* Empty: no data at all */}
+      {empty && (
+        <>
+          <h3
+            style={{
+              fontFamily: "Manrope, sans-serif",
+              fontSize: 18,
+              fontWeight: 600,
+              color: "var(--dash-text)",
+              margin: "0 0 2px",
+            }}
+          >
+            Model Activity
+          </h3>
+          <p
+            style={{
+              fontSize: 13,
+              color: "var(--dash-text-secondary)",
+              textAlign: "center",
+              padding: "60px 0",
+            }}
+          >
+            No model data recorded yet.
+          </p>
+        </>
+      )}
 
-          return (
-            <div key={model.model} style={{ marginBottom: data.length > 1 ? 24 : 0, width: "100%" }}>
-              {/* Model name */}
-              <div style={{ fontSize: 12, fontWeight: 600, color: "var(--dash-text-secondary)", fontFamily: "'JetBrains Mono', monospace", marginBottom: 8 }}>
-                {model.model}
-              </div>
+      {/* Empty: model has no activity */}
+      {!empty && noActivity && (
+        <div
+          style={{
+            flex: 1,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            minHeight: 200,
+          }}
+        >
+          <p
+            style={{
+              fontSize: 13,
+              color: "var(--dash-text-secondary)",
+              textAlign: "center",
+              margin: 0,
+            }}
+          >
+            No activity available for this model.
+          </p>
+        </div>
+      )}
 
-              {/* Grid row: weekday labels + cells */}
-              <div style={{ display: "flex", gap: 6, width: "100%" }}>
-                {/* Weekday labels */}
-                <div style={{ display: "grid", gridTemplateRows: "repeat(7, 1fr)", gap: 3, flexShrink: 0 }}>
-                  {WEEKDAYS.map((l, i) => (
-                    <div key={i} style={{ width: 28, display: "flex", alignItems: "center", justifyContent: "flex-end", fontSize: 10, fontWeight: 500, color: "var(--dash-text-secondary)", fontFamily: "'JetBrains Mono', monospace" }}>
-                      {l}
-                    </div>
-                  ))}
-                </div>
+      {/* Heatmap */}
+      {!empty && !noActivity && grid && (
+        <div style={{ flex: 1, minHeight: 0, marginTop: 20 }}>
+          <HeatmapGrid grid={grid} />
+        </div>
+      )}
 
-                {/* Responsive cell grid — 1fr columns fill available width */}
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{
-                    display: "grid",
-                    gridAutoFlow: "column",
-                    gridTemplateRows: "repeat(7, 1fr)",
-                    gridTemplateColumns: `repeat(${weeks}, minmax(10px, 1fr))`,
-                    gap: 3,
-                    width: "100%",
-                  }}>
-                    {cells.map((cell, idx) => {
-                      if (!cell) return <div key={`e-${idx}`} style={{ aspectRatio: "1 / 1", borderRadius: 3, background: "transparent" }} />;
-                      const lv = heatLevel(cell.score);
-                      return (
-                        <div
-                          key={`${cell.label}-${idx}`}
-                          title={`${cell.date.toLocaleDateString("en-US", { month: "short", day: "numeric" })}${cell.score > 0 ? ` · ${cell.score}% activity` : " · No activity"}`}
-                          style={{
-                            aspectRatio: "1 / 1",
-                            borderRadius: 3,
-                            background: BG[lv],
-                            opacity: OP[lv],
-                            border: BR[lv],
-                            cursor: cell.score > 0 ? "pointer" : "default",
-                            transition: "transform 0.12s ease, opacity 0.12s ease",
-                            position: "relative",
-                            minWidth: 0,
-                          }}
-                          onMouseEnter={(e) => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.transform = "scale(1.3)"; e.currentTarget.style.zIndex = "1"; }}
-                          onMouseLeave={(e) => { e.currentTarget.style.opacity = String(OP[lv]); e.currentTarget.style.transform = "scale(1)"; e.currentTarget.style.zIndex = ""; }}
-                        />
-                      );
-                    })}
-                  </div>
-
-                  {/* Month labels — same column grid */}
-                  <div style={{
-                    display: "grid",
-                    gridTemplateColumns: `repeat(${weeks}, minmax(10px, 1fr))`,
-                    gap: 3,
-                    marginTop: 6,
-                    width: "100%",
-                  }}>
-                    {Array.from({ length: weeks }).map((_, col) => {
-                      const m = months.find((x) => x.col === col);
-                      return <div key={col} style={{ fontSize: 10, fontWeight: 500, color: "var(--dash-text-secondary)", fontFamily: "'JetBrains Mono', monospace", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{m?.label ?? ""}</div>;
-                    })}
-                  </div>
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Legend */}
-      <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 4, paddingTop: 16, marginTop: "auto", borderTop: "1px solid var(--dash-border-light)", fontSize: 10 }}>
-        <span style={{ color: "var(--dash-text-secondary)", fontFamily: "'Hanken Grotesk', sans-serif", marginRight: 6 }}>Less</span>
-        {[0, 1, 2, 3, 4].map((lv) => (
-          <span key={lv} style={{ width: 13, height: 13, borderRadius: 3, background: BG[lv], opacity: OP[lv], border: BR[lv], display: "inline-block" }} />
-        ))}
-        <span style={{ color: "var(--dash-text-secondary)", fontFamily: "'Hanken Grotesk', sans-serif", marginLeft: 6 }}>More</span>
-      </div>
+      {/* Legend (always shown when there's data) */}
+      {!empty && (
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "flex-end",
+            alignItems: "center",
+            gap: 4,
+            paddingTop: 16,
+            marginTop: "auto",
+            borderTop: "1px solid var(--dash-border-light)",
+            fontSize: 10,
+          }}
+        >
+          <span style={{ color: "var(--dash-text-secondary)", fontFamily: "'Hanken Grotesk', sans-serif", marginRight: 6 }}>
+            Less
+          </span>
+          {[0, 1, 2, 3, 4].map((lv) => (
+            <span
+              key={lv}
+              style={{
+                width: 13,
+                height: 13,
+                borderRadius: 3,
+                background: BG[lv],
+                opacity: OP[lv],
+                border: BR[lv],
+                display: "inline-block",
+              }}
+            />
+          ))}
+          <span style={{ color: "var(--dash-text-secondary)", fontFamily: "'Hanken Grotesk', sans-serif", marginLeft: 6 }}>
+            More
+          </span>
+        </div>
+      )}
     </div>
   );
 }
