@@ -55,6 +55,8 @@ public sealed class AnalyticsService : IAnalyticsService
         [property: JsonPropertyName("input_tokens")] int? InputTokens,
         [property: JsonPropertyName("output_tokens")] int? OutputTokens,
         [property: JsonPropertyName("cost_usd")] double? CostUsd,
+        [property: JsonPropertyName("provider")] string? Provider,
+        [property: JsonPropertyName("domain")] string? Domain,
         [property: JsonPropertyName("created_at")] string CreatedAt
     );
 
@@ -122,17 +124,17 @@ public sealed class AnalyticsService : IAnalyticsService
         return filled;
     }
 
-    // ── Traffic by category (from endpoint, always show all categories) ──
+    // ── Traffic by category (from prompt content) ──
 
     private static readonly string[] AllCategories =
-        ["Economics", "Geopolitics", "Technology", "Healthcare", "Climate", "General"];
+        ["Economics", "Geopolitics", "Technology", "Healthcare", "Climate", "Military", "Social", "Cultural", "Environmental", "General"];
 
     private static IReadOnlyList<TrafficCategoryDto> ComputeTrafficCategories(IReadOnlyList<PromptLogEntry> logs)
     {
         var total = logs.Count;
 
         var actual = logs
-            .GroupBy(l => MapEndpointToCategory(l.Endpoint))
+            .GroupBy(l => ExtractDomainFromPrompt(l.Prompt))
             .ToDictionary(g => g.Key, g => g.Count());
 
         return AllCategories
@@ -145,15 +147,48 @@ public sealed class AnalyticsService : IAnalyticsService
             .ToList();
     }
 
-    private static string MapEndpointToCategory(string endpoint) => endpoint.ToLowerInvariant() switch
+    /// <summary>
+    /// Extract the most likely domain category from the prompt text using keyword matching.
+    /// Each category has a weighted keyword list; the category with the most keyword hits wins.
+    /// Falls back to "General" when no keywords match.
+    /// </summary>
+    private static string ExtractDomainFromPrompt(string prompt)
     {
-        "graph_generation"     => "Economics",
-        "expand_chain"         => "Geopolitics",
-        "extract_events"       => "Technology",
-        "generate_casual_link" => "Healthcare",
-        "validate_chain"       => "Climate",
-        _                      => "General",
-    };
+        if (string.IsNullOrWhiteSpace(prompt)) return "General";
+
+        var lower = prompt.ToLowerInvariant();
+
+        // Weighted keyword sets — order matters for tie-breaking (first match wins on equal score)
+        var categories = new Dictionary<string, (string[] Keywords, int Priority)>
+        {
+            ["Economics"]      = (new[] { "economy", "economic", "trade", "finance", "financial", "market", "gdp", "recession", "inflation", "tariff", "sanction", "currency", "banking", "fiscal", "monetary" }, 1),
+            ["Geopolitics"]    = (new[] { "geopolitic", "diplomacy", "diplomatic", "treaty", "alliance", "nato", "united nations", "cold war", "foreign policy", "international relation", "sovereignty", "brexit", "regime", "coup", "embassy" }, 2),
+            ["Military"]       = (new[] { "war", "military", "battle", "invasion", "conflict", "troop", "navy", "army", "air force", "nuclear weapon", "missile", "airstrike", "ceasefire", "surrender", "insurgency", "guerrilla" }, 3),
+            ["Technology"]     = (new[] { "technology", "tech", "ai", "artificial intelligence", "software", "computer", "internet", "digital", "cyber", "algorithm", "data", "automation", "robot", "blockchain", "quantum", "semiconductor", "silicon" }, 4),
+            ["Healthcare"]     = (new[] { "health", "healthcare", "medical", "disease", "pandemic", "vaccine", "covid", "virus", "hospital", "drug", "pharma", "epidemic", "public health", "cancer", "treatment", "clinical" }, 5),
+            ["Climate"]        = (new[] { "climate", "environment", "global warming", "carbon", "emission", "pollution", "renewable energy", "fossil fuel", "sustainability", "biodiversity", "ecosystem", "deforestation", "drought", "flood", "hurricane" }, 6),
+            ["Social"]         = (new[] { "society", "social", "civil rights", "protest", "movement", "demographic", "inequality", "poverty", "education", "welfare", "immigration", "refugee", "human rights", "feminism", "lgbt", "discrimination" }, 7),
+            ["Cultural"]       = (new[] { "culture", "cultural", "art", "music", "film", "literature", "religion", "religious", "philosophy", "heritage", "tradition", "language", "media", "entertainment", "sport" }, 8),
+            ["Environmental"]  = (new[] { "environmental", "ecology", "ecological", "conservation", "wildlife", "species", "habitat", "ocean", "marine", "forest", "arctic", "antarctic", "natural resource", "extinction" }, 9),
+        };
+
+        string? best = null;
+        var bestScore = 0;
+        var bestPriority = int.MaxValue;
+
+        foreach (var (cat, (keywords, priority)) in categories)
+        {
+            var score = keywords.Count(k => lower.Contains(k));
+            if (score > bestScore || (score == bestScore && priority < bestPriority))
+            {
+                bestScore    = score;
+                bestPriority = priority;
+                best         = cat;
+            }
+        }
+
+        return bestScore > 0 ? best! : "General";
+    }
 
     // ── Latency from duration_ms ──
 
@@ -166,7 +201,13 @@ public sealed class AnalyticsService : IAnalyticsService
             .ToList();
 
         var avgMs = durations.Count > 0 ? (int)durations.Average() : 0;
-        var uptime = 99.97m;
+
+        // Compute real uptime from error rate (not hardcoded)
+        var total  = logs.Count;
+        var errors = logs.Count(l => !string.IsNullOrEmpty(l.Error));
+        var uptime = total > 0
+            ? Math.Round((total - errors) * 100.0m / total, 2)
+            : 100.00m;
 
         if (durations.Count == 0)
         {

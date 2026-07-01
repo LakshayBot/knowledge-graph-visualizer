@@ -165,7 +165,8 @@ def _resolve_ai_params(request: Request, body_provider: str | None = None, body_
                 ),
             )
 
-    return {"provider": provider, "model": model, "api_key": api_key}
+    user_id = (request.headers.get("X-User-Id") or "").strip() or None
+    return {"provider": provider, "model": model, "api_key": api_key, "user_id": user_id}
 
 
 # ── PostgreSQL helpers ──────────────────────────────────────────────────────────
@@ -191,27 +192,37 @@ async def _log_prompt(
     cost_usd: float | None = None,
     provider: str = "grok",
     user_id: str | None = None,
+    domain: str | None = None,
 ) -> None:
     """Log prompt/response to PostgreSQL for audit and cost tracking."""
     try:
         pool = await _ensure_pool()
         async with pool.acquire() as conn:
-            # Try inserting with provider + user_id columns if they exist
+            # Try inserting with all columns (provider, user_id, domain)
             try:
                 await conn.execute(
-                    """INSERT INTO ai_prompt_logs (endpoint, prompt, response, model, max_tokens, temperature, duration_ms, error, input_tokens, output_tokens, cost_usd, provider, user_id)
-                       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)""",
+                    """INSERT INTO ai_prompt_logs (endpoint, prompt, response, model, max_tokens, temperature, duration_ms, error, input_tokens, output_tokens, cost_usd, provider, user_id, domain)
+                       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)""",
                     endpoint, prompt, response, model, max_tokens, temperature, duration_ms, error,
-                    input_tokens, output_tokens, cost_usd, provider, user_id,
+                    input_tokens, output_tokens, cost_usd, provider, user_id, domain,
                 )
             except Exception:
-                # Fall back to original columns if migration hasn't run yet
-                await conn.execute(
-                    """INSERT INTO ai_prompt_logs (endpoint, prompt, response, model, max_tokens, temperature, duration_ms, error, input_tokens, output_tokens, cost_usd)
-                       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)""",
-                    endpoint, prompt, response, model, max_tokens, temperature, duration_ms, error,
-                    input_tokens, output_tokens, cost_usd,
-                )
+                # Fall back to provider + user_id without domain
+                try:
+                    await conn.execute(
+                        """INSERT INTO ai_prompt_logs (endpoint, prompt, response, model, max_tokens, temperature, duration_ms, error, input_tokens, output_tokens, cost_usd, provider, user_id)
+                           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)""",
+                        endpoint, prompt, response, model, max_tokens, temperature, duration_ms, error,
+                        input_tokens, output_tokens, cost_usd, provider, user_id,
+                    )
+                except Exception:
+                    # Fall back to original columns if migration hasn't run yet
+                    await conn.execute(
+                        """INSERT INTO ai_prompt_logs (endpoint, prompt, response, model, max_tokens, temperature, duration_ms, error, input_tokens, output_tokens, cost_usd)
+                           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)""",
+                        endpoint, prompt, response, model, max_tokens, temperature, duration_ms, error,
+                        input_tokens, output_tokens, cost_usd,
+                    )
     except Exception:
         log.exception("ai_prompt_log.write_failed", endpoint=endpoint)
 
@@ -238,6 +249,37 @@ app.add_middleware(
 
 # ── Qdrant collection bootstrap ────────────────────────────────────────────────
 
+async def _run_migrations() -> None:
+    """Ensure ai_prompt_logs has the latest columns (provider, user_id, domain)."""
+    try:
+        pool = await _ensure_pool()
+        async with pool.acquire() as conn:
+            # Add provider column (v3 migration — tracks which LLM provider was used)
+            await conn.execute("""
+                DO $$ BEGIN
+                    ALTER TABLE ai_prompt_logs ADD COLUMN IF NOT EXISTS provider VARCHAR(50);
+                EXCEPTION WHEN duplicate_column THEN NULL;
+                END $$;
+            """)
+            # Add user_id column (tracks which authenticated user made the request)
+            await conn.execute("""
+                DO $$ BEGIN
+                    ALTER TABLE ai_prompt_logs ADD COLUMN IF NOT EXISTS user_id VARCHAR(100);
+                EXCEPTION WHEN duplicate_column THEN NULL;
+                END $$;
+            """)
+            # Add domain column (tracks the actual topic domain of the prompt)
+            await conn.execute("""
+                DO $$ BEGIN
+                    ALTER TABLE ai_prompt_logs ADD COLUMN IF NOT EXISTS domain VARCHAR(50);
+                EXCEPTION WHEN duplicate_column THEN NULL;
+                END $$;
+            """)
+            log.info("db.migrations.complete", table="ai_prompt_logs")
+    except Exception:
+        log.exception("db.migrations.failed", table="ai_prompt_logs")
+
+
 @app.on_event("startup")
 async def startup_event() -> None:
     qdrant = QdrantClient(url=QDRANT_URL)
@@ -252,6 +294,10 @@ async def startup_event() -> None:
             log.info("qdrant.collection.exists", name=COLLECTION)
         else:
             raise
+
+    # Ensure database schema is up-to-date
+    await _run_migrations()
+
     log.info(
         "ai_service.startup",
         generation_mode=GENERATION_MODE,
@@ -404,6 +450,39 @@ _VALID_PERSPECTIVES = {
 }
 
 
+def _extract_domain_from_prompt(prompt: str) -> str | None:
+    """Extract the most likely domain category from prompt text using keyword matching.
+    Returns None when no keywords match (caller should leave domain as NULL)."""
+    if not prompt:
+        return None
+
+    lower = prompt.lower()
+    categories: dict[str, tuple[list[str], int]] = {
+        "Economics":      (["economy", "economic", "trade", "finance", "financial", "market", "gdp", "recession", "inflation", "tariff", "sanction", "currency", "banking", "fiscal", "monetary"], 1),
+        "Geopolitics":    (["geopolitic", "diplomacy", "diplomatic", "treaty", "alliance", "nato", "united nations", "cold war", "foreign policy", "international relation", "sovereignty", "brexit", "regime", "coup", "embassy"], 2),
+        "Military":       (["war", "military", "battle", "invasion", "conflict", "troop", "navy", "army", "air force", "nuclear weapon", "missile", "airstrike", "ceasefire", "surrender", "insurgency", "guerrilla"], 3),
+        "Technology":     (["technology", "tech", "ai", "artificial intelligence", "software", "computer", "internet", "digital", "cyber", "algorithm", "data", "automation", "robot", "blockchain", "quantum", "semiconductor", "silicon"], 4),
+        "Healthcare":     (["health", "healthcare", "medical", "disease", "pandemic", "vaccine", "covid", "virus", "hospital", "drug", "pharma", "epidemic", "public health", "cancer", "treatment", "clinical"], 5),
+        "Climate":        (["climate", "environment", "global warming", "carbon", "emission", "pollution", "renewable energy", "fossil fuel", "sustainability", "biodiversity", "ecosystem", "deforestation", "drought", "flood", "hurricane"], 6),
+        "Social":         (["society", "social", "civil rights", "protest", "movement", "demographic", "inequality", "poverty", "education", "welfare", "immigration", "refugee", "human rights", "feminism", "lgbt", "discrimination"], 7),
+        "Cultural":       (["culture", "cultural", "art", "music", "film", "literature", "religion", "religious", "philosophy", "heritage", "tradition", "language", "media", "entertainment", "sport"], 8),
+        "Environmental":  (["environmental", "ecology", "ecological", "conservation", "wildlife", "species", "habitat", "ocean", "marine", "forest", "arctic", "antarctic", "natural resource", "extinction"], 9),
+    }
+
+    best: str | None = None
+    best_score = 0
+    best_priority = 999
+
+    for cat, (keywords, priority) in categories.items():
+        score = sum(1 for kw in keywords if kw in lower)
+        if score > best_score or (score == best_score and priority < best_priority):
+            best_score = score
+            best_priority = priority
+            best = cat
+
+    return best if best_score > 0 else None
+
+
 def _coerce_domain(raw: str) -> str:
     mapping = {
         "economic": "Economics", "trade": "Economics", "finance": "Economics",
@@ -553,9 +632,12 @@ async def _llm_generate(
     if not api_key and provider == "grok":
         api_key = GROK_API_KEY  # backward compat
 
-    # Build log callback
+    # Auto-extract domain from the prompt for analytics categorization
+    domain = _extract_domain_from_prompt(prompt)
+
+    # Build log callback — inject user_id and domain from request context
     async def _log_cb(**kwargs) -> None:
-        await _log_prompt(**kwargs)
+        await _log_prompt(user_id=user_id, domain=domain, **kwargs)
 
     try:
         result = await generate_with_provider(
@@ -823,7 +905,7 @@ async def extract_events(body: ExtractEventsRequest, request: Request) -> Extrac
     raw    = await _llm_generate(
         prompt,
         provider=ai["provider"], model=ai["model"], api_key=ai["api_key"],
-        endpoint="extract_events",
+        endpoint="extract_events", user_id=ai["user_id"],
     )
     events = _parse_json_from_llm(raw, array=True)
     return ExtractEventsResponse(events=[ExtractedEventItem(**e) for e in events])
@@ -847,7 +929,7 @@ async def generate_casual_link(body: GenerateCasualLinkRequest, request: Request
     raw  = await _llm_generate(
         prompt,
         provider=ai["provider"], model=ai["model"], api_key=ai["api_key"],
-        endpoint="generate_casual_link",
+        endpoint="generate_casual_link", user_id=ai["user_id"],
     )
     data = _parse_json_from_llm(raw, array=False)
     return CasualLinkResponse(**data)
@@ -880,7 +962,7 @@ async def expand_chain_node(body: ExpandChainRequest, request: Request) -> Expan
     raw   = await _llm_generate(
         prompt,
         provider=ai["provider"], model=ai["model"], api_key=ai["api_key"],
-        endpoint="expand_chain",
+        endpoint="expand_chain", user_id=ai["user_id"],
     )
     nodes = _parse_json_from_llm(raw, array=True)
     return ExpandChainResponse(suggested_nodes=[SuggestedNode(**n) for n in nodes])
@@ -991,6 +1073,8 @@ class PromptLogEntry(BaseModel):
     output_tokens: int | None = None
     cost_usd: float | None = None
     provider: str | None = None
+    user_id: str | None = None
+    domain: str | None = None
     created_at: str
 
 
@@ -1002,21 +1086,15 @@ async def get_prompt_logs(
     """Return recent AI prompt/response logs for debugging."""
     pool = await _ensure_pool()
     async with pool.acquire() as conn:
-        # Check if provider column exists (added in migration v3)
-        has_provider = False
-        try:
-            col_check = await conn.fetch(
-                "SELECT column_name FROM information_schema.columns WHERE table_name='ai_prompt_logs' AND column_name='provider'"
-            )
-            has_provider = len(col_check) > 0
-        except Exception:
-            pass
+        # Check which columns exist (added in migrations)
+        has_provider = await _column_exists(conn, "ai_prompt_logs", "provider")
+        has_user_id  = await _column_exists(conn, "ai_prompt_logs", "user_id")
+        has_domain   = await _column_exists(conn, "ai_prompt_logs", "domain")
 
         cols = "id::text, endpoint, prompt, response, model, max_tokens, temperature, duration_ms, error, input_tokens, output_tokens, cost_usd"
-        if has_provider:
-            cols += ", COALESCE(provider, 'grok') as provider"
-        else:
-            cols += ", 'grok' as provider"
+        cols += ", COALESCE(provider, 'unknown') as provider" if has_provider else ", 'unknown' as provider"
+        cols += ", user_id" if has_user_id else ", NULL as user_id"
+        cols += ", domain" if has_domain else ", NULL as domain"
         cols += ", created_at::text"
 
         if endpoint:
@@ -1030,6 +1108,15 @@ async def get_prompt_logs(
                 limit,
             )
     return [PromptLogEntry(**dict(r)) for r in rows]
+
+
+async def _column_exists(conn: asyncpg.Connection, table: str, column: str) -> bool:
+    """Check whether a column exists in a table."""
+    row = await conn.fetchrow(
+        "SELECT 1 FROM information_schema.columns WHERE table_name=$1 AND column_name=$2",
+        table, column,
+    )
+    return row is not None
 
 
 # ── Lifecycle ───────────────────────────────────────────────────────────────────
