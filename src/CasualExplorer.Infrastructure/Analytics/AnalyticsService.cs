@@ -36,7 +36,9 @@ public sealed class AnalyticsService : IAnalyticsService
             TrafficCategories: ComputeTrafficCategories(logs),
             Latency:           ComputeLatency(logs),
             TokenUsage:        ComputeTokenUsage(logs),
-            ModelHeatmap:      ComputeModelHeatmap(logs)
+            ModelHeatmap:      ComputeModelHeatmap(logs),
+            ModelLatencies:    ComputeModelLatencies(logs),
+            ModelTokenUsage:   ComputeModelTokenUsage(logs)
         );
     }
 
@@ -308,6 +310,42 @@ public sealed class AnalyticsService : IAnalyticsService
             }).ToList();
 
             return new ModelHeatmapDto(model, scores);
+        }).ToList();
+    }
+
+    // ── Per-model latency ──
+
+    private static IReadOnlyList<ModelLatencyDto> ComputeModelLatencies(IReadOnlyList<PromptLogEntry> logs)
+    {
+        var models = logs
+            .Where(l => !string.IsNullOrWhiteSpace(l.Model))
+            .Select(l => l.Model!)
+            .Distinct()
+            .ToList();
+
+        return models.Select(model =>
+        {
+            var modelLogs = logs.Where(l => l.Model == model).ToList();
+            var lat = ComputeLatency(modelLogs);
+            return new ModelLatencyDto(model, lat.AvgMs, lat.UptimePercent, lat.Percentiles);
+        }).ToList();
+    }
+
+    // ── Per-model token usage ──
+
+    private static IReadOnlyList<ModelTokenUsageDto> ComputeModelTokenUsage(IReadOnlyList<PromptLogEntry> logs)
+    {
+        var models = logs
+            .Where(l => !string.IsNullOrWhiteSpace(l.Model))
+            .Select(l => l.Model!)
+            .Distinct()
+            .ToList();
+
+        return models.Select(model =>
+        {
+            var modelLogs = logs.Where(l => l.Model == model).ToList();
+            var usage = ComputeTokenUsage(modelLogs);
+            return new ModelTokenUsageDto(model, usage);
         }).ToList();
     }
 

@@ -117,14 +117,14 @@ export default function DashboardMetrics() {
                 <TrafficCard data={data.trafficCategories} />
               </motion.div>
               <motion.div variants={fadeUp}>
-                <LatencyCard latency={data.latency} />
+                <LatencyCard latency={data.latency} modelLatencies={data.modelLatencies} />
               </motion.div>
             </motion.div>
 
             {/* ── BOTTOM ROW: Token Usage + Model Heatmap ── */}
             <motion.div variants={stagger} initial="hidden" animate="visible" className="dash-bottom-row">
               <motion.div variants={fadeUp}>
-                <TokenUsageCard data={data.tokenUsage} />
+                <TokenUsageCard data={data.tokenUsage} modelTokenUsage={data.modelTokenUsage} />
               </motion.div>
               <motion.div variants={fadeUp}>
                 <ModelPerformanceCard data={data.modelHeatmap} />

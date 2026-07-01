@@ -331,6 +331,8 @@ function ExploreContent() {
               saved={saved}
               onExpand={chainId ? handleExpand : undefined} isExpanded={selectedNode ? expandedNodeIds.has(selectedNode.id) : false}
               expanding={expanding}
+              provider={provider}
+              model={model}
             />
           </div>
         )}
@@ -606,6 +608,8 @@ function ExploreContent() {
               saved={saved}
               onExpand={chainId ? handleExpand : undefined} isExpanded={selectedNode ? expandedNodeIds.has(selectedNode.id) : false}
               expanding={expanding}
+              provider={provider}
+              model={model}
             />
           </motion.aside>
         )}

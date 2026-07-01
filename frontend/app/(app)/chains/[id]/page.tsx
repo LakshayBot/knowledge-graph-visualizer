@@ -7,6 +7,7 @@ import { useBreakpoint } from "@/hooks/useBreakpoint";
 import { apiFetch } from "@/lib/api-client";
 import GraphCanvas from "@/components/explore/GraphCanvas";
 import NodeDetailPanel from "@/components/explore/NodeDetailPanel";
+import ProviderModelSelector from "@/components/explore/ProviderModelSelector";
 import Button from "@/components/shared/Button";
 import type { GraphNode, GraphEdge } from "@/types/graph";
 interface ChainMeta {
@@ -58,6 +59,8 @@ function ChainContent() {
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
   const [rootNodeId, setRootNodeId] = useState<string | null>(null);
   const [expanding, setExpanding] = useState(false);
+  const [provider, setProvider] = useState("grok");
+  const [model, setModel] = useState("grok-3-mini");
 
   useEffect(() => {
     async function load() {
@@ -90,7 +93,10 @@ function ChainContent() {
     if (expanding) return;
     setExpanding(true);
     try {
-      const graphData = await apiFetch<{ nodes?: GraphNode[]; edges?: GraphEdge[] }>(`/casualchains/${id}/expand/${nodeId}?perspective=Mainstream`, { method: "POST" });
+      const graphData = await apiFetch<{ nodes?: GraphNode[]; edges?: GraphEdge[] }>(
+        `/casualchains/${id}/expand/${nodeId}?perspective=Mainstream`,
+        { method: "POST", provider, model }
+      );
       const newNodes: GraphNode[] = graphData.nodes ?? [];
       const newEdges: GraphEdge[] = graphData.edges ?? [];
       setNodes((prev) => {
@@ -162,6 +168,7 @@ function ChainContent() {
             <span style={{ fontSize: 10, color: "var(--text-4)" }}>{meta.nodeCount ?? nodes.length} nodes</span>
           </div>
         </div>
+        <ProviderModelSelector provider={provider} model={model} onProviderChange={(p, m) => { setProvider(p); setModel(m); }} />
       </div>
 
       {/* Main area */}
@@ -172,7 +179,7 @@ function ChainContent() {
           </div>
           {selectedNode && (
             <div style={{ borderTop: "1px solid var(--border)", flexShrink: 0, height: "min(320px, 48svh)", minHeight: 220 }}>
-              <NodeDetailPanel node={selectedNode} edges={edges} saved onExpand={handleExpand} expanding={expanding} />
+              <NodeDetailPanel node={selectedNode} edges={edges} saved onExpand={handleExpand} expanding={expanding} provider={provider} model={model} />
             </div>
           )}
         </div>

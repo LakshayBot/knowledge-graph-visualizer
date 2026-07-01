@@ -1,9 +1,11 @@
 "use client";
 
-import type { LatencyData } from "./metrics-data";
+import { useState, useMemo } from "react";
+import type { LatencyData, ModelLatency } from "./metrics-data";
 
 interface Props {
   latency: LatencyData;
+  modelLatencies: ModelLatency[];
 }
 
 const BAR_SEGMENTS = [
@@ -13,7 +15,36 @@ const BAR_SEGMENTS = [
   { color: "var(--dash-surface-high)", flex: 20 },
 ];
 
-export default function LatencyCard({ latency }: Props) {
+const selectStyle: React.CSSProperties = {
+  padding: "4px 28px 4px 10px",
+  fontSize: 12,
+  fontWeight: 500,
+  fontFamily: "'JetBrains Mono', monospace",
+  color: "var(--dash-text)",
+  background: "var(--dash-surface-alt)",
+  border: "1px solid var(--dash-border-light)",
+  borderRadius: 6,
+  cursor: "pointer",
+  outline: "none",
+  appearance: "none",
+  WebkitAppearance: "none",
+  MozAppearance: "none",
+  maxWidth: 180,
+  textOverflow: "ellipsis",
+};
+
+export default function LatencyCard({ latency, modelLatencies }: Props) {
+  const models = useMemo(
+    () => modelLatencies.map((m) => m.model),
+    [modelLatencies]
+  );
+
+  const [selectedModel, setSelectedModel] = useState("__all__");
+
+  const active = selectedModel === "__all__"
+    ? latency
+    : modelLatencies.find((m) => m.model === selectedModel) ?? latency;
+
   return (
     <div
       style={{
@@ -43,30 +74,50 @@ export default function LatencyCard({ latency }: Props) {
         <h3 style={{ fontFamily: "Manrope, sans-serif", fontSize: 18, fontWeight: 600, lineHeight: "24px", color: "var(--dash-text)", margin: 0 }}>
           System Latency
         </h3>
-        <div style={{ background: "var(--dash-surface-alt)", padding: "6px 12px", borderRadius: 6, display: "flex", alignItems: "center", gap: 4, cursor: "pointer", fontFamily: "'JetBrains Mono', monospace", fontSize: 12, fontWeight: 500, letterSpacing: "0.05em", color: "var(--dash-text)", transition: "background 0.2s" }}>
-          This Month
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-            <polyline points="6 9 12 15 18 9" />
-          </svg>
-        </div>
+
+        {/* Model selector dropdown */}
+        {models.length > 0 && (
+          <div style={{ position: "relative", flexShrink: 0 }}>
+            <select
+              value={selectedModel}
+              onChange={(e) => setSelectedModel(e.target.value)}
+              style={selectStyle}
+            >
+              <option value="__all__">All Models</option>
+              {models.map((m) => (
+                <option key={m} value={m}>{m}</option>
+              ))}
+            </select>
+            <svg
+              style={{
+                position: "absolute", right: 8, top: "50%",
+                transform: "translateY(-50%)", pointerEvents: "none",
+              }}
+              width={10} height={10} viewBox="0 0 10 10" fill="none"
+              stroke="var(--dash-text-secondary)" strokeWidth={1.5}
+            >
+              <path d="M2 3.5L5 6.5L8 3.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </div>
+        )}
       </div>
 
       {/* Avg latency + uptime */}
       <div style={{ marginBottom: 48, display: "flex", alignItems: "baseline", gap: 16 }}>
         <div style={{ fontFamily: "Manrope, sans-serif", fontSize: 48, fontWeight: 700, lineHeight: "56px", letterSpacing: "-0.02em", color: "var(--dash-text)" }}>
-          {latency.avgMs > 0 ? `${latency.avgMs}ms` : "--"}
+          {active.avgMs > 0 ? `${active.avgMs}ms` : "--"}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 4, color: "#00694a", background: "rgba(0,105,74,0.08)", padding: "4px 10px", borderRadius: 9999, fontSize: 14, fontWeight: 600, fontFamily: "'Hanken Grotesk', sans-serif" }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
             <line x1="7" y1="17" x2="17" y2="7" /><polyline points="7 7 17 7 17 17" />
           </svg>
-          {latency.uptimePercent}%
+          {active.uptimePercent}%
         </div>
       </div>
 
       {/* Percentile grid */}
       <div className="latency-grid" style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 16, marginBottom: 24 }}>
-        {latency.percentiles.length > 0 ? latency.percentiles.slice(0, 4).map((p) => (
+        {active.percentiles.length > 0 ? active.percentiles.slice(0, 4).map((p) => (
           <div key={p.label}>
             <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4, color: "var(--dash-text)", fontWeight: 700, fontSize: 18, fontFamily: "'Hanken Grotesk', sans-serif" }}>
               <span style={{ width: 8, height: 8, borderRadius: "50%", background: p.color, display: "inline-block", flexShrink: 0 }} />

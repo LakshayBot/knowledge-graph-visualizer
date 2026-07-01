@@ -7,7 +7,9 @@ public sealed record AnalyticsOverviewDto(
     IReadOnlyList<TrafficCategoryDto> TrafficCategories,
     LatencyDto Latency,
     IReadOnlyList<TokenUsageDto> TokenUsage,
-    IReadOnlyList<ModelHeatmapDto> ModelHeatmap
+    IReadOnlyList<ModelHeatmapDto> ModelHeatmap,
+    IReadOnlyList<ModelLatencyDto> ModelLatencies,
+    IReadOnlyList<ModelTokenUsageDto> ModelTokenUsage
 );
 
 /// <summary>Cost trend with overall total + today vs yesterday comparison.</summary>
@@ -66,4 +68,18 @@ public sealed record ModelHeatmapDto(
 public sealed record DailyModelScoreDto(
     string Day,
     int Score
+);
+
+/// <summary>Per-model latency breakdown.</summary>
+public sealed record ModelLatencyDto(
+    string Model,
+    int AvgMs,
+    decimal UptimePercent,
+    IReadOnlyList<LatencyPercentileDto> Percentiles
+);
+
+/// <summary>Per-model token usage over time.</summary>
+public sealed record ModelTokenUsageDto(
+    string Model,
+    IReadOnlyList<TokenUsageDto> DailyUsage
 );

@@ -11,9 +11,25 @@ interface Props {
   onExpand?: (nodeId: string) => void;
   expanding?: boolean;
   isExpanded?: boolean;
+  provider?: string;
+  model?: string;
 }
 
-export default function NodeDetailPanel({ node, edges, saved, onExpand, expanding, isExpanded }: Props) {
+const PROVIDER_DISPLAY: Record<string, string> = {
+  grok: "Grok (xAI)",
+  openai: "OpenAI",
+  claude: "Anthropic Claude",
+  gemini: "Google Gemini",
+  copilot: "GitHub Copilot",
+  ollama: "Ollama (Local)",
+};
+
+export default function NodeDetailPanel({ node, edges, saved, onExpand, expanding, isExpanded, provider, model }: Props) {
+
+  const providerLabel = provider
+    ? PROVIDER_DISPLAY[provider] ?? provider
+    : null;
+  const modelLabel = model ?? null;
   if (!node) {
     return (
       <div
@@ -406,15 +422,31 @@ export default function NodeDetailPanel({ node, edges, saved, onExpand, expandin
         }}
       >
         {onExpand && (
-          <Button
-            variant={isExpanded ? "primary" : "outline"}
-            onClick={() => onExpand(node.id)}
-            loading={expanding}
-            disabled={isExpanded}
-            style={{ width: "100%" }}
-          >
-            {isExpanded ? "Expanded" : expanding ? "Expanding…" : "Expand Node Network"}
-          </Button>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <Button
+              variant={isExpanded ? "primary" : "outline"}
+              onClick={() => onExpand(node.id)}
+              loading={expanding}
+              disabled={isExpanded}
+              style={{ width: "100%" }}
+            >
+              {isExpanded ? "Expanded" : expanding ? "Expanding…" : "Expand Node Network"}
+            </Button>
+            {providerLabel && (
+              <p
+                style={{
+                  margin: 0,
+                  fontSize: 10,
+                  fontFamily: "'JetBrains Mono', monospace",
+                  color: "var(--text-4)",
+                  textAlign: "center",
+                  letterSpacing: "0.04em",
+                }}
+              >
+                via {providerLabel}{modelLabel ? ` / ${modelLabel}` : ""}
+              </p>
+            )}
+          </div>
         )}
         {saved && (
           <div

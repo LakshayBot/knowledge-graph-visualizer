@@ -7,6 +7,20 @@ export interface DashboardMetrics {
   latency: LatencyData;
   tokenUsage: TokenUsageDay[];
   modelHeatmap: ModelHeatmap[];
+  modelLatencies: ModelLatency[];
+  modelTokenUsage: ModelTokenUsage[];
+}
+
+export interface ModelLatency {
+  model: string;
+  avgMs: number;
+  uptimePercent: number;
+  percentiles: LatencyPercentile[];
+}
+
+export interface ModelTokenUsage {
+  model: string;
+  dailyUsage: TokenUsageDay[];
 }
 
 export interface CostTrend {

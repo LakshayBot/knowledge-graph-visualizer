@@ -114,16 +114,39 @@ function formatDate(dateStr: string): string {
 }
 
 /* ── Lumina History Card ───────────────────────────────────── */
-function LuminaHistoryCard({ chain }: { chain: SavedChain }) {
+function LuminaHistoryCard({ chain, onDelete }: { chain: SavedChain; onDelete: (chainId: string) => void }) {
   const [hovered, setHovered] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const router = useRouter();
+
+  const handleDelete = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!confirming) { setConfirming(true); return; }
+    setDeleting(true);
+    try {
+      await apiFetch(`/users/me/chains/${chain.chainId}`, { method: "DELETE" });
+      onDelete(chain.chainId);
+    } catch {
+      setDeleting(false);
+      setConfirming(false);
+      setMenuOpen(false);
+    }
+  };
+
+  const handleMenuToggle = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setMenuOpen((p) => !p);
+    setConfirming(false);
+  };
 
   return (
     <motion.article
       variants={cardVariants}
-      onClick={() => router.push(`/chains/${chain.chainId}`)}
+      onClick={() => { if (!menuOpen && !confirming) router.push(`/chains/${chain.chainId}`); }}
       onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+      onMouseLeave={() => { setHovered(false); setMenuOpen(false); setConfirming(false); }}
       style={{
         background: "var(--surface)",
         border: `1px solid ${hovered ? "var(--brand)" : "var(--border)"}`,
@@ -170,33 +193,90 @@ function LuminaHistoryCard({ chain }: { chain: SavedChain }) {
             {chain.domain || "General"}
           </span>
 
-          {/* 3-dot menu — fades in on hover */}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              /* future: open context menu */
-            }}
-            style={{
-              opacity: hovered ? 1 : 0,
-              padding: 4,
-              background: "transparent",
-              border: "none",
-              cursor: "pointer",
-              color: "var(--text-3)",
-              borderRadius: 4,
-              transition: "opacity 0.2s ease, background 0.15s ease",
-            }}
-            onMouseEnter={(e) => {
-              e.stopPropagation();
-              e.currentTarget.style.background = "var(--bg-subtle)";
-            }}
-            onMouseLeave={(e) => {
-              e.stopPropagation();
-              e.currentTarget.style.background = "transparent";
-            }}
-          >
-            <ThreeDotIcon />
-          </button>
+          {/* 3-dot menu with delete action */}
+          <div style={{ position: "relative" }}>
+            <button
+              onClick={handleMenuToggle}
+              style={{
+                opacity: hovered || menuOpen ? 1 : 0,
+                padding: 4,
+                background: menuOpen ? "var(--bg-subtle)" : "transparent",
+                border: "none",
+                cursor: "pointer",
+                color: "var(--text-3)",
+                borderRadius: 4,
+                transition: "opacity 0.2s ease, background 0.15s ease",
+              }}
+            >
+              <ThreeDotIcon />
+            </button>
+
+            {/* Dropdown menu */}
+            {menuOpen && (
+              <div
+                style={{
+                  position: "absolute",
+                  right: 0,
+                  top: 28,
+                  background: "var(--surface)",
+                  border: "1px solid var(--border)",
+                  borderRadius: 8,
+                  boxShadow: "0 8px 30px rgba(0,0,0,0.12)",
+                  zIndex: 20,
+                  minWidth: confirming ? 200 : 120,
+                  overflow: "hidden",
+                }}
+              >
+                <button
+                  onClick={handleDelete}
+                  disabled={deleting}
+                  style={{
+                    display: "block",
+                    width: "100%",
+                    padding: confirming ? "10px 14px" : "8px 14px",
+                    background: confirming ? "rgba(239,68,68,0.06)" : "transparent",
+                    border: "none",
+                    cursor: deleting ? "not-allowed" : "pointer",
+                    fontSize: 12,
+                    fontFamily: "inherit",
+                    fontWeight: confirming ? 600 : 500,
+                    color: confirming ? "var(--destructive)" : "var(--text-2)",
+                    textAlign: "left",
+                    opacity: deleting ? 0.5 : 1,
+                    transition: "background 0.1s",
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!deleting) e.currentTarget.style.background = "var(--bg-subtle)";
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!deleting) e.currentTarget.style.background = confirming ? "rgba(239,68,68,0.06)" : "transparent";
+                  }}
+                >
+                  {deleting ? "Deleting..." : confirming ? "Click again to confirm delete" : "Delete"}
+                </button>
+                {confirming && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setConfirming(false); }}
+                    style={{
+                      display: "block",
+                      width: "100%",
+                      padding: "6px 14px",
+                      background: "transparent",
+                      border: "none",
+                      borderTop: "1px solid var(--border)",
+                      cursor: "pointer",
+                      fontSize: 11,
+                      fontFamily: "inherit",
+                      color: "var(--text-3)",
+                      textAlign: "left",
+                    }}
+                  >
+                    Cancel
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Title */}
@@ -465,7 +545,11 @@ function HistoryContent() {
             }}
           >
             {chains.map((chain) => (
-              <LuminaHistoryCard key={chain.chainId} chain={chain} />
+              <LuminaHistoryCard
+                key={chain.chainId}
+                chain={chain}
+                onDelete={(id) => setChains((prev) => prev.filter((c) => c.chainId !== id))}
+              />
             ))}
           </motion.div>
         )}
