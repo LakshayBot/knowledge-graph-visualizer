@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
+import Logo from "@/components/Logo";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -137,24 +138,7 @@ export default function AppNav() {
           }}
         >
           <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 8 }}>
-            <span
-              style={{
-                width: 28,
-                height: 28,
-                background: "var(--text-1)",
-                borderRadius: "50%",
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--bg)" strokeWidth="2.5">
-                <path d="M5 12h14M12 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </span>
-            <span style={{ fontSize: 16, fontWeight: 700, letterSpacing: "-0.03em", color: "var(--text-1)" }}>
-              CasualExplorer
-            </span>
+            <Logo size={28} textSize={16} />
           </div>
           <nav style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 2 }}>
             {NAV_ITEMS.map((item) => (
@@ -204,23 +188,7 @@ export default function AppNav() {
               letterSpacing: "-0.03em",
             }}
           >
-            <span
-              style={{
-                width: 28,
-                height: 28,
-                background: "var(--text-1)",
-                borderRadius: "50%",
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                flexShrink: 0,
-              }}
-            >
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--bg)" strokeWidth="2.5">
-                <path d="M5 12h14M12 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </span>
-            <span className="hidden sm:inline">CasualExplorer</span>
+            <Logo size={28} textSize={16} />
           </Link>
         </div>
 

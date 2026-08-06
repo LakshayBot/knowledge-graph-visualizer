@@ -48,7 +48,7 @@ function RegisterContent() {
             letterSpacing: "-0.01em",
           }}
         >
-          Join CasualExplorer to explore casual graphs
+          Join Graph Sight to explore causal graphs
         </p>
 
         <RegisterForm />

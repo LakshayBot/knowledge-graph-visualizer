@@ -1,6 +1,7 @@
 "use client";
 
 import { useIsNarrow } from "../hooks/useBreakpoint";
+import Logo from "@/components/Logo";
 
 const navLinks = [
   { label: "How It Works", href: "#how-it-works" },
@@ -46,22 +47,7 @@ export default function Footer() {
               gap: 8,
             }}
           >
-            <span
-              style={{
-                width: 20,
-                height: 20,
-                background: "var(--text-1)",
-                borderRadius: "50%",
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="var(--bg)" strokeWidth="2.5">
-                <path d="M5 12h14M12 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </span>
-            CasualExplorer
+            <Logo size={22} textSize={14} />
           </div>
           <p style={{ fontSize: 12, color: "var(--text-3)", lineHeight: 1.6, maxWidth: 220 }}>
             Understand why events happen.
@@ -134,7 +120,7 @@ export default function Footer() {
         }}
       >
         <p style={{ fontSize: 11, color: "var(--text-4)" }}>
-          © {new Date().getFullYear()} CasualExplorer. Open source.
+          © {new Date().getFullYear()} Graph Sight. Open source.
         </p>
         <div style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap" }}>
           <span style={{ fontSize: 11, color: "var(--text-4)" }}>Built with</span>

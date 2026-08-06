@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useIsNarrow } from "@/hooks/useBreakpoint";
 import { AnimatePresence, motion } from "framer-motion";
+import Logo from "@/components/Logo";
 
 const landingLinks = [
   { label: "How It Works", href: "#how-it-works", internal: true as const },
@@ -123,12 +124,7 @@ export default function Nav() {
         }}
       >
         <span style={{ fontSize: 14, fontWeight: 900, letterSpacing: "-0.05em", color: "var(--text-1)", display: "flex", alignItems: "center", gap: 7 }}>
-          <span style={{ width: 20, height: 20, background: "var(--text-1)", borderRadius: "50%", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
-            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="var(--bg)" strokeWidth="2.5">
-              <path d="M5 12h14M12 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </span>
-          CasualExplorer
+          <Logo size={24} textSize={14} />
         </span>
         <div style={{ display: "flex", gap: 28, alignItems: "center" }}>
           {landingLinks.map((l) => (
@@ -159,12 +155,7 @@ export default function Nav() {
             display: "flex", alignItems: "center", gap: 7,
           }}
         >
-          <span style={{ width: 20, height: 20, background: "var(--text-1)", borderRadius: "50%", display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="var(--bg)" strokeWidth="2.5">
-              <path d="M5 12h14M12 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </span>
-          CasualExplorer
+          <Logo size={24} textSize={14} />
         </a>
 
         {!narrow && (

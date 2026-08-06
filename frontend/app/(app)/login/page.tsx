@@ -89,7 +89,7 @@ function LoginContent() {
             letterSpacing: "-0.01em",
           }}
         >
-          Sign in to your CasualExplorer account
+          Sign in to your Graph Sight account
         </p>
 
         <LoginForm />

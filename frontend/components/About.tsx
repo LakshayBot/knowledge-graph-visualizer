@@ -6,7 +6,7 @@ import { useIsNarrow } from "../hooks/useBreakpoint";
 const principles = [
   {
     title: "Why, not just what",
-    desc: "Most search returns facts. CasualExplorer returns casual chains — structured graphs that answer why an event happened, not just that it happened.",
+    desc: "Most search returns facts. Graph Sight returns causal chains — structured graphs that answer why an event happened, not just that it happened.",
     n: "01",
   },
   {
@@ -16,7 +16,7 @@ const principles = [
   },
   {
     title: "Confidence over certainty",
-    desc: "Every node carries a confidence score (0.4–0.95) and every edge can be marked contested. CasualExplorer acknowledges what is disputed rather than flattening it.",
+    desc: "Every node carries a confidence score (0.4–0.95) and every edge can be marked contested. Graph Sight acknowledges what is disputed rather than flattening it.",
     n: "03",
   },
 ];
@@ -57,7 +57,7 @@ export default function About() {
           </h2>
 
           <p style={{ fontSize: 14, lineHeight: 1.75, color: "var(--text-3)", marginBottom: 16, maxWidth: 460 }}>
-            CasualExplorer is a production-grade API system that turns natural-language
+            Graph Sight is a production-grade API system that turns natural-language
             questions into structured casual knowledge graphs. It combines a{" "}
             <strong style={{ color: "var(--text-1)", fontWeight: 700 }}>.NET 8 Clean Architecture backend</strong>,
             a{" "}
@@ -65,7 +65,7 @@ export default function About() {
             five backing services — Neo4j, Qdrant, Ollama, Redis, and PostgreSQL — all orchestrated in Docker.
           </p>
           <p style={{ fontSize: 14, lineHeight: 1.75, color: "var(--text-3)", maxWidth: 460, marginBottom: 44 }}>
-            Most information systems tell you <em>what</em> happened. CasualExplorer tells
+            Most information systems tell you <em>what</em> happened. Graph Sight tells
             you <em>why</em>. Every event node has a date, domain, confidence score, and
             source URL. Every edge has a perspective, strength, and contested flag.
           </p>
