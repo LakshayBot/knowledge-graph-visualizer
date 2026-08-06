@@ -387,14 +387,18 @@ function ExploreContent() {
       {(missingKey || localModelNotice) && (
         <div
           style={{
-            position: "absolute",
+            position: "fixed",
             top: 12,
-            left: 12,
-            right: 12,
-            zIndex: 40,
+            left: "50%",
+            transform: "translateX(-50%)",
+            width: "min(420px, calc(100vw - 24px))",
+            zIndex: 50,
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
             background: "var(--brand)",
             color: "#fff",
-            padding: "8px 14px",
+            padding: "8px 10px 8px 16px",
             borderRadius: "0.5rem",
             fontSize: 11,
             fontWeight: 600,
@@ -403,8 +407,35 @@ function ExploreContent() {
             textAlign: "center",
           }}
         >
-          {localModelNotice ??
-            `No ${PROVIDER_LABELS[provider] ?? provider} key configured — questions will use the local model (llama3.2, slower). Add a key in Settings for cloud speed.`}
+          <span style={{ flex: 1 }}>
+            {localModelNotice ??
+              `No ${PROVIDER_LABELS[provider] ?? provider} key configured — questions will use the local model (llama3.2, slower). Add a key in Settings for cloud speed.`}
+          </span>
+          <button
+            onClick={() => {
+              setLocalModelNotice(null);
+              setMissingKey(false);
+            }}
+            aria-label="Dismiss notice"
+            style={{
+              background: "rgba(255,255,255,0.2)",
+              border: "none",
+              color: "#fff",
+              width: 18,
+              height: 18,
+              borderRadius: "50%",
+              cursor: "pointer",
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 11,
+              lineHeight: 1,
+              flexShrink: 0,
+              padding: 0,
+            }}
+          >
+            ✕
+          </button>
         </div>
       )}
       </>
@@ -872,25 +903,55 @@ function ExploreContent() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             style={{
-              position: "absolute",
+              position: "fixed",
               top: 64,
               left: "50%",
               transform: "translateX(-50%)",
+              zIndex: 50,
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
               background: "var(--brand)",
               color: "#fff",
-              padding: "10px 20px",
+              padding: "10px 12px 10px 20px",
               borderRadius: "0.5rem",
               fontSize: 12,
               fontWeight: 600,
               fontFamily: "'Hanken Grotesk', system-ui, sans-serif",
-              zIndex: 30,
               boxShadow: "0 4px 16px rgba(159, 61, 0, 0.25)",
-              maxWidth: 420,
+              maxWidth: "min(420px, calc(100vw - 40px))",
               textAlign: "center",
             }}
           >
-            {localModelNotice ??
-              `No ${PROVIDER_LABELS[provider] ?? provider} key configured — questions will use the local model (llama3.2, slower). Add a key in Settings for cloud speed.`}
+            <span style={{ flex: 1 }}>
+              {localModelNotice ??
+                `No ${PROVIDER_LABELS[provider] ?? provider} key configured — questions will use the local model (llama3.2, slower). Add a key in Settings for cloud speed.`}
+            </span>
+            <button
+              onClick={() => {
+                setLocalModelNotice(null);
+                setMissingKey(false);
+              }}
+              aria-label="Dismiss notice"
+              style={{
+                background: "rgba(255,255,255,0.2)",
+                border: "none",
+                color: "#fff",
+                width: 20,
+                height: 20,
+                borderRadius: "50%",
+                cursor: "pointer",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 12,
+                lineHeight: 1,
+                flexShrink: 0,
+                padding: 0,
+              }}
+            >
+              ✕
+            </button>
           </motion.div>
         )}
       </AnimatePresence>

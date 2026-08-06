@@ -72,9 +72,28 @@ export default function ProviderModelSelector({
   const selectedKeyStatus = keyStatuses.find((k) => k.provider === provider);
   const hasKey = selectedKeyStatus?.hasKey || !selectedProvider?.requiresKey;
 
+  const providerHasKey = (provName: string) => {
+    const p = providers.find((pr) => pr.name === provName);
+    if (!p || !p.requiresKey) return true; // local providers never need a key
+    return !!keyStatuses.find((k) => k.provider === provName)?.hasKey;
+  };
+
+  // BYOK: if the currently selected provider requires a key and none is
+  // configured, fall back to the local provider so the user can always generate.
+  useEffect(() => {
+    if (loading) return;
+    const p = providers.find((pr) => pr.name === provider);
+    if (p && p.requiresKey && !providerHasKey(provider)) {
+      const local = providers.find((pr) => pr.name === "ollama");
+      if (local) onProviderChange("ollama", local.models[0]?.name || "");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, providers, keyStatuses]);
+
   const handleProviderSelect = (provName: string) => {
     const p = providers.find((pr) => pr.name === provName);
     if (p?.isComingSoon) return; // prevent switching to coming-soon providers
+    if (p?.requiresKey && !providerHasKey(provName)) return; // prevent switching to keyless-but-no-key providers
     const defaultModel = p?.models[0]?.name || "";
     onProviderChange(provName, defaultModel);
   };
@@ -162,11 +181,16 @@ export default function ProviderModelSelector({
         disabled={disabled}
         style={selectStyle}
       >
-        {providers.map((p) => (
-          <option key={p.name} value={p.name}>
-            {p.displayName}{p.isComingSoon ? " (Coming Soon)" : ""}
-          </option>
-        ))}
+        {providers.map((p) => {
+          const optionLocked = p.isComingSoon || (p.requiresKey && !providerHasKey(p.name));
+          return (
+            <option key={p.name} value={p.name} disabled={optionLocked}>
+              {p.displayName}
+              {p.isComingSoon ? " (Coming Soon)" : ""}
+              {p.requiresKey && !p.isComingSoon && !providerHasKey(p.name) ? " — no key" : ""}
+            </option>
+          );
+        })}
       </select>
 
       {/* Model select */}
