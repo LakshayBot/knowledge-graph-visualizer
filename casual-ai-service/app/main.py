@@ -6,7 +6,9 @@ FastAPI sidecar that:
   - Uses Ollama (local) ONLY for dense vector embeddings (nomic-embed-text → Qdrant).
 
 BYOK (Bring Your Own Key): clients send X-User-Api-Key, X-Provider, X-Model headers.
-If no per-user key is provided, falls back to server-wide GROK_API_KEY env var.
+If no per-user key is provided for a key-requiring provider, the request is
+automatically redirected to the LOCAL Ollama provider (free, private).
+Server-wide cloud API keys (GROK_API_KEY etc.) are NEVER used for generation.
 
 Generation modes (preserved for backward compat):
   minimal  → grok-3-mini, 4000 max_tokens, temp 0.2  [fast, cost-efficient]
@@ -65,6 +67,11 @@ _GROK_PROFILES: dict[str, dict] = {
 }
 _GROK_PROFILE = _GROK_PROFILES.get(GENERATION_MODE, _GROK_PROFILES["minimal"])
 
+# BYOK-only fallback: when a user has no API key configured, requests to
+# key-requiring providers are redirected to the local Ollama provider.
+LOCAL_FALLBACK_PROVIDER = "ollama"
+LOCAL_FALLBACK_MODEL    = os.getenv("OLLAMA_MODEL", "llama3.2")
+
 # PostgreSQL (for AI prompt/response audit logging)
 POSTGRES_URL    = os.getenv("POSTGRES_URL", "postgresql://causal:postgres@localhost:5432/CausalExplorerDb")
 
@@ -86,29 +93,15 @@ structlog.configure(wrapper_class=structlog.make_filtering_bound_logger(
 log = structlog.get_logger()
 
 
-# ── Server key lookup ──────────────────────────────────────────────────────────
-
-def _get_server_key(provider: str) -> str:
-    """Return the server-wide fallback API key for a provider, or empty string."""
-    keys: dict[str, str] = {
-        "grok":    GROK_API_KEY,
-        "openai":  OPENAI_API_KEY,
-        "claude":  ANTHROPIC_API_KEY,
-        "gemini":  GEMINI_API_KEY,
-        "copilot": COPILOT_API_KEY,
-    }
-    return keys.get(provider.lower(), "")
-
-
 # ── Resolve AI parameters from request ─────────────────────────────────────────
 
 def _resolve_ai_params(request: Request, body_provider: str | None = None, body_model: str | None = None) -> dict:
     """
     Resolve provider, model, and API key from request headers + body.
-    Priority: request headers (BYOK) > body fields > server defaults (Grok).
+    Priority: request headers (BYOK) > body fields > local Ollama fallback.
 
-    Raises HTTPException(400) if the provider requires an API key and none is
-    available — this gives the user an actionable error before any LLM call.
+    When the resolved provider requires an API key and the user supplied none,
+    the request is redirected to the local Ollama provider (never server-wide keys).
     """
     # 1. Determine provider
     provider = (
@@ -131,19 +124,25 @@ def _resolve_ai_params(request: Request, body_provider: str | None = None, body_
     if not model:
         model = "grok-3-mini"  # ultimate fallback
 
-    # 3. Determine API key
+    # 3. Determine API key (BYOK only — server-wide keys are never used)
     api_key = (request.headers.get("X-User-Api-Key") or "").strip()
     has_user_context = bool((request.headers.get("X-User-Id") or "").strip())
 
-    if not api_key and has_user_context:
-        # User is authenticated but didn't provide a key — use server fallback
-        api_key = _get_server_key(provider)
-    if not api_key:
-        # No user context — use server fallback
-        api_key = _get_server_key(provider)
-
-    # 4. Validate: if provider requires a key and we don't have one, fail early
     provider_config = get_provider(provider)
+    if provider_config and provider_config.requires_key and not api_key:
+        # BYOK-only: no user key for a paid provider → redirect to local Ollama.
+        log.info(
+            "llm.byok.fallback_to_local",
+            provider=provider,
+            requested_model=model,
+            local_model=LOCAL_FALLBACK_MODEL,
+            user_context=has_user_context,
+        )
+        provider = LOCAL_FALLBACK_PROVIDER
+        provider_config = get_provider(provider)
+        model = model if model in (provider_config.models if provider_config else {}) else LOCAL_FALLBACK_MODEL
+
+    # 4. Validate: if provider requires a key and we still don't have one, fail early
     if provider_config and provider_config.requires_key and not api_key:
         if has_user_context:
             raise HTTPException(
@@ -617,20 +616,28 @@ async def _llm_generate(
 ) -> str:
     """
     Call any LLM provider and return the raw text response.
-    Falls back to Grok with server key for backward compatibility.
+    BYOK-only: if the provider requires a key and none is supplied,
+    falls back to the local Ollama provider (never server-wide keys).
     """
     # Resolve model if not specified
     if not model and provider in PROVIDERS:
         first = next(iter(PROVIDERS[provider].models), None)
-        model = first or "grok-3-mini"
+        model = first or LOCAL_FALLBACK_MODEL
     if not model:
-        model = "grok-3-mini"
+        model = LOCAL_FALLBACK_MODEL
 
-    # Resolve API key
-    if not api_key:
-        api_key = _get_server_key(provider)
-    if not api_key and provider == "grok":
-        api_key = GROK_API_KEY  # backward compat
+    # BYOK-only: no user key for a paid provider → redirect to local Ollama
+    provider_cfg = get_provider(provider)
+    if provider_cfg and provider_cfg.requires_key and not api_key:
+        log.info(
+            "llm.byok.fallback_to_local",
+            provider=provider,
+            model=model,
+            local_model=LOCAL_FALLBACK_MODEL,
+        )
+        provider = LOCAL_FALLBACK_PROVIDER
+        provider_cfg = get_provider(provider)
+        model = model if model in (provider_cfg.models if provider_cfg else {}) else LOCAL_FALLBACK_MODEL
 
     # Auto-extract domain from the prompt for analytics categorization
     domain = _extract_domain_from_prompt(prompt)
