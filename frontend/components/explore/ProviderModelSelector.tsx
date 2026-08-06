@@ -159,7 +159,13 @@ export default function ProviderModelSelector({
     >
       {/* Key status indicator */}
       <span
-        title={hasKey ? "Key configured" : "No key — add one in Settings"}
+        title={
+          !selectedProvider?.requiresKey
+            ? "Local model — no key needed"
+            : hasKey
+              ? "Key configured"
+              : "No key — add one in Settings"
+        }
         style={{
           display: "inline-flex",
           alignItems: "center",
