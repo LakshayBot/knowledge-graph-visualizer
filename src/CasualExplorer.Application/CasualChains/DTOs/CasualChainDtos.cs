@@ -37,7 +37,9 @@ public sealed record ChainMetadataDto(
     string Domain,
     int NodeCount,
     int ViewCount,
-    DateTime LastUpdatedAt);
+    DateTime LastUpdatedAt,
+    string? Provider = null,
+    string? Model = null);
 
 /// <summary>
 /// Full graph DTO consumed by the frontend graph renderer.

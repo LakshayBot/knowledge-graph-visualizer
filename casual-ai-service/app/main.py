@@ -357,6 +357,8 @@ class SuggestedNode(BaseModel):
 
 class ExpandChainResponse(BaseModel):
     suggested_nodes: list[SuggestedNode]
+    provider:        str = ""
+    model:           str = ""
 
 
 class SearchSimilarRequest(BaseModel):
@@ -421,6 +423,8 @@ class GenerateGraphResponse(BaseModel):
     edges:       list[GeneratedEdge]
     source_urls: list[str]
     from_cache:  bool = False
+    provider:    str = ""
+    model:       str = ""
 
 
 class GraphJobSubmittedResponse(BaseModel):
@@ -836,6 +840,8 @@ async def _run_graph_generation(
         "events":      [e.model_dump() for e in events],
         "edges":       [ed.model_dump() for ed in edges],
         "source_urls": source_urls,
+        "provider":    provider,
+        "model":       resolved_model,
     }
     _cache_set(topic, payload)
     return GenerateGraphResponse(**payload, from_cache=False)
@@ -972,7 +978,11 @@ async def expand_chain_node(body: ExpandChainRequest, request: Request) -> Expan
         endpoint="expand_chain", user_id=ai["user_id"],
     )
     nodes = _parse_json_from_llm(raw, array=True)
-    return ExpandChainResponse(suggested_nodes=[SuggestedNode(**n) for n in nodes])
+    return ExpandChainResponse(
+        suggested_nodes=[SuggestedNode(**n) for n in nodes],
+        provider=ai["provider"],
+        model=ai["model"],
+    )
 
 
 @app.post("/api/search/similar", response_model=list[SimilarEventResult], tags=["search"])

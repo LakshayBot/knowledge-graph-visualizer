@@ -82,7 +82,7 @@ public sealed class AIServiceClient : IAIService
             .Select(n => new ExpansionNode(n.Title, n.Summary, n.RelationshipType, n.Direction))
             .ToList();
 
-        return new ChainExpansionResult(nodes, perspective);
+        return new ChainExpansionResult(nodes, perspective, result.Provider ?? "", result.Model ?? "");
     }
 
     /// <inheritdoc />
@@ -184,7 +184,10 @@ public sealed class AIServiceClient : IAIService
         double Strength,
         bool IsContested);
 
-    private sealed record ChainExpansionResponse(List<ExpansionNodeResponse> SuggestedNodes);
+    private sealed record ChainExpansionResponse(
+        List<ExpansionNodeResponse> SuggestedNodes,
+        string Provider = "",
+        string Model = "");
 
     private sealed record ExpansionNodeResponse(
         string Title,

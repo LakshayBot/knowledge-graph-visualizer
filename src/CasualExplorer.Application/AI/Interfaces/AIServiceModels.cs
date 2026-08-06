@@ -38,4 +38,6 @@ public sealed record ExpansionNode(
 /// </summary>
 public sealed record ChainExpansionResult(
     IReadOnlyList<ExpansionNode> SuggestedNodes,
-    string Perspective);
+    string Perspective,
+    string Provider = "",
+    string Model = "");

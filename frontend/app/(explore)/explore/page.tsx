@@ -41,6 +41,15 @@ const fadeScale = {
   },
 };
 
+const PROVIDER_LABELS: Record<string, string> = {
+  grok: "Grok (xAI)",
+  openai: "OpenAI",
+  claude: "Anthropic Claude",
+  gemini: "Google Gemini",
+  copilot: "GitHub Copilot",
+  ollama: "Ollama (Local)",
+};
+
 export default function ExplorePage() {
   return (
     <AuthGuard>
@@ -69,6 +78,23 @@ function ExploreContent() {
   const [exploreMode, setExploreMode] = useState<ExploreMode>("explain");
   const [heatmapOn, setHeatmapOn] = useState(false);
   const [expandedNodeIds, setExpandedNodeIds] = useState<Set<string>>(new Set());
+  const [missingKey, setMissingKey] = useState(false);
+  const [localModelNotice, setLocalModelNotice] = useState<string | null>(null);
+
+  // ── BYOK key awareness: warn when the selected provider has no key ─────────
+  useEffect(() => {
+    let active = true;
+    apiFetch<{ keys?: { provider: string; hasKey: boolean }[] }>("/apikeys/me", { auth: true })
+      .then((d) => {
+        if (!active) return;
+        const entry = d.keys?.find((k) => k.provider === provider);
+        setMissingKey(provider !== "ollama" && !(entry?.hasKey));
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [provider]);
 
   // ── Timeline ────────────────────────────────────────────────────────
   const timeline = useTimeline({ nodes, edges });
@@ -146,10 +172,19 @@ function ExploreContent() {
       );
       setNodes(gd.nodes ?? []);
       setEdges(gd.edges ?? []);
-      const ed = await apiFetch<{ nodes?: GraphNode[]; edges?: GraphEdge[] }>(
+      const ed = await apiFetch<{
+        nodes?: GraphNode[];
+        edges?: GraphEdge[];
+        chainMetadata?: { provider?: string; model?: string };
+      }>(
         `/casualchains/${cid}/expand/${rootEventId}?perspective=Mainstream`,
         { method: "POST", provider, model, body: JSON.stringify({ provider, model }) }
       );
+      if (ed.chainMetadata?.provider && ed.chainMetadata.provider !== provider) {
+        setLocalModelNotice(
+          `No ${PROVIDER_LABELS[provider] ?? provider} key configured — used local ${ed.chainMetadata.model} for this graph. Add a key in Settings for cloud speed.`
+        );
+      }
       if (ed.nodes)
         setNodes((p) => {
           const s = new Set(p.map((n: G) => n.id));
@@ -191,10 +226,19 @@ function ExploreContent() {
     // Dismiss any open inspector/tooltips before expansion
     setSelectedNode(null);
     try {
-      const d = await apiFetch<{ nodes?: GraphNode[]; edges?: GraphEdge[] }>(
+      const d = await apiFetch<{
+        nodes?: GraphNode[];
+        edges?: GraphEdge[];
+        chainMetadata?: { provider?: string; model?: string };
+      }>(
         `/casualchains/${chainId}/expand/${nodeId}?perspective=Mainstream`,
         { method: "POST", provider, model, body: JSON.stringify({ provider, model }) }
       );
+      if (d.chainMetadata?.provider && d.chainMetadata.provider !== provider) {
+        setLocalModelNotice(
+          `No ${PROVIDER_LABELS[provider] ?? provider} key configured — used local ${d.chainMetadata.model} for this expansion. Add a key in Settings for cloud speed.`
+        );
+      }
       setNodes((p) => {
         const s = new Set(p.map((n: G) => n.id));
         return [
@@ -224,14 +268,15 @@ function ExploreContent() {
   /* ── Narrow layout ────────────────────────────────────── */
   if (isNarrow) {
     return (
-      <div
-        style={{
-          flex: 1,
-          display: "flex",
-          flexDirection: "column",
-          overflow: "hidden",
-        }}
-      >
+      <>
+        <div
+          style={{
+            flex: 1,
+            display: "flex",
+            flexDirection: "column",
+            overflow: "hidden",
+          }}
+        >
         {/* Search bar */}
         <div
           style={{
@@ -337,6 +382,32 @@ function ExploreContent() {
           </div>
         )}
       </div>
+
+      {/* ── BYOK notice (mobile) ── */}
+      {(missingKey || localModelNotice) && (
+        <div
+          style={{
+            position: "absolute",
+            top: 12,
+            left: 12,
+            right: 12,
+            zIndex: 40,
+            background: "var(--brand)",
+            color: "#fff",
+            padding: "8px 14px",
+            borderRadius: "0.5rem",
+            fontSize: 11,
+            fontWeight: 600,
+            fontFamily: "'Hanken Grotesk', system-ui, sans-serif",
+            boxShadow: "0 4px 16px rgba(159, 61, 0, 0.25)",
+            textAlign: "center",
+          }}
+        >
+          {localModelNotice ??
+            `No ${PROVIDER_LABELS[provider] ?? provider} key configured — questions will use the local model (llama3.2, slower). Add a key in Settings for cloud speed.`}
+        </div>
+      )}
+      </>
     );
   }
 
@@ -789,6 +860,37 @@ function ExploreContent() {
             }}
           >
             {error}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── BYOK notices: missing key (upfront) + local-model fallback (after expand) ── */}
+      <AnimatePresence>
+        {(missingKey || localModelNotice) && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            style={{
+              position: "absolute",
+              top: 64,
+              left: "50%",
+              transform: "translateX(-50%)",
+              background: "var(--brand)",
+              color: "#fff",
+              padding: "10px 20px",
+              borderRadius: "0.5rem",
+              fontSize: 12,
+              fontWeight: 600,
+              fontFamily: "'Hanken Grotesk', system-ui, sans-serif",
+              zIndex: 30,
+              boxShadow: "0 4px 16px rgba(159, 61, 0, 0.25)",
+              maxWidth: 420,
+              textAlign: "center",
+            }}
+          >
+            {localModelNotice ??
+              `No ${PROVIDER_LABELS[provider] ?? provider} key configured — questions will use the local model (llama3.2, slower). Add a key in Settings for cloud speed.`}
           </motion.div>
         )}
       </AnimatePresence>

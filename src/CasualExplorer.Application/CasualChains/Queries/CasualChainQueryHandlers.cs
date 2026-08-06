@@ -252,7 +252,8 @@ public sealed class ExpandChainNodeQueryHandler : IRequestHandler<ExpandChainNod
 
         var metadata = new ChainMetadataDto(
             chain.Id, chain.Title, chain.Domain.ToString(),
-            chain.NodeCount, chain.ViewCount, chain.LastUpdatedAt);
+            chain.NodeCount, chain.ViewCount, chain.LastUpdatedAt,
+            expansion.Provider, expansion.Model);
 
         return new CasualGraphDto(responseNodes, responseEdges, metadata);
     }
