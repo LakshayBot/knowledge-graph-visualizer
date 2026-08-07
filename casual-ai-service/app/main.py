@@ -1099,8 +1099,13 @@ class PromptLogEntry(BaseModel):
 async def get_prompt_logs(
     limit: int = 50,
     endpoint: str | None = None,
+    user_id: str | None = None,
 ) -> list[PromptLogEntry]:
-    """Return recent AI prompt/response logs for debugging."""
+    """Return recent AI prompt/response logs for debugging.
+
+    Filters by `user_id` when provided so callers can scope analytics to a
+    single account instead of the global aggregate.
+    """
     pool = await _ensure_pool()
     async with pool.acquire() as conn:
         # Check which columns exist (added in migrations)
@@ -1114,16 +1119,24 @@ async def get_prompt_logs(
         cols += ", domain" if has_domain else ", NULL as domain"
         cols += ", created_at::text"
 
+        where: list[str] = []
+        params: list[object] = []
+
         if endpoint:
-            rows = await conn.fetch(
-                f"SELECT {cols} FROM ai_prompt_logs WHERE endpoint = $1 ORDER BY created_at DESC LIMIT $2",
-                endpoint, limit,
-            )
+            where.append("endpoint = $1")
+            params.append(endpoint)
+        if user_id and has_user_id:
+            where.append(f"user_id = ${len(params) + 1}")
+            params.append(user_id)
+
+        if where:
+            sql = f"SELECT {cols} FROM ai_prompt_logs WHERE {' AND '.join(where)} ORDER BY created_at DESC LIMIT ${len(params) + 1}"
+            params.append(limit)
         else:
-            rows = await conn.fetch(
-                f"SELECT {cols} FROM ai_prompt_logs ORDER BY created_at DESC LIMIT $1",
-                limit,
-            )
+            sql = f"SELECT {cols} FROM ai_prompt_logs ORDER BY created_at DESC LIMIT $1"
+            params.append(limit)
+
+        rows = await conn.fetch(sql, *params)
     return [PromptLogEntry(**dict(r)) for r in rows]
 
 

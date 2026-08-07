@@ -127,7 +127,8 @@ public sealed class AuthControllerTests
     public async Task Login_WithInvalidCredentials_Returns403()
     {
         // The login handler throws ForbiddenAccessException on bad credentials.
-        // Arrange — user not found returns 403 (mapped from ForbiddenAccessException).
+        // Arrange — user not found returns 401 (mapped from ForbiddenAccessException,
+        // per the deliberate security fix in b0a7e30: wrong password → 401 Unauthorized).
         _factory.UserRepositoryMock
             .Setup(r => r.GetByEmailAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((User?)null);
@@ -138,6 +139,6 @@ public sealed class AuthControllerTests
         var response = await _client.PostAsJsonAsync("/api/v1/auth/login", payload);
 
         // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 }

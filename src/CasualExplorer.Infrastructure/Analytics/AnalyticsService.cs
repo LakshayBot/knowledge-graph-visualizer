@@ -26,9 +26,9 @@ public sealed class AnalyticsService : IAnalyticsService
         _logger = logger;
     }
 
-    public async Task<AnalyticsOverviewDto> GetOverviewAsync(CancellationToken ct = default)
+    public async Task<AnalyticsOverviewDto> GetOverviewAsync(Guid? userId, CancellationToken ct = default)
     {
-        var logs = await FetchPromptLogsAsync(ct);
+        var logs = await FetchPromptLogsAsync(userId, ct);
 
         return new AnalyticsOverviewDto(
             ApiCosts:          ComputeApiCosts(logs),
@@ -59,18 +59,27 @@ public sealed class AnalyticsService : IAnalyticsService
         [property: JsonPropertyName("cost_usd")] double? CostUsd,
         [property: JsonPropertyName("provider")] string? Provider,
         [property: JsonPropertyName("domain")] string? Domain,
+        [property: JsonPropertyName("user_id")] string? UserId,
         [property: JsonPropertyName("created_at")] string CreatedAt
     );
 
-    private async Task<IReadOnlyList<PromptLogEntry>> FetchPromptLogsAsync(CancellationToken ct)
+    private async Task<IReadOnlyList<PromptLogEntry>> FetchPromptLogsAsync(Guid? userId, CancellationToken ct)
     {
         try
         {
-            var response = await _http.GetAsync("/api/prompt-logs?limit=5000", ct);
+            var query = new List<string> { "limit=5000" };
+            if (userId.HasValue)
+                query.Add($"user_id={Uri.EscapeDataString(userId.Value.ToString())}");
+
+            var response = await _http.GetAsync($"/api/prompt-logs?{string.Join("&", query)}", ct);
             response.EnsureSuccessStatusCode();
             var logs = await response.Content
                 .ReadFromJsonAsync<List<PromptLogEntry>>(JsonOptions, ct);
-            return logs ?? [];
+            if (logs is null) return [];
+
+            // Defense in depth: never mix other users' logs into the aggregate.
+            var self = userId?.ToString();
+            return logs.Where(l => l.UserId == self).ToList();
         }
         catch (Exception ex)
         {

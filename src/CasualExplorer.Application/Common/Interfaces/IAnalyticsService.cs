@@ -7,6 +7,9 @@ namespace CasualExplorer.Application.Common.Interfaces;
 /// </summary>
 public interface IAnalyticsService
 {
-    /// <summary>Returns the full analytics overview payload.</summary>
-    Task<AnalyticsOverviewDto> GetOverviewAsync(CancellationToken ct = default);
+    /// <summary>
+    /// Returns the analytics overview dashboard payload scoped to a single user.
+    /// When <paramref name="userId"/> is null, only logs without an owner are included.
+    /// </summary>
+    Task<AnalyticsOverviewDto> GetOverviewAsync(Guid? userId, CancellationToken ct = default);
 }
