@@ -70,7 +70,7 @@ CasualExplorer/
 | AI Sidecar | Python 3.12, FastAPI, Ollama (local LLM), Qdrant |
 | Auth | JWT Bearer + Refresh Tokens |
 | Rate Limiting | `Microsoft.AspNetCore.RateLimiting` (fixed window) |
-| Testing | xUnit, FluentAssertions, Moq (24 tests passing) |
+| Testing | xUnit, FluentAssertions, Moq |
 | Observability | Serilog (structured JSON), ASP.NET Health Checks |
 | Containers | Docker, Docker Compose |
 

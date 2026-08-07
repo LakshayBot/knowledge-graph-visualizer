@@ -440,7 +440,6 @@ export default function Hero() {
             >
               {[
                 { v: "3",      l: "search phases" },
-                { v: "36/36",  l: "tests passing" },
                 { v: "<100ms", l: "cache hit" },
               ].map((s) => (
                 <div key={s.l}>

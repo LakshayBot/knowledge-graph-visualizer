@@ -173,17 +173,16 @@ export default function Features() {
       </motion.div>
 
       {/* Stat bar */}
-      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(3, 1fr)" : "repeat(3, 1fr)", borderTop: "1px solid var(--border)" }}>
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(2, 1fr)", borderTop: "1px solid var(--border)" }}>
         {[
           { val: "<100ms", label: "Cache hit latency", color: "#00694a" },
           { val: "0.70",   label: "Semantic threshold", color: "#4f6073" },
-          { val: "36/36",  label: "Tests passing",      color: "#9f3d00" },
         ].map((s, i) => (
           <div
             key={s.label}
             style={{
               padding: isMobile ? "16px 12px" : "22px 28px",
-              borderRight: i < 2 ? "1px solid var(--border)" : "none",
+              borderRight: i < 1 ? "1px solid var(--border)" : "none",
               display: "flex",
               alignItems: "center",
               gap: 12,

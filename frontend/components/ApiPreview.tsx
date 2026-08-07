@@ -44,7 +44,6 @@ const stats = [
   { value: "3",      label: "Search phases" },
   { value: "0.70",   label: "Semantic threshold" },
   { value: "<100ms", label: "Cache latency" },
-  { value: "36/36",  label: "Tests passing" },
 ];
 
 function TitleBar({ label }: { label: string }) {
@@ -122,7 +121,7 @@ export default function ApiPreview() {
   const isNarrow = isMobile || isTablet;
 
   const px = isMobile ? "20px" : isTablet ? "28px" : "40px";
-  const statCols = isMobile ? 2 : 4;
+  const statCols = isMobile ? 2 : 3;
 
   function copyEndpoint() {
     navigator.clipboard.writeText("GET /api/v1/EventNodes/search?q=why+is+rupee+falling&mode=balanced&count=10");

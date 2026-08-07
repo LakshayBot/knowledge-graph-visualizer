@@ -4,7 +4,6 @@ export default function MarqueeBanner() {
     "Powered by Grok AI",
     "Three-Phase Retrieval",
     "Neo4j · Qdrant · Redis",
-    "36/36 Tests Passing",
     "Clean Architecture",
   ];
   const repeated = [...items, ...items, ...items, ...items];
