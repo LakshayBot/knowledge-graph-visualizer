@@ -34,6 +34,13 @@ internal sealed class ApiKeyCommandHandlers :
         "openai", "claude", "gemini", "copilot"
     };
 
+    // Providers that run fully local and never require an API key.
+    // Key management is intentionally not offered for these providers.
+    private static readonly HashSet<string> KeylessProviders = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "ollama"
+    };
+
     // Provider display names
     private static readonly Dictionary<string, string> ProviderDisplayNames = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -77,6 +84,13 @@ internal sealed class ApiKeyCommandHandlers :
                 new FluentValidation.Results.ValidationFailure(
                     nameof(request.Provider),
                     $"{ProviderDisplayNames.GetValueOrDefault(provider, provider)} is coming soon — API keys are not yet accepted for this provider.")
+            ]);
+
+        if (KeylessProviders.Contains(provider))
+            throw new ValidationException([
+                new FluentValidation.Results.ValidationFailure(
+                    nameof(request.Provider),
+                    $"{ProviderDisplayNames.GetValueOrDefault(provider, provider)} runs fully local and does not require an API key.")
             ]);
 
         if (string.IsNullOrWhiteSpace(request.ApiKey))

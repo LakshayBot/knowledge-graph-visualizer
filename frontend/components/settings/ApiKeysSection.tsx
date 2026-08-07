@@ -27,6 +27,10 @@ const PROVIDER_ICONS: Record<string, string> = {
   ollama: "🏠",
 };
 
+// Providers that run fully local and never require an API key —
+// listed for visibility, but key management is not offered.
+const KEYLESS_PROVIDERS = new Set(["ollama"]);
+
 /* ── Component ──────────────────────────────────────────────── */
 
 export default function ApiKeysSection() {
@@ -148,6 +152,7 @@ export default function ApiKeysSection() {
       {keys.map((k) => {
         const isEditing = editingProvider === k.provider;
         const icon = PROVIDER_ICONS[k.provider] || "🔑";
+        const isKeyless = KEYLESS_PROVIDERS.has(k.provider);
 
         return (
           <div
@@ -187,6 +192,16 @@ export default function ApiKeysSection() {
                       }}
                     >
                       Available soon — stay tuned
+                    </p>
+                  ) : isKeyless ? (
+                    <p
+                      style={{
+                        margin: "2px 0 0",
+                        fontSize: 12,
+                        color: "var(--text-4)",
+                      }}
+                    >
+                      Runs fully local — no key required
                     </p>
                   ) : !k.hasKey ? (
                     <p
@@ -235,6 +250,22 @@ export default function ApiKeysSection() {
                 >
                   <Clock size={12} /> Coming Soon
                 </span>
+              ) : isKeyless ? (
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 4,
+                    padding: "4px 10px",
+                    borderRadius: 20,
+                    fontSize: 11,
+                    fontWeight: 600,
+                    background: "rgba(255,181,150,0.12)",
+                    color: "var(--brand)",
+                  }}
+                >
+                  <Check size={12} /> No key needed
+                </span>
               ) : k.hasKey && k.isActive ? (
                 <span
                   style={{
@@ -272,7 +303,26 @@ export default function ApiKeysSection() {
 
             {/* Actions */}
             <div style={{ flexShrink: 0, display: "flex", gap: 6 }}>
-              {k.isComingSoon ? (
+              {isKeyless ? (
+                <span
+                  style={{
+                    padding: "6px 14px",
+                    background: "transparent",
+                    border: "1px dashed var(--border)",
+                    borderRadius: 6,
+                    color: "var(--text-4)",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 4,
+                    fontSize: 12,
+                    fontWeight: 500,
+                    fontFamily: "inherit",
+                    cursor: "default",
+                  }}
+                >
+                  <Check size={14} /> Local
+                </span>
+              ) : k.isComingSoon ? (
                 <span
                   style={{
                     padding: "6px 14px",
