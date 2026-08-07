@@ -39,9 +39,41 @@ public sealed class PerformanceBehavior<TRequest, TResponse>
                 typeof(TRequest).Name,
                 sw.ElapsedMilliseconds,
                 SlowRequestThresholdMs,
-                request);
+                Redact(request));
         }
 
         return response;
+    }
+
+    /// <summary>
+    /// Deep-redacts sensitive properties (Turnstile tokens) from request logging.
+    /// </summary>
+    private static object Redact(object request)
+    {
+        const string redacted = "***";
+        var type = request.GetType();
+        var output = new Dictionary<string, object?>(StringComparer.Ordinal);
+
+        foreach (var prop in type.GetProperties())
+        {
+            if (prop.Name.Contains("Turnstile", StringComparison.OrdinalIgnoreCase))
+            {
+                output[prop.Name] = redacted;
+                continue;
+            }
+
+            var value = prop.GetValue(request);
+            if (value is not null &&
+                value is string s &&
+                (s.Length > 64 || prop.Name.Contains("Token", StringComparison.OrdinalIgnoreCase) || prop.Name.Contains("Secret", StringComparison.OrdinalIgnoreCase)))
+            {
+                output[prop.Name] = redacted;
+                continue;
+            }
+
+            output[prop.Name] = value;
+        }
+
+        return output;
     }
 }

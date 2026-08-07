@@ -1,34 +1,43 @@
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using CasualExplorer.Application.Common.Interfaces;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using StackExchange.Redis;
 
 namespace CasualExplorer.Infrastructure.Security;
 
 /// <summary>
 /// Server-side Cloudflare Turnstile verification.
 /// Browser → user's backend → siteverify (never from the browser directly).
+/// Additionally enforces single-use locally via Redis so a replayed token is
+/// rejected deterministically, independent of siteverify's duplicate detection.
 /// </summary>
 public sealed class TurnstileVerifier : ITurnstileVerifier
 {
     private const string SiteVerifyUrl = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
     private const int MaxTokenLength = 2048;
+    private static readonly TimeSpan ReplayGuardTtl = TimeSpan.FromSeconds(300);
 
     private readonly HttpClient _http;
     private readonly IConfiguration _config;
     private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly IConnectionMultiplexer _redis;
     private readonly ILogger<TurnstileVerifier> _logger;
 
     public TurnstileVerifier(
         HttpClient http,
         IConfiguration config,
         IHttpContextAccessor httpContextAccessor,
+        IConnectionMultiplexer redis,
         ILogger<TurnstileVerifier> logger)
     {
         _http                = http;
         _config              = config;
         _httpContextAccessor = httpContextAccessor;
+        _redis               = redis;
         _logger              = logger;
     }
 
@@ -107,6 +116,27 @@ public sealed class TurnstileVerifier : ITurnstileVerifier
             if (string.IsNullOrEmpty(hostname) || !allowedHostnames.Contains(hostname, StringComparer.OrdinalIgnoreCase))
             {
                 _logger.LogWarning("Turnstile hostname mismatch: {Hostname} not in allowlist.", hostname);
+                return false;
+            }
+
+            // ── Local single-use enforcement (defense in depth) ──────────────
+            // Reject if this exact token was already redeemed, regardless of
+            // siteverify's duplicate-detection timing.
+            var tokenKey = "turnstile:used:" + Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token)));
+            bool firstUse;
+            try
+            {
+                firstUse = await _redis.GetDatabase().StringSetAsync(tokenKey, "1", ReplayGuardTtl, When.NotExists);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Turnstile replay guard unavailable; failing closed for action {Action}.", expectedAction);
+                return false;
+            }
+
+            if (!firstUse)
+            {
+                _logger.LogWarning("Turnstile replay detected: token already redeemed for action {Action}.", expectedAction);
                 return false;
             }
 
