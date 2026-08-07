@@ -1,4 +1,5 @@
 using CasualExplorer.Application.Common.Interfaces;
+using CasualExplorer.Infrastructure.Security;
 using CasualExplorer.Domain.Interfaces;
 using CasualExplorer.Infrastructure.AI;
 using CasualExplorer.Infrastructure.Analytics;
@@ -44,6 +45,7 @@ public static class DependencyInjection
             .AddAiKeyContext()
             .AddAiService(configuration)
             .AddAnalyticsService(configuration)
+            .AddTurnstileVerifier()
             .AddVectorSearch(configuration)
             .AddIdentityServices(configuration);
 
@@ -190,6 +192,22 @@ public static class DependencyInjection
 
         services.AddScoped<IAnalyticsService>(sp =>
             sp.GetRequiredService<AnalyticsService>());
+
+        return services;
+    }
+
+    // ── Turnstile bot protection ─────────────────────────────────────────────
+
+    private static IServiceCollection AddTurnstileVerifier(
+        this IServiceCollection services)
+    {
+        services.AddHttpClient<TurnstileVerifier>(client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(15);
+        });
+
+        services.AddScoped<ITurnstileVerifier>(sp =>
+            sp.GetRequiredService<TurnstileVerifier>());
 
         return services;
     }

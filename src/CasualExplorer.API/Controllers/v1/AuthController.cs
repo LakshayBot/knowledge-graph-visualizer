@@ -1,6 +1,7 @@
 using Asp.Versioning;
 using CasualExplorer.Application.Auth.Commands;
 using CasualExplorer.Application.Auth.DTOs;
+using CasualExplorer.Application.Common.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -9,11 +10,18 @@ namespace CasualExplorer.API.Controllers.v1;
 
 /// <summary>
 /// Handles user registration, login, token refresh, and token revocation.
+/// Register and login are gated by Cloudflare Turnstile when configured.
 /// </summary>
 [ApiVersion("1.0")]
 [EnableRateLimiting(RateLimitPolicies.Anonymous)]
 public sealed class AuthController : ApiControllerBase
 {
+    private readonly ITurnstileVerifier _turnstile;
+
+    /// <summary>Initialises the controller with the Turnstile verifier.</summary>
+    public AuthController(ITurnstileVerifier turnstile)
+        => _turnstile = turnstile;
+
     /// <summary>
     /// Registers a new user account and returns an initial token pair.
     /// </summary>
@@ -21,16 +29,21 @@ public sealed class AuthController : ApiControllerBase
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <response code="201">User registered. Returns access and refresh tokens.</response>
     /// <response code="400">Validation error or email already in use.</response>
+    /// <response code="403">Turnstile verification failed.</response>
     /// <response code="409">Email already registered.</response>
     [HttpPost("register")]
     [AllowAnonymous]
     [ProducesResponseType(typeof(AuthResultDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Register(
         [FromBody] RegisterCommand command,
         CancellationToken cancellationToken = default)
     {
+        if (!await _turnstile.VerifyAsync("signup", command.TurnstileToken, cancellationToken))
+            return StatusCode(StatusCodes.Status403Forbidden, new { detail = "Verification failed. Please try again." });
+
         var result = await Sender.Send(command, cancellationToken);
         return StatusCode(StatusCodes.Status201Created, result);
     }
@@ -42,14 +55,19 @@ public sealed class AuthController : ApiControllerBase
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <response code="200">Login successful. Returns token pair.</response>
     /// <response code="400">Invalid credentials.</response>
+    /// <response code="403">Turnstile verification failed.</response>
     [HttpPost("login")]
     [AllowAnonymous]
     [ProducesResponseType(typeof(AuthResultDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> Login(
         [FromBody] LoginCommand command,
         CancellationToken cancellationToken = default)
     {
+        if (!await _turnstile.VerifyAsync("login", command.TurnstileToken, cancellationToken))
+            return StatusCode(StatusCodes.Status403Forbidden, new { detail = "Verification failed. Please try again." });
+
         var result = await Sender.Send(command, cancellationToken);
         return Ok(result);
     }

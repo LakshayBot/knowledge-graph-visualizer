@@ -8,13 +8,15 @@ public sealed record RegisterCommand(
     string Email,
     string Username,
     string Password,
-    string ConfirmPassword
+    string ConfirmPassword,
+    string? TurnstileToken = null
 ) : IRequest<AuthResultDto>;
 
 /// <summary>Command to authenticate a user and issue a token pair.</summary>
 public sealed record LoginCommand(
     string Email,
-    string Password
+    string Password,
+    string? TurnstileToken = null
 ) : IRequest<AuthResultDto>;
 
 /// <summary>Command to refresh an access token using a valid refresh token.</summary>

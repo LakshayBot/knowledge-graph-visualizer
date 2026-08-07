@@ -48,12 +48,13 @@ function decodeJwt(token: string): User | null {
 }
 
 interface AuthContextValue extends AuthState {
-  login: (email: string, password: string) => Promise<{ error?: string }>;
+  login: (email: string, password: string, turnstileToken?: string) => Promise<{ error?: string }>;
   register_(
     email: string,
     username: string,
     password: string,
     confirmPassword: string,
+    turnstileToken?: string,
   ): Promise<{ error?: string }>;
   logout: () => void;
   getAccessToken: () => string | null;
@@ -114,13 +115,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     dispatch({ type: "SET_LOADING", payload: false });
   }, []);
 
-  const login = useCallback(async (email: string, password: string) => {
+  const login = useCallback(async (email: string, password: string, turnstileToken?: string) => {
     dispatch({ type: "SET_LOADING", payload: true });
     try {
       const res = await fetch(`${API_BASE}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, turnstileToken }),
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
@@ -146,13 +147,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const register_ = useCallback(
-    async (email: string, username: string, password: string, confirmPassword: string) => {
+    async (email: string, username: string, password: string, confirmPassword: string, turnstileToken?: string) => {
       dispatch({ type: "SET_LOADING", payload: true });
       try {
         const res = await fetch(`${API_BASE}/auth/register`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, username, password, confirmPassword }),
+          body: JSON.stringify({ email, username, password, confirmPassword, turnstileToken }),
         });
         const body = await res.json().catch(() => ({}));
         dispatch({ type: "SET_LOADING", payload: false });

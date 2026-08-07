@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import Input from "@/components/shared/Input";
 import Button from "@/components/shared/Button";
+import TurnstileWidget, { TURNSTILE_ENABLED, type TurnstileHandle } from "./TurnstileWidget";
 
 export default function LoginForm() {
   const { login, loading } = useAuth();
@@ -12,6 +13,8 @@ export default function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [turnstileToken, setTurnstileToken] = useState("");
+  const turnstileRef = useRef<TurnstileHandle>(null);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -20,7 +23,8 @@ export default function LoginForm() {
       setError("Email and password are required.");
       return;
     }
-    const result = await login(email, password);
+    const result = await login(email, password, turnstileToken);
+    turnstileRef.current?.reset();
     if (result.error) {
       setError(result.error);
     } else {
@@ -70,7 +74,13 @@ export default function LoginForm() {
           {error}
         </div>
       )}
-      <Button type="submit" loading={loading} style={{ width: "100%", marginTop: 4 }}>
+      <TurnstileWidget ref={turnstileRef} action="login" onToken={setTurnstileToken} />
+      <Button
+        type="submit"
+        loading={loading}
+        disabled={TURNSTILE_ENABLED && !turnstileToken}
+        style={{ width: "100%", marginTop: 4 }}
+      >
         Sign In
       </Button>
     </form>
