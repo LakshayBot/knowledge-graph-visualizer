@@ -59,7 +59,7 @@ export default function About() {
           <p style={{ fontSize: 14, lineHeight: 1.75, color: "var(--text-3)", marginBottom: 16, maxWidth: 460 }}>
             Graph Sight is a production-grade API system that turns natural-language
             questions into structured casual knowledge graphs. It combines a{" "}
-            <strong style={{ color: "var(--text-1)", fontWeight: 700 }}>.NET 8 Clean Architecture backend</strong>,
+            <strong style={{ color: "var(--text-1)", fontWeight: 700 }}>.NET 8 backend</strong>,
             a{" "}
             <strong style={{ color: "var(--text-1)", fontWeight: 700 }}>Python FastAPI AI sidecar</strong>, and
             five backing services — Neo4j, Qdrant, Ollama, Redis, and PostgreSQL — all orchestrated in Docker.

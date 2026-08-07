@@ -140,15 +140,17 @@ export default function Features() {
             colBottom: false,
           },
           {
-            tag: "Engineering",
-            title: "Clean Architecture API",
-            desc: ".NET 8 CQRS via MediatR, FluentValidation, EF Core + PostgreSQL, Python FastAPI sidecar.",
+            tag: "Analysis",
+            title: "What-If Simulation",
+            desc: "Remove an event from the graph and watch its causal impact recalculate in real time — undo anytime.",
             extra: (
-              <div style={{ marginTop: 14 }}>
-                <code style={{ fontSize: 10, fontFamily: "monospace", color: "var(--text-4)", lineHeight: 1.5 }}>
-                  Domain → Application
-                  <br />→ Infrastructure → API
-                </code>
+              <div style={{ marginTop: 14, display: "flex", gap: 4, fontSize: 9, fontFamily: "monospace", fontWeight: 700, color: "var(--text-4)", textTransform: "uppercase" as const, flexWrap: "wrap" as const }}>
+                {["Impact Analysis", "Undo / Redo", "Edge Recount"].map((s, i, arr) => (
+                  <span key={i} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                    <span style={{ padding: "3px 6px", background: "var(--bg-subtle)", border: "1px solid var(--border)" }}>{s}</span>
+                    {i < arr.length - 1 && <span style={{ opacity: 0.4 }}>→</span>}
+                  </span>
+                ))}
               </div>
             ),
             colRight: false,
